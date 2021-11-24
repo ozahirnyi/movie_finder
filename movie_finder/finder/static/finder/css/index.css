@@ -3,25 +3,62 @@ html, body {
     padding: 0;
     height: 100%;
     width: 100%;
+    background-image: url("../img/fon.jpg");
 }
 
 h1 {
     text-align: center;
 }
-
 table {
-    border: 1px solid black;
+    border: 10px solid orange;
     text-align: center;
-    margin: auto;
+    margin: 50px auto;
+    background: antiquewhite;
 }
 
 td, th {
-    border: solid 1px black;
+    border: 1px solid orange;
+    width: 400px;
 
 }
 
-th {
-    text: bold;
+
+
+/*login_page*/
+
+.login_page form {
+    margin-top: 100px;
+    text-align: center;
 }
+.login_page table {
+    border: 0;
+    background: none;
+}
+.login_page td {
+    border: 0;
+    width: auto;
+    padding: 5px;
+}
+
+INPUT[type="text"] {
+    background-color: navy;
+    color: #ffe;
+   }
+INPUT[type="text"]:focus {
+  background: red;
+}
+INPUT[type="submit"] {
+    margin-top: 10px;
+   }
+.login_page .res_password {
+    text-align: center;
+    color: darkgray;
+}
+label {
+    font-size: 25px;
+    color: #ff5a12;
+
+}
+
 
 
