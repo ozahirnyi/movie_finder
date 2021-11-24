@@ -1,20 +1,25 @@
-body {
-    background: linear-gradient(blue, yellow );
-    background-size: 100%;
-    height: 100vh;
+html, body {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    width: 100%;
 }
+
 h1 {
     text-align: center;
 }
+
 table {
     border: 1px solid black;
     text-align: center;
     margin: auto;
 }
-td, th{
+
+td, th {
     border: solid 1px black;
 
 }
+
 th {
     text: bold;
 }
