@@ -16,8 +16,11 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path
 from finder.views import index
+from django.contrib.auth import views
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('', index)
+    path('', index),
+    path('login/', views.LoginView.as_view()),
+    path('logout/', views.LogoutView.as_view())
 ]
