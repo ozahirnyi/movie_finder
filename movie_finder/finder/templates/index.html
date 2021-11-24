@@ -5,9 +5,17 @@
     <title>Title</title>
 </head>
 <body>
-    {% for movie in movies %}
-        Name: {{ movie }}<br/>
-        Actors: {% for actor in movie.actors.all %}{{ actor }}{% endfor %}<br/>
-    {% endfor %}
+    <table>
+        <tr>
+            <th>Name</th>
+            <th>Actors</th>
+        </tr>
+        {% for movie in movies %}
+            <tr>
+                <td>{{ movie }}</td>
+                <td>{% for actor in movie.actors.all %}{{ actor }} {% endfor %}</td>
+            </tr>
+        {% endfor %}
+    </table>
 </body>
 </html>
