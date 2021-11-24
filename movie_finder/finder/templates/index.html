@@ -6,7 +6,8 @@
 </head>
 <body>
     {% for movie in movies %}
-        {{ movie }}
+        Name: {{ movie }}<br/>
+        Actors: {% for actor in movie.actors.all %}{{ actor }}{% endfor %}<br/>
     {% endfor %}
 </body>
 </html>
