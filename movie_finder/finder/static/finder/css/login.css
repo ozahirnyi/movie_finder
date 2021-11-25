@@ -1,0 +1,44 @@
+html,body {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    width: 100%;
+    background-image: url("../img/fon.jpg");
+    background-size: cover;
+}
+table {
+    text-align: center;
+    margin: auto;
+    padding: 50px;
+    background: antiquewhite;
+}
+
+/*login_page*/
+
+.login_page form {
+    padding-top: 100px;
+    text-align: center;
+}
+.login_page table {
+    border: 0;
+    background: none;
+}
+.login_page td {
+    border: 0;
+    width: auto;
+    padding: 5px;
+}
+
+INPUT[type="submit"] {
+    margin-top: 10px;
+
+   }
+.login_page .res_password {
+    text-align: center;
+    color: darkgray;
+}
+label {
+    font-size: 25px;
+    color: #ff5f12;
+
+}
