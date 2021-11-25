@@ -4,6 +4,7 @@ html, body {
     height: 100%;
     width: 100%;
     background-image: url("../img/fon.jpg");
+    background-size:cover;
 }
 
 h1 {
@@ -45,7 +46,7 @@ INPUT[type="text"] {
     color: #ffe;
    }
 INPUT[type="text"]:focus {
-  background: red;
+    background: red;
 }
 INPUT[type="submit"] {
     margin-top: 10px;
@@ -58,6 +59,13 @@ label {
     font-size: 25px;
     color: #ff5f12;
 
+}
+/*navigator of site*/
+.bg-light {
+    background: orange !important;
+}
+.navbar-light .navbar-nav .nav-link {
+    color: black !important;
 }
 
 
