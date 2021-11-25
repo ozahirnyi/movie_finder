@@ -37,7 +37,8 @@ table {
     width: auto;
 
 }
-INPUT[type="text"] {
+
+.form INPUT[type="text"] {
     font-family: "Roboto", sans-serif;
     outline: 0;
     background: #f2f2f2;
@@ -49,7 +50,7 @@ INPUT[type="text"] {
     font-size: 14px;
 
 }
-INPUT[type="password"] {
+.form INPUT[type="password"] {
     font-family: "Roboto", sans-serif;
     outline: 0;
     background: #f2f2f2;
@@ -61,7 +62,7 @@ INPUT[type="password"] {
     width: 270px;
 
 }
-INPUT[type="submit"] {
+.form INPUT[type="submit"] {
     font-family: "Roboto", sans-serif;
     text-transform: uppercase;
     outline: 0;
@@ -78,7 +79,12 @@ INPUT[type="submit"] {
     text-align: center;
     color: darkgray;
 }
-p {
+.form p {
     margin-top: 10px;
+    margin-bottom: 0;
 
+}
+.registration_form a {
+    text-align: center;
+    color: darkgray;
 }
