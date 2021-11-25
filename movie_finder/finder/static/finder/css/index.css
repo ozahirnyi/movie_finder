@@ -4,12 +4,17 @@ html, body {
     height: 100%;
     width: 100%;
     background-image: url("../img/fon.jpg");
-    background-size:cover;
+    background-size: cover;
+    position: fixed;
+    background-position: center;
+    background-attachment: fixed;
+    font-family: 'Bebas Neue', cursive;
 }
 
 h1 {
     text-align: center;
 }
+
 table {
     border: 4px solid orange;
 
@@ -28,11 +33,64 @@ td, th {
 .bg-light {
     background: orange !important;
 }
+
 .navbar-light .navbar-nav .nav-link {
     color: black !important;
 }
+
 .navbar-light .navbar-nav .nav-link:hover {
-     color: wheat !important;
+    color: wheat !important;
+}
+
+input[type="submit"] {
+    position: fixed;
+    top: 13px;
+    right: 30px;
+    background-color: orange;
+    border: none;
+
+}
+input[type="submit"]:hover {
+    color: #FFFFFF;
+}
+
+@media (max-width: 992px) {
+    input[type="submit"] {
+        position: fixed;
+        top: 13px;
+        right: 80px;
+    }
+    p{
+        display: none;
+    }
 }
 
 
+img.rot {
+    animation: 1s linear 0s normal none infinite running rot;
+    -webkit-animation: 1s linear 0s normal none infinite running rot;
+    width: 70px;
+    border-radius: 50%;
+}
+p{
+
+    text-align: center
+}
+
+@keyframes rot {
+    0% {
+        transform: rotate(0deg);
+    }
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+@-webkit-keyframes rot {
+    0% {
+        transform: rotate(0deg);
+    }
+    100% {
+        transform: rotate(360deg);
+    }
+}

@@ -11,6 +11,7 @@ def index(request):
     return render(request, 'finder/index.html', context={'movies': movies})
 
 
+
 def registration(request):
     if request.POST == 'POST':
         form = CustomUserCreationForm()
