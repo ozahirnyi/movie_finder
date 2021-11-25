@@ -3,7 +3,7 @@ html,body {
     padding: 0;
     height: 100%;
     width: 100%;
-    background-image: url("../img/fon.jpg");
+    background-image: url("../finder/img/fon.jpg");
     background-size: cover;
 }
 table {
