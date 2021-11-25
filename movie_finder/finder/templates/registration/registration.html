@@ -1,0 +1,32 @@
+{% extends 'registration/main.html' %}
+{% block title %}
+    Registration
+{% endblock %}
+
+{% block content %}
+    <div class="reg_page">
+        <div class="form">
+            <form method="post" action="{% url 'register' %}">
+                {% csrf_token %}
+                <table class="align-middle">
+                    <tr>
+                        <td>{{ form.username }}</td>
+                    </tr>
+                    <tr>
+                        <td>{{ form.email }}</td>
+                    </tr>
+                    <tr>
+                    <tr>
+                        <td>{{ form.password1 }}</td>
+                    </tr>
+                    <tr>
+                        <td>{{ form.password2 }}</td>
+                    </tr>
+                </table>
+                <input type="submit" value="REGISTRATION"/>
+                <input type="hidden" name="next" value="{{ next }}"/>
+            </form>
+            {# Assumes you setup the password_reset view in your URLconf #}
+        </div>
+    </div>
+{% endblock %}
