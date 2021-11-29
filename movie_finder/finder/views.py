@@ -1,8 +1,9 @@
+from django.contrib.auth.decorators import login_required
+from django.contrib.auth.models import User
 from django.shortcuts import render
 
 from .forms import CustomUserCreationForm
 from .models import Movie
-from django.contrib.auth.decorators import login_required
 
 
 @login_required(login_url='/login/')
@@ -11,12 +12,15 @@ def index(request):
     return render(request, 'finder/index.html', context={'movies': movies})
 
 
-
 def registration(request):
-    if request.POST == 'POST':
-        form = CustomUserCreationForm()
+    if request.method == 'POST':
+        form = CustomUserCreationForm(request.POST)
         if form.is_valid():
-            form.save()
+            User.objects.create_user(
+                form.cleaned_data['username'],
+                form.data.get('email'),
+                form.cleaned_data['password1']
+            )
             return render(request, 'finder/index.html')
     else:
         form = CustomUserCreationForm()
