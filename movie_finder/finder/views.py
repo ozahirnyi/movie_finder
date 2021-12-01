@@ -12,16 +12,17 @@ from .models import Movie
 
 @login_required(login_url='/login/')
 def index(request):
-    url = "https://movie-database-imdb-alternative.p.rapidapi.com/"
-    querystring = {"s": "Avengers Endgame", "page": "1", "r": "json"}
-    headers = {
-        'x-rapidapi-host': django.conf.settings.KOSTILNIE_VARIABLES[
-            'X_RAPIDAPI_HOST'],
-        'x-rapidapi-key': django.conf.settings.KOSTILNIE_VARIABLES[
-            'X_RAPIDAPI_KEY']
-    }
-    response = requests.request("GET", url, headers=headers,
-                                params=querystring)
+    if request.method == 'POST':
+        url = "https://movie-database-imdb-alternative.p.rapidapi.com/"
+        querystring = {"s": "Avengers Endgame", "r": "json"}
+        headers = {
+            'x-rapidapi-host': django.conf.settings.KOSTILNIE_VARIABLES[
+                'X_RAPIDAPI_HOST'],
+            'x-rapidapi-key': django.conf.settings.KOSTILNIE_VARIABLES[
+                'X_RAPIDAPI_KEY']
+        }
+        # response = requests.request("GET", url, headers=headers,
+        #                             params=querystring)
     movies = Movie.objects.filter()
     return render(request, 'finder/index.html', context={'movies': movies})
 

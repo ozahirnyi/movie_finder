@@ -4,21 +4,27 @@
 {% endblock %}
 
 {% block content %}
-<table >
-    <tr>
-        <th>Pictures</th>
-        <th>Name</th>
-        <th>Actors</th>
-        <th>Description</th>
-    </tr>
-    {% for movie in movies %}
-    <tr>
-{#        <td><img src="{{ movie.banner_film }}" alt=""></td>#}
-        <td><img src="finder/img/film1.jpg" alt="" style="width: 150px"></td>
-        <td>{{ movie }}</td>
-        <td>{% for actor in movie.actors.all %} {{ actor }} {% endfor %}</td>
-        <td></td>
-    </tr>
-    {% endfor %}
-</table>
+    <form method="post">
+        {% csrf_token %}
+        <label for="movie_name_to_find">Movie name</label>
+        <input id="movie_name_to_find" type="text" name="movie_name_to_find" value="{{ movie_name_to_find }}">
+        <input class=""type="submit" value="find"/>
+    </form>
+    <table>
+        <tr>
+            <th>Pictures</th>
+            <th>Name</th>
+            <th>Actors</th>
+            <th>Description</th>
+        </tr>
+        {% for movie in movies %}
+            <tr>
+                {#        <td><img src="{{ movie.banner_film }}" alt=""></td>#}
+                <td><img src="finder/img/film1.jpg" alt="" style="width: 150px"></td>
+                <td>{{ movie }}</td>
+                <td>{% for actor in movie.actors.all %} {{ actor }} {% endfor %}</td>
+                <td></td>
+            </tr>
+        {% endfor %}
+    </table>
 {% endblock %}
