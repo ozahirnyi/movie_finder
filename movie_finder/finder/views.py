@@ -7,7 +7,6 @@ from django.contrib.auth.models import User
 from django.shortcuts import render, redirect
 
 from .forms import CustomUserCreationForm
-from .models import Movie
 
 
 @login_required(login_url='/login/')
@@ -28,7 +27,8 @@ def index(request):
             movies = json.loads(response.text)['Search']
             return render(request, 'finder/index.html', context={'movies': movies})
         except KeyError:
-            return render(request, 'finder/index.html')
+            return render(request, 'finder/index.html',
+                          context={'messages': ['There are no any info for your request']})
     return render(request, 'finder/index.html')
 
 
