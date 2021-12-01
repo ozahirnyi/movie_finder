@@ -24,8 +24,11 @@ def index(request):
         }
         response = requests.request("GET", url, headers=headers,
                                     params=querystring)
-        movies = json.loads(response.text)['Search']
-        return render(request, 'finder/index.html', context={'movies': movies})
+        try:
+            movies = json.loads(response.text)['Search']
+            return render(request, 'finder/index.html', context={'movies': movies})
+        except KeyError:
+            return render(request, 'finder/index.html')
     return render(request, 'finder/index.html')
 
 
