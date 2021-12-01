@@ -10,7 +10,10 @@
         <input id="movie_name_to_find" type="text" name="movie_name_to_find" value="{{ movie_name_to_find }}">
         <input class="find" type="submit" value="find"/>
     </form>
-    <table>
+    {% for message in messages %}
+        {{ message }}<br>
+    {% endfor %}
+    <table
         <tr>
             <th>Pictures</th>
             <th>Name</th>
