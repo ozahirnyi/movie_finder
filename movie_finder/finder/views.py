@@ -9,11 +9,15 @@ from django.shortcuts import render, redirect
 from .forms import CustomUserCreationForm
 
 
-@login_required(login_url='/login/')
+@login_required(login_url=settings.LOGIN_PAGE_URL)
+def favorites(request):
+    return render(request, 'finder/favorites.html')
+
+
+@login_required(login_url=settings.LOGIN_PAGE_URL)
 def index(request):
     if request.method == 'POST':
         movie_to_find = request.POST['movie_name_to_find']
-        url = "https://movie-database-imdb-alternative.p.rapidapi.com/"
         querystring = {"s": movie_to_find, "r": "json"}
         headers = {
             'x-rapidapi-host': settings.KOSTILNIE_VARIABLES[
@@ -21,7 +25,7 @@ def index(request):
             'x-rapidapi-key': settings.KOSTILNIE_VARIABLES[
                 'X_RAPIDAPI_KEY']
         }
-        response = json.loads(requests.request("GET", url, headers=headers,
+        response = json.loads(requests.request("GET", settings.IMDB_API_URL, headers=headers,
                                                params=querystring).text)
         context = {'movies': response['Search']} if response.get('Search') else {
             'messages': ['There are no any info for your request']}
