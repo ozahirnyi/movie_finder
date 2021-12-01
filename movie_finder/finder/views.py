@@ -1,7 +1,7 @@
-import os
+import json
 
-import django.conf
 import requests
+from django.conf import settings
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.shortcuts import render, redirect
@@ -13,18 +13,20 @@ from .models import Movie
 @login_required(login_url='/login/')
 def index(request):
     if request.method == 'POST':
+        movie_to_find = request.POST['movie_name_to_find']
         url = "https://movie-database-imdb-alternative.p.rapidapi.com/"
-        querystring = {"s": "Avengers Endgame", "r": "json"}
+        querystring = {"s": movie_to_find, "r": "json"}
         headers = {
-            'x-rapidapi-host': django.conf.settings.KOSTILNIE_VARIABLES[
+            'x-rapidapi-host': settings.KOSTILNIE_VARIABLES[
                 'X_RAPIDAPI_HOST'],
-            'x-rapidapi-key': django.conf.settings.KOSTILNIE_VARIABLES[
+            'x-rapidapi-key': settings.KOSTILNIE_VARIABLES[
                 'X_RAPIDAPI_KEY']
         }
-        # response = requests.request("GET", url, headers=headers,
-        #                             params=querystring)
-    movies = Movie.objects.filter()
-    return render(request, 'finder/index.html', context={'movies': movies})
+        response = requests.request("GET", url, headers=headers,
+                                    params=querystring)
+        movies = json.loads(response.text)['Search']
+        return render(request, 'finder/index.html', context={'movies': movies})
+    return render(request, 'finder/index.html')
 
 
 def registration(request):
