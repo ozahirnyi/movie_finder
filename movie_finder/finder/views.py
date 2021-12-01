@@ -21,14 +21,11 @@ def index(request):
             'x-rapidapi-key': settings.KOSTILNIE_VARIABLES[
                 'X_RAPIDAPI_KEY']
         }
-        response = requests.request("GET", url, headers=headers,
-                                    params=querystring)
-        try:
-            movies = json.loads(response.text)['Search']
-            return render(request, 'finder/index.html', context={'movies': movies})
-        except KeyError:
-            return render(request, 'finder/index.html',
-                          context={'messages': ['There are no any info for your request']})
+        response = json.loads(requests.request("GET", url, headers=headers,
+                                               params=querystring).text)
+        context = {'messages': ['There are no any info for your request']} if not response.get('Search') else {
+            'movies': response['Search']}
+        return render(request, 'finder/index.html', context=context)
     return render(request, 'finder/index.html')
 
 
