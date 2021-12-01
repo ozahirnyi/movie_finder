@@ -9,7 +9,7 @@ html, body {
     background-position: center;
     background-attachment: fixed;
     font-family: 'Bebas Neue', cursive;
-    font-size: 25px;
+    font-size: 25px !important;
     overflow: auto;
 }
 
