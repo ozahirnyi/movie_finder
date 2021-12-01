@@ -32,6 +32,11 @@
         <div class="navbar-nav">
             <a class="nav-item nav-link" href="/favorites/">Favorites</a>
         </div>
+        <form method="post" action="{% url 'logout' %}">
+            {% csrf_token %}
+            <input class="out" type="submit" value="LOGOUT"/>
+            <input type="hidden" name="next" value="{{ logout }}"/>
+        </form>
         <div class="wrap">
             <form class="search" method="post">
                 {% csrf_token %}
@@ -41,11 +46,7 @@
                 <button class="searchButton" type="submit"></button>
             </form>
         </div>
-        <form method="post" action="{% url 'logout' %}">
-            {% csrf_token %}
-            <input class="out" type="submit" value="LOGOUT"/>
-            <input type="hidden" name="next" value="{{ logout }}"/>
-        </form>
+
     </div>
 </nav>
 

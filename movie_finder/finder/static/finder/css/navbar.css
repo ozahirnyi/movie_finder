@@ -2,9 +2,15 @@
 .navbar {
     padding: 0 !important;
 }
+
 .navbar-brand {
     font-size: 25px !important;
+    margin-left: 10px;
 }
+a.nav-item.nav-link{
+    margin-left: 10px;
+}
+
 img.rot {
     animation: 1s linear 0s normal none infinite running rot;
     -webkit-animation: 1s linear 0s normal none infinite running rot;
@@ -13,6 +19,7 @@ img.rot {
 
     margin: 15px 15px 0 15px;
 }
+
 .swag {
     text-align: center;
     margin-bottom: 10px !important;
@@ -53,25 +60,29 @@ img.rot {
 }
 
 input.out {
-    position: fixed;
-    top: 13px;
-    right: 30px;
     background-color: orange;
     border: none;
+    margin: 0 0 15px 10px;
+    padding: 0;
 }
 
 input.out:hover {
     color: #FFFFFF;
 }
 
-@media (max-width: 992px) {
+@media (min-width: 992px) {
     input.out {
         position: fixed;
         top: 13px;
-        right: 80px;
+        right: 30px;
     }
 
-    p {
+
+}
+
+@media (max-width: 992px) {
+    .swag {
         display: none;
     }
+
 }
