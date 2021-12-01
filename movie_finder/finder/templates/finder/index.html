@@ -13,7 +13,7 @@
     {% for message in messages %}
         {{ message }}<br>
     {% endfor %}
-    <table
+    <table>
         <tr>
             <th>Pictures</th>
             <th>Name</th>
@@ -23,7 +23,7 @@
         {% for movie in movies %}
             <tr>
                 <td><img src="{{ movie.Poster }}" alt="Oops.." style="width: 150px"></td>
-                <td>{{ movie.Title }}</td>
+                <td><a href="https://www.imdb.com/title/{{ movie.imdbID }}/">{{ movie.Title }}</a></td>
 {#                <td>{% for actor in movie.actors.all %} {{ actor }} {% endfor %}</td>#}
                 <td>{{ movie.Type }}</td>
                 <td>{{ movie.Year }}</td>

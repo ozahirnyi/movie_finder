@@ -23,8 +23,8 @@ def index(request):
         }
         response = json.loads(requests.request("GET", url, headers=headers,
                                                params=querystring).text)
-        context = {'messages': ['There are no any info for your request']} if not response.get('Search') else {
-            'movies': response['Search']}
+        context = {'movies': response['Search']} if response.get('Search') else {
+            'messages': ['There are no any info for your request']}
         return render(request, 'finder/index.html', context=context)
     return render(request, 'finder/index.html')
 
