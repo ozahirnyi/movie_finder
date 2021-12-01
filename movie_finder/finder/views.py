@@ -21,7 +21,7 @@ def registration(request):
                 form.data.get('email'),
                 form.cleaned_data['password1']
             )
-            return render(request, 'finder/index.html')
+            return render(request, 'registration/login.html')
     else:
         form = CustomUserCreationForm()
     context = {'form': form}

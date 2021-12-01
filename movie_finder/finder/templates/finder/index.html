@@ -14,7 +14,7 @@
     {% for movie in movies %}
     <tr>
 {#        <td><img src="{{ movie.banner_film }}" alt=""></td>#}
-        <td><img src="../../static/finder/img/film2.jpg" alt="" style="width: 150px"></td>
+        <td><img src="finder/img/film1.jpg" alt="" style="width: 150px"></td>
         <td>{{ movie }}</td>
         <td>{% for actor in movie.actors.all %} {{ actor }} {% endfor %}</td>
         <td></td>
