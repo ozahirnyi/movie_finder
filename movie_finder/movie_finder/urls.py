@@ -15,7 +15,7 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path
-from finder.views import index, registration
+from finder.views import index, registration, favorites
 from django.contrib.auth import views
 
 urlpatterns = [
@@ -30,5 +30,5 @@ urlpatterns = [
     path('password-reset/done/', views.PasswordResetDoneView.as_view(), name='password_reset_done'),
     path('reset/<uidb64>/<token>/', views.PasswordResetConfirmView.as_view(), name='password_reset_confirm'),
     path('reset/done/', views.PasswordResetCompleteView.as_view(), name='password_reset_complete'),
-
+    path('favorites/', favorites, name='favorites')
 ]
