@@ -6,7 +6,7 @@
 
 .searchTerm {
     width: 100%;
-    border: 3px solid #9e0098;
+    border: 3px solid black;
     border-right: none;
     padding: 5px;
     height: 36px;
@@ -21,17 +21,17 @@
 .searchButton {
     width: 40px;
     height: 36px;
-    border: 1px solid #9e0098;
-    background: #9e0098;
+    border: 1px solid black;
+    background: black;
     text-align: center;
-    color: #eeeeee;
+    color: orange;
     border-radius: 0 5px 5px 0;
     cursor: pointer;
     font-size: 20px;
 }
 .searchButton:before {
-    content: "\f002";
-    font: normal normal normal 14px/1 FontAwesome;
+    content: "\2746";
+    font: normal normal normal 18px/1 FontAwesome;
     color: #F9F0DA;
 }
 
