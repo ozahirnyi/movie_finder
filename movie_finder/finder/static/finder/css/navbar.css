@@ -64,6 +64,7 @@ input.out {
     border: none;
     margin: 0 0 15px 10px;
     padding: 0;
+    position: relative;
 }
 
 input.out:hover {
@@ -72,8 +73,8 @@ input.out:hover {
 
 @media (min-width: 992px) {
     input.out {
-        position: fixed;
-        top: 13px;
+        position: absolute;
+        top: 30px;
         right: 30px;
     }
 
