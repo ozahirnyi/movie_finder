@@ -29,14 +29,38 @@
     cursor: pointer;
     font-size: 20px;
 }
-.searchButton:before {
-    content: "\2746";
-    font: normal normal normal 18px/1 FontAwesome;
-    color: #F9F0DA;
-}
+/*.searchButton:before {*/
+/*    content: "\2746";*/
+/*    font: normal normal normal 18px/1 FontAwesome;*/
+/*    color: #F9F0DA;*/
+/*}*/
 
 @media (max-width: 992px) {
     .wrap {
         margin: 0 10px 10px 10px;
     }
+}
+
+.magnifying-glass {
+    position: relative;
+    width: 15px;
+    height: 15px;
+    box-sizing: border-box;
+    background-color: white;
+    border: 2px solid orange;
+    border-radius: 50%;
+    bottom: 3px;
+}
+
+.magnifying-glass:after {
+    content: "";
+    position: absolute;
+    bottom: 0;
+    right: 2px;
+    width: 10px;
+    height: 3px;
+    background-color: orange;
+    border-radius: 0 7.5px 7.5px 0;
+    transform-origin: 0 50%;
+    transform: translateX(100%) rotate(45deg);
 }
