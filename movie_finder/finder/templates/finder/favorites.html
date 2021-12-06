@@ -3,5 +3,16 @@
     <title>Favorites</title>
 {% endblock %}
 {% block content %}
-    Tut chto-to budet..
+    <table>
+        {% for movie in favorite_movies %}
+                <tr>
+                    <td><img src="{{ movie.title }}" alt="Oops.." style="width: 150px"></td>
+                    <td>
+                        <a href="https://www.imdb.com/title/{{ movie.imdb_id }}/">{{ movie.Title }}</a>
+                    </td>
+                    <td>{{ movie.type }}</td>
+                    <td>{{ movie.year }}</td>
+                </tr>
+        {% endfor %}
+    </table>
 {% endblock %}
