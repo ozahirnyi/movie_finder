@@ -18,7 +18,14 @@
         {% for movie in movies %}
             <tr>
                 <td><img src="{{ movie.Poster }}" alt="Oops.." style="width: 150px"></td>
-                <td><a href="https://www.imdb.com/title/{{ movie.imdbID }}/">{{ movie.Title }}</a></td>
+                <td>
+                    <a href="https://www.imdb.com/title/{{ movie.imdbID }}/">{{ movie.Title }}</a>
+                    <form method="post">
+                        {% csrf_token %}
+                        <input class="add_to_favorite" type="submit" value="Add to favorites"/>
+                        <input type="hidden" name="movie_to_favorites" value="{{ movie }}"/>
+                    </form>
+                </td>
 {#                <td>{% for actor in movie.actors.all %} {{ actor }} {% endfor %}</td>#}
                 <td>{{ movie.Type }}</td>
                 <td>{{ movie.Year }}</td>
