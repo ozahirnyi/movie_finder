@@ -9,14 +9,19 @@
         <th>Type</th>
         <th>Year</th>
         {% for movie in favorite_movies %}
-                <tr>
-                    <td><img src="{{ movie.poster }}" alt="Oops.." style="width: 150px"></td>
-                    <td>
-                        <a href="https://www.imdb.com/title/{{ movie.imdbID }}/">{{ movie.title }}</a>
-                    </td>
-                    <td>{{ movie.type }}</td>
-                    <td>{{ movie.year }}</td>
-                </tr>
+            <tr>
+                <td><img src="{{ movie.poster }}" alt="Oops.." style="width: 150px"></td>
+                <td>
+                    <a href="https://www.imdb.com/title/{{ movie.imdbID }}/">{{ movie.title }}</a>
+                    <form class="del_favorite" method="post">
+                    {% csrf_token %}
+                    <input class="delete_from_favorite" type="submit" value="Delete from favorites"/>
+                    <input type="hidden" name="movie_from_favorites" value="{{ movie }}"/>
+                </form>
+                </td>
+                <td>{{ movie.type }}</td>
+                <td>{{ movie.year }}</td>
+            </tr>
         {% endfor %}
     </table>
 {% endblock %}

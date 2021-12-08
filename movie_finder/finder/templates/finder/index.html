@@ -20,7 +20,7 @@
                 <td><img src="{{ movie.Poster }}" alt="Oops.." style="width: 150px"></td>
                 <td>
                     <a href="https://www.imdb.com/title/{{ movie.imdbID }}/">{{ movie.Title }}</a>
-                    <form class="favourite" method="post">
+                    <form class="favorite" method="post">
                         {% csrf_token %}
                         <input class="add_to_favorite" type="submit" value="Add to favorites"/>
                         <input type="hidden" name="movie_to_favorites" value="{{ movie }}"/>
