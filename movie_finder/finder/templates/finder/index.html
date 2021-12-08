@@ -10,8 +10,8 @@
     {% endfor %}
     <table>
         <tr>
-            <th>Pictures</th>
-            <th>Name</th>
+            <th>Poster</th>
+            <th>Title</th>
             <th>Type</th>
             <th>Year</th>
         </tr>
@@ -26,7 +26,6 @@
                         <input type="hidden" name="movie_to_favorites" value="{{ movie }}"/>
                     </form>
                 </td>
-{#                <td>{% for actor in movie.actors.all %} {{ actor }} {% endfor %}</td>#}
                 <td>{{ movie.Type }}</td>
                 <td>{{ movie.Year }}</td>
             </tr>

@@ -27,6 +27,7 @@ def add_to_favorites(movie, user):
                                      imdb_id=movie['imdbID'],
                                      year=movie['Year'],
                                      type=movie['Type'],
+                                     poster=movie['Poster'],
                                      user=user)
 
 

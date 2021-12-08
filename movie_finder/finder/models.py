@@ -8,6 +8,7 @@ class FavoriteMovieUser(models.Model):
     wiki_link = models.CharField(max_length=255)
     year = models.CharField(max_length=16)
     type = models.CharField(max_length=128)
+    poster = models.CharField(max_length=255, null=True)
     user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
 
     def __str__(self):

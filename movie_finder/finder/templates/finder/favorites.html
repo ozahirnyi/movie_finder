@@ -4,11 +4,15 @@
 {% endblock %}
 {% block content %}
     <table>
+        <th>Poster</th>
+        <th>Title</th>
+        <th>Type</th>
+        <th>Year</th>
         {% for movie in favorite_movies %}
                 <tr>
-                    <td><img src="{{ movie.title }}" alt="Oops.." style="width: 150px"></td>
+                    <td><img src="{{ movie.poster }}" alt="Oops.." style="width: 150px"></td>
                     <td>
-                        <a href="https://www.imdb.com/title/{{ movie.imdb_id }}/">{{ movie.Title }}</a>
+                        <a href="https://www.imdb.com/title/{{ movie.imdbID }}/">{{ movie.title }}</a>
                     </td>
                     <td>{{ movie.type }}</td>
                     <td>{{ movie.year }}</td>
