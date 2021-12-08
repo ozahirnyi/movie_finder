@@ -14,14 +14,20 @@
                 <td>
                     <a href="https://www.imdb.com/title/{{ movie.imdbID }}/">{{ movie.title }}</a>
                     <form class="del_favorite" method="post">
-                    {% csrf_token %}
-                    <input class="delete_from_favorite" type="submit" value="Delete from favorites"/>
-                    <input type="hidden" name="movie_from_favorites" value="{{ movie }}"/>
-                </form>
+                        {% csrf_token %}
+                        <input id="delete-fav" class="delete_from_favorite" type="submit"
+                               value="Delete from favorites"/>
+                        <input type="hidden" name="movie_from_favorites" value="{{ movie }}"/>
+                    </form>
                 </td>
                 <td>{{ movie.type }}</td>
                 <td>{{ movie.year }}</td>
             </tr>
         {% endfor %}
     </table>
+    <div id="myModal">
+        <p id="del_mov">Movie deleted</p>
+        <span id="myModal__close" class="close">&#9766;</span>
+    </div>
+    <div id="myOverlay"></div>
 {% endblock %}
