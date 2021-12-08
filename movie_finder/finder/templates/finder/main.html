@@ -37,20 +37,20 @@
             <input class="out" type="submit" value="LOGOUT"/>
             <input type="hidden" name="next" value="{{ logout }}"/>
         </form>
-        <div class="wrap">
-            <form class="search" method="post">
-                {% csrf_token %}
-                {#           <label for="movie_name_to_find">Movie name</label>#}
-                <input class="searchTerm" id="movie_name_to_find" type="text" name="movie_name_to_find"
-                       value="{{ movie_name_to_find }}">
-                <button class="searchButton" type="submit">
-                    <div class="magnifying-glass"></div>
-                </button>
-            </form>
-        </div>
-
     </div>
 </nav>
+
+<div class="wrap">
+    <form class="search" method="post">
+        {% csrf_token %}
+        {#           <label for="movie_name_to_find">Movie name</label>#}
+        <input class="searchTerm" id="movie_name_to_find" type="text" name="movie_name_to_find"
+               value="{{ movie_name_to_find }}">
+        <button class="searchButton" type="submit">
+            <div class="magnifying-glass"></div>
+        </button>
+    </form>
+</div>
 
 {% block content %}
     <div class="main_page"></div>
@@ -72,6 +72,6 @@
         crossorigin="anonymous">
 </script>
 
-<script src="{% static 'Js/script_favourite.js' %}"></script>
+<script src="{% static 'Js/script_favorite.js' %}"></script>
 </body>
 </html>
