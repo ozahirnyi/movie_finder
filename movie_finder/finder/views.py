@@ -15,7 +15,7 @@ from .models import FavoriteMovieUser
 def favorites(request):
     if request.method == 'GET':
         favorite_movies = FavoriteMovieUser.objects.filter(
-                user=request.user).values()
+                user=request.user).values().order_by()
         return render(request, 'finder/favorites.html', context={
             'favorite_movies': favorite_movies})
     elif request.method == 'POST':

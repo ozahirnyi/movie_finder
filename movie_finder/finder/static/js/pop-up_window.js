@@ -1,5 +1,4 @@
 $('input.delete_from_favorite').click(function (event) {
-    event.preventDefault();
     $('#myOverlay').fadeIn(297, function () {
         $('#myModal')
             .css('display', 'block')

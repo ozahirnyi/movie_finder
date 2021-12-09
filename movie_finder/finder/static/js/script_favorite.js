@@ -1,10 +1,10 @@
 $('form.favorite').on('submit', function (e) {
     e.preventDefault();
-    console.log('test')
+    alert($(this).serialize())
     $.ajax({
-        url: '/favorite/',
-        method: 'post',
-        data: $(this).serialize(),
+        url: '/favorites/',
+        method: 'POST',
+        data: {"movie_to_favorites": $(this).serialize()},
         success: function (data) {
             console.log('success add')
         }
@@ -13,15 +13,16 @@ $('form.favorite').on('submit', function (e) {
 
 $('form.del_favorite').on('submit', function (e) {
     e.preventDefault();
-    console.log('test')
+    alert($(this).serialize())
     $.ajax({
-        url: '/favorite/',
+        headers: {
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+        },
+        url: '/favorites/',
         method: 'DELETE',
-        data: $(this).serialize(),
+        data: {"movie_to_favorites": $(this).serialize()},
         success: function (data) {
-            console.log('success deleted')
+            console.log('success delete')
         }
     });
 })
-
-
