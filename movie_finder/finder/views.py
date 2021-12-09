@@ -18,8 +18,13 @@ def favorites(request):
                 user=request.user).values()
         return render(request, 'finder/favorites.html', context={
             'favorite_movies': favorite_movies})
-    else:
-        return HttpResponse(status=501)
+    elif request.method == 'POST':
+        movie_to_favorites = request.POST.get('movie_to_favorites')
+        if movie_to_favorites:
+            add_to_favorites(eval(movie_to_favorites), request.user)
+            return HttpResponse("Add successful", status=200)
+    elif request.method == 'DELETE':
+        pass
 
 
 def add_to_favorites(movie, user):
@@ -52,12 +57,9 @@ def find_movie(movie_to_find):
 def index(request):
     if request.method == 'POST':
         movie_to_find = request.POST.get('movie_name_to_find')
-        movie_to_favorites = request.POST.get('movie_to_favorites')
         if movie_to_find:
             context = find_movie(movie_to_find)
             return render(request, 'finder/index.html', context=context)
-        if movie_to_favorites:
-            add_to_favorites(eval(movie_to_favorites), request.user)
     return render(request, 'finder/index.html')
 
 
