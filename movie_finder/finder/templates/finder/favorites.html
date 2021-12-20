@@ -6,15 +6,14 @@
     <table>
         <th>Poster</th>
         <th>Title</th>
-        <th>Type</th>favorites/
+        <th>Type</th>
         <th>Year</th>
         {% for movie in favorite_movies %}
             <tr>
                 <td><img src="{{ movie.poster }}" alt="Oops.." style="width: 150px"></td>
                 <td>
                     <a href="https://www.imdb.com/title/{{ movie.imdbID }}/">{{ movie.title }}</a>
-                    <form class="del_favorite" method="post">
-                        {% csrf_token %}
+                    <form class="del_favorite" method="post" onsubmit="">
                         <input id="delete-fav" class="delete_from_favorite" type="submit"
                                value="Delete from favorites"/>
                         <input type="hidden" name="movie_from_favorites" value="{{ movie }}"/>

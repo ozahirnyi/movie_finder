@@ -16,14 +16,13 @@
             <th>Year</th>
         </tr>
         {% for movie in movies %}
-            <tr>
+            <tr id="{{ movie.imdbID }}">
                 <td><img src="{{ movie.Poster }}" alt="Oops.." style="width: 150px"></td>
                 <td>
                     <a href="https://www.imdb.com/title/{{ movie.imdbID }}/">{{ movie.Title }}</a>
-                    <form class="favorite" method="post">
-                        {% csrf_token %}
+                    <form class="favorite" method="POST">
                         <input class="add_to_favorite" type="submit" value="Add to favorites"/>
-                        <input type="hidden" name="movie_to_favorites" value="{{ movie }}"/>
+                        <input type="hidden" name="movie" value="{{ movie }}"/>
                     </form>
                 </td>
                 <td>{{ movie.Type }}</td>
