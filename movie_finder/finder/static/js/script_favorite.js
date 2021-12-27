@@ -1,37 +1,19 @@
-$('form.favorite').on('submit', function (e) {
-    e.preventDefault();
+function add_to_favorites(movie) {
     $.ajax({
         url: '/favorites/',
         type: 'POST',
         data: {
-            'movie': $(this).serialize(),
+            'movie': JSON.stringify(movie),
         },
-        dataType: 'json',
-        success: function (response) {
-            if (response.result === 'ok') {
-                alert(response.message);
-            } else {
-                alert('Failed');
-            }
-        }
+        dataType: 'json'
     });
-})
+    return false;
+}
 
-$('form.del_favorite').on('submit', function (e) {
-    e.preventDefault();
+function remove_from_favorites(movie_imdbid) {
     $.ajax({
-        url: '/favorites/',
+        url: `/favorites/${movie_imdbid}/`,
         type: 'DELETE',
-        data: {
-            'movie_id': $(this).serialize(),
-        },
-        dataType: 'json',
-        success: function (response) {
-            if (response.result === 'ok') {
-                alert(response.message);
-            } else {
-                alert('Failed');
-            }
-        }
+        dataType: 'json'
     });
-})
+}

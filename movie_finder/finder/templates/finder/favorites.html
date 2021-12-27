@@ -13,10 +13,9 @@
                 <td><img src="{{ movie.poster }}" alt="Oops.." style="width: 150px"></td>
                 <td>
                     <a href="https://www.imdb.com/title/{{ movie.imdbID }}/">{{ movie.title }}</a>
-                    <form class="del_favorite" method="post" onsubmit="">
-                        <input id="delete-fav" class="delete_from_favorite" type="submit"
-                               value="Delete from favorites"/>
-                        <input type="hidden" name="movie_from_favorites" value="{{ movie }}"/>
+                    <form class="favorite" onsubmit="return remove_from_favorites({{ movie.imdbID }});">
+                        <input class="remove_from_favorites" type="submit"
+                               value="Remove from favorites"/>
                     </form>
                 </td>
                 <td>{{ movie.type }}</td>

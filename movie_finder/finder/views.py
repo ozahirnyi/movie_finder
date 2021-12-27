@@ -6,8 +6,6 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.http import HttpResponse
 from django.shortcuts import render, redirect
-from django.views.decorators.cache import cache_page
-from django.views.decorators.csrf import csrf_protect
 
 from .forms import CustomUserCreationForm
 from .models import FavoriteMovieUser
@@ -17,18 +15,20 @@ from .models import FavoriteMovieUser
 def favorites(request):
     if request.method == 'GET':
         favorite_movies = FavoriteMovieUser.objects.filter(
-                user=request.user).values().order_by()
+            user=request.user).values().order_by('-updated_at')
         return render(request, 'finder/favorites.html', context={
             'favorite_movies': favorite_movies})
     elif request.method == 'POST':
         movie = request.POST.get('movie')
         if movie:
-            b = json.dumps(request.POST)
-            a = json.dumps(movie)
             add_to_favorites(json.loads(movie), request.user)
-            return HttpResponse("Add successful", status=200)
-    elif request.method == 'DELETE':
-        pass
+            return HttpResponse("Add successful", status=201)
+        else:
+            return HttpResponse("Bad movie data", status=204)
+
+
+def remove_from_favorites_by_imdb_id(request, imdb_id):
+    pass
 
 
 def add_to_favorites(movie, user):

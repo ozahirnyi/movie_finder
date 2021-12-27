@@ -17,12 +17,13 @@
         </tr>
         {% for movie in movies %}
             <tr id="{{ movie.imdbID }}">
-                <td><img src="{{ movie.Poster }}" alt="Oops.." style="width: 150px"></td>
+                <td><img src="{{ movie.Poster }}" alt="Oops.."
+                         style="width: 150px"></td>
                 <td>
                     <a href="https://www.imdb.com/title/{{ movie.imdbID }}/">{{ movie.Title }}</a>
-                    <form class="favorite" method="POST">
-                        <input class="add_to_favorite" type="submit" value="Add to favorites"/>
-                        <input type="hidden" name="movie" value="{{ movie }}"/>
+                    <form class="favorite" onsubmit="return add_to_favorites({{ movie }});">
+                        <input class="add_to_favorite" type="submit"
+                               value="Add to favorites"/>
                     </form>
                 </td>
                 <td>{{ movie.Type }}</td>
