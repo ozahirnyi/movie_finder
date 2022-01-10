@@ -5,7 +5,10 @@ function add_to_favorites(movie) {
         data: {
             'movie': JSON.stringify(movie),
         },
-        dataType: 'json'
+        dataType: 'json',
+        success: function (json) {
+            alert(json);
+        }
     });
     return false;
 }
@@ -14,6 +17,8 @@ function remove_from_favorites(movie_imdbid) {
     $.ajax({
         url: `/favorites/${movie_imdbid}/`,
         type: 'DELETE',
-        dataType: 'json'
+        success: function (json) {
+            alert(json);
+        }
     });
 }

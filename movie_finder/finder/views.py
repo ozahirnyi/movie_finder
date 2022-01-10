@@ -28,7 +28,9 @@ def favorites(request):
 
 
 def remove_from_favorites_by_imdb_id(request, imdb_id):
-    pass
+    FavoriteMovieUser.objects.filter(user=request.user,
+                                     imdb_id=imdb_id).delete()
+    return HttpResponse("Removed successful", status=200)
 
 
 def add_to_favorites(movie, user):

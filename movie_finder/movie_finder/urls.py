@@ -39,6 +39,6 @@ urlpatterns = [
     path('reset/done/', views.PasswordResetCompleteView.as_view(),
          name='password_reset_complete'),
     path('favorites/', favorites, name='favorites'),
-    path('favorites/<int:imdb_id>', remove_from_favorites_by_imdb_id,
+    path('favorites/<str:imdb_id>/', remove_from_favorites_by_imdb_id,
          name='favorites')
 ]
