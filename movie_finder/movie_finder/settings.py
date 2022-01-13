@@ -7,7 +7,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # DELETE NA PRODE OBYAZATELNO)
 KOSTILNIE_VARIABLES = {}
 with open(
-        '/home/kinder/PycharmProjects/movie_finder/movie_finder/kostil_na_env.txt') as to_read_kostil:
+        '/home/user/PycharmProjects/movie_finder/movie_finder/kostil_na_env.txt') as to_read_kostil:
     for it in to_read_kostil:
         splited = it.split('=')
         if len(splited) > 1:

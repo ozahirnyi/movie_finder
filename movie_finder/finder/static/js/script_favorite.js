@@ -19,6 +19,8 @@ function remove_from_favorites(movie_imdbid) {
         type: 'DELETE',
         success: function (json) {
             alert(json);
+            document.location.reload()
         }
     });
+    return false;
 }
