@@ -1,4 +1,5 @@
 from django.contrib import admin
-from .models import FavoriteMovieUser
+from .models import UserFavorite, Movie
 
-admin.register(FavoriteMovieUser)(admin.ModelAdmin)
+admin.register(UserFavorite)(admin.ModelAdmin)
+admin.register(Movie)(admin.ModelAdmin)

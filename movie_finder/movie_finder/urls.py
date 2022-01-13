@@ -16,9 +16,9 @@ Including another URLconf
 from django.contrib import admin
 from django.contrib.auth import views
 from django.urls import path
+from django.views.decorators.cache import cache_page
 
-from finder.views import index, registration, favorites, \
-    remove_from_favorites_by_imdb_id
+from finder.views import index, registration, favorites, favorites_by_imdb_id
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -39,6 +39,6 @@ urlpatterns = [
     path('reset/done/', views.PasswordResetCompleteView.as_view(),
          name='password_reset_complete'),
     path('favorites/', favorites, name='favorites'),
-    path('favorites/<slug:imdb_id>/', remove_from_favorites_by_imdb_id,
+    path('favorites/<slug:imdb_id>/', favorites_by_imdb_id,
          name='favorites')
 ]
