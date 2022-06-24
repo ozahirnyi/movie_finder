@@ -4,10 +4,10 @@ from pathlib import Path
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# DELETE NA PRODE OBYAZATELNO)
+# TODO: Delete
 KOSTILNIE_VARIABLES = {}
 with open(
-        '/home/user/PycharmProjects/movie_finder/movie_finder/kostil_na_env.txt') as to_read_kostil:
+        '/home/kinder/PycharmProjects/movie_finder/movie_finder_django/kostil_na_env.txt') as to_read_kostil:
     for it in to_read_kostil:
         splited = it.split('=')
         if len(splited) > 1:
@@ -45,7 +45,7 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
-ROOT_URLCONF = 'movie_finder.urls'
+ROOT_URLCONF = 'movie_finder_django.urls'
 
 TEMPLATES = [
     {
@@ -63,7 +63,7 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = 'movie_finder.wsgi.application'
+WSGI_APPLICATION = 'movie_finder_django.wsgi.application'
 
 # Database
 # https://docs.djangoproject.com/en/3.2/ref/settings/#databases
