@@ -1,3 +1,7 @@
+import json
+import os
+
+import requests
 from django.contrib.auth.models import User
 from django.db import models
 from django.db.models import Count
@@ -16,12 +20,20 @@ class Movie(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
-    @staticmethod
     @query_debugger
-    def get_top_10():
+    @property
+    def get_top_10(self):
         return {'movies': [UserFavorite.objects.annotate(
                                movie_count=Count('movie')).order_by(
                                'movie_count')]}
+
+    @staticmethod
+    def find_movie(expression):
+        url = 'https://imdb-api.com/en/API/Search/'
+        api_key = os.getenv('imdb_api_key')
+
+        response = requests.get(url + api_key + '/' + expression)
+        return json.loads(response.text)
 
     def __str__(self):
         return self.title

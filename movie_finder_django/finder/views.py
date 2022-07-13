@@ -1,12 +1,17 @@
 import json
 
-import requests
 from django.conf import settings
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.http import HttpResponse
 from django.shortcuts import render, redirect
 
+
+from rest_framework import viewsets
+from rest_framework import permissions
+from rest_framework.response import Response
+
+from serializers import MovieUserSerializer
 from sql_log import query_debugger
 from .forms import CustomUserCreationForm
 from .models import UserFavorite, Movie
@@ -47,33 +52,25 @@ def add_to_favorites(movie, user):
     UserFavorite.objects.create(user=user, movie=movie_to_favorite)
 
 
-def find_movie(movie_to_find):
-    querystring = {'s': movie_to_find, 'r': 'json'}
-    headers = {
-        'x-rapidapi-host': settings.KOSTILNIE_VARIABLES[
-            'X_RAPIDAPI_HOST'],
-        'x-rapidapi-key': settings.KOSTILNIE_VARIABLES[
-            'X_RAPIDAPI_KEY']
-    }
-    response = json.loads(
-        requests.request("GET", settings.IMDB_API_URL, headers=headers,
-                         params=querystring).text)
-    context = {'movies': response['Search']} if response.get(
-        'Search') else {
-        'messages': ['There are no any info for your request']}
-    return context
+class FindMovieView(viewsets.ModelViewSet):
+    queryset = Movie.objects.all()
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self):
+        movie = Movie.find_movie(self.request.expression)
+        return Response(movie)
 
 
 @login_required(login_url=settings.LOGIN_PAGE_URL)
 def index(request):
     movie_to_find = request.POST.get('movie_name_to_find')
     if movie_to_find:
-        context = find_movie(movie_to_find)
-        return render(request, 'finder/index.html', context=context)
+        context = Movie.find_movie(movie_to_find)
+        return HttpResponse(context)
     else:
-        a = Movie.get_top_10()
+        a = Movie.get_top_10
         return render(request, 'finder/index.html',
-                      context=Movie.get_top_10())
+                      context=Movie.get_top_10)
 
 
 def registration(request):

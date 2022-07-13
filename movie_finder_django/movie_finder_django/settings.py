@@ -4,24 +4,14 @@ from pathlib import Path
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# TODO: Delete
-KOSTILNIE_VARIABLES = {}
-with open(
-        '/home/kinder/PycharmProjects/movie_finder/movie_finder_django/kostil_na_env.txt') as to_read_kostil:
-    for it in to_read_kostil:
-        splited = it.split('=')
-        if len(splited) > 1:
-            KOSTILNIE_VARIABLES.update(
-                {splited[0]: splited[1].replace('"', '').replace('\n', '')})
 
 # SECURITY WARNING: keep the secret key used in production secret!
-# SECRET_KEY = os.getenv('DJANGO_KEY')
-SECRET_KEY = KOSTILNIE_VARIABLES['DJANGO_KEY']
+SECRET_KEY = os.getenv('DJANGO_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['0.0.0.0', '127.0.0.1']
+ALLOWED_HOSTS = ['0.0.0.0', '127.0.0.1', 'localhost']
 
 # Application definition
 
