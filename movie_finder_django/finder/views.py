@@ -7,17 +7,16 @@ from django.http import HttpResponse
 from django.shortcuts import render, redirect
 
 
-from rest_framework import viewsets
 from rest_framework import permissions
+from rest_framework.generics import GenericAPIView
 from rest_framework.response import Response
 
-from serializers import MovieUserSerializer
-from sql_log import query_debugger
+from errors import FindMovieNotExist
+from serializers import MovieSerializer
 from .forms import CustomUserCreationForm
 from .models import UserFavorite, Movie
 
 
-@query_debugger
 @login_required(login_url=settings.LOGIN_PAGE_URL)
 def favorites(request):
     if request.method == 'GET':
@@ -52,13 +51,20 @@ def add_to_favorites(movie, user):
     UserFavorite.objects.create(user=user, movie=movie_to_favorite)
 
 
-class FindMovieView(viewsets.ModelViewSet):
+class FindMovieView(GenericAPIView):
     queryset = Movie.objects.all()
     permission_classes = [permissions.IsAuthenticated]
+    serializer_class = MovieSerializer
 
-    def get(self):
-        movie = Movie.find_movie(self.request.expression)
-        return Response(movie)
+    def get(self, *args, **kwargs):
+        if expression := kwargs.get('expression'):
+            movies = Movie.objects.filter(title__regex=expression)
+            if not movies.exists():
+                movies = Movie.find_movie(expression)
+                if len(movies) == 0:
+                    raise FindMovieNotExist
+            data = self.get_serializer(movies, many=True).data
+            return Response(data)
 
 
 @login_required(login_url=settings.LOGIN_PAGE_URL)

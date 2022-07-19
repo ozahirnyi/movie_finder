@@ -4,6 +4,9 @@ from pathlib import Path
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+IMDB_API_URL = 'https://imdb-api.com/en/API/Search/'
+# IMDB_API_KEY = os.getenv('IMDB_API_KEY')
+IMDB_API_KEY = 'k_svlx8k8v'
 
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = os.getenv('DJANGO_KEY')
@@ -101,4 +104,3 @@ LOGIN_PAGE_URL = '/login/'
 LOGIN_REDIRECT_URL = '/'
 LOGOUT_REDIRECT_URL = LOGIN_PAGE_URL
 
-IMDB_API_URL = 'https://movie-database-imdb-alternative.p.rapidapi.com/'
