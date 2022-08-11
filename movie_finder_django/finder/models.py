@@ -1,7 +1,6 @@
 import json
-import os
 
-import regex as regex
+import regex
 import requests
 from django.contrib.auth.models import User
 from django.db import models
