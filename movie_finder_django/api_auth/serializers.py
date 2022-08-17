@@ -1,6 +1,8 @@
 from django.contrib.auth import authenticate, get_user_model
 from rest_framework import serializers
 
+from api_auth.errors import UserAlreadyExist
+
 
 class LoginSerializer(serializers.Serializer):
     username = serializers.CharField(
@@ -49,6 +51,10 @@ class RegistrationSerializer(serializers.ModelSerializer):
 
         if username and password:
             User = get_user_model()
+
+            if User.objects.filter(username=username).exists():
+                raise UserAlreadyExist
+
             user = User.objects.create_user(username=username, password=password)
         else:
             raise serializers.ValidationError('Both "username" and "password" are required.')
