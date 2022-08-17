@@ -3,7 +3,7 @@ from rest_framework import permissions, status
 from rest_framework.generics import GenericAPIView
 from rest_framework.response import Response
 
-from serializers import LoginSerializer, RegistrationSerializer
+from .serializers import LoginSerializer, RegistrationSerializer
 
 
 class LoginView(GenericAPIView):
@@ -17,7 +17,7 @@ class LoginView(GenericAPIView):
 
         login(self.request, user)
 
-        return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response(serializer.data, status=status.HTTP_202_ACCEPTED)
 
 
 class RegistrationView(GenericAPIView):

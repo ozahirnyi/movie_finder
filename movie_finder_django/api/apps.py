@@ -1,6 +1,6 @@
 from django.apps import AppConfig
 
 
-class FinderConfig(AppConfig):
+class ApiConfig(AppConfig):
     default_auto_field = 'django.db.models.BigAutoField'
-    name = 'finder'
+    name = 'api'

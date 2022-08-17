@@ -3,15 +3,17 @@ from rest_framework import permissions
 from rest_framework.generics import GenericAPIView
 from rest_framework.response import Response
 
-from errors import FindMovieNotExist
-from finder.models import UserFavorite, Movie
-from serializers import MovieSerializer
+from .errors import FindMovieNotExist
+from .models import UserFavorite, Movie
+from .serializers import MovieSerializer
 
 
 def favorites_by_imdb_id(request, imdb_id):
     if request.method == 'DELETE':
-        UserFavorite.objects.filter(user=request.user,
-                                    movie__imdb_id=imdb_id).delete()
+        UserFavorite.objects.filter(
+            user=request.user,
+            movie__imdb_id=imdb_id,
+        ).delete()
         return HttpResponse("Removed successful", status=200)
 
 
@@ -19,11 +21,13 @@ def add_to_favorites(movie, user):
     try:
         movie_to_favorite = Movie.objects.get(imdb_id=movie['imdbID'])
     except Movie.DoesNotExist:
-        movie_to_favorite = Movie.objects.create(title=movie['Title'],
-                                                 imdb_id=movie['imdbID'],
-                                                 year=movie['Year'],
-                                                 type=movie['Type'],
-                                                 poster=movie['Poster'])
+        movie_to_favorite = Movie.objects.create(
+            title=movie['Title'],
+            imdb_id=movie['imdbID'],
+            year=movie['Year'],
+            type=movie['Type'],
+            poster=movie['Poster'],
+        )
     UserFavorite.objects.create(user=user, movie=movie_to_favorite)
 
 

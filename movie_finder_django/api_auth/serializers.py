@@ -1,8 +1,6 @@
 from django.contrib.auth import authenticate, get_user_model
 from rest_framework import serializers
 
-from finder.models import Movie
-
 
 class LoginSerializer(serializers.Serializer):
     username = serializers.CharField(
@@ -56,9 +54,3 @@ class RegistrationSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError('Both "username" and "password" are required.')
 
         return user
-
-
-class MovieSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Movie
-        fields = '__all__'

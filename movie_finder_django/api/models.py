@@ -6,7 +6,7 @@ from django.contrib.auth.models import User
 from django.db import models
 from django.db.models import Count
 
-from movie_finder_django.settings import IMDB_API_URL, IMDB_API_KEY
+from django.conf import settings
 
 
 class Movie(models.Model):
@@ -20,6 +20,9 @@ class Movie(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    class Meta:
+        app_label = 'api'
+
     @property
     def get_top_10(self):
         return {'movies': [UserFavorite.objects.annotate(
@@ -28,7 +31,7 @@ class Movie(models.Model):
 
     @staticmethod
     def find_movie(expression):
-        response = requests.get(IMDB_API_URL + IMDB_API_KEY + '/' + expression)
+        response = requests.get(settings.IMDB_API_URL + settings.IMDB_API_KEY + '/' + expression)
         parsed_response = json.loads(response.text)
         movies = []
 
@@ -54,6 +57,9 @@ class UserFavorite(models.Model):
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        app_label = 'api'
 
     @staticmethod
     def get_favorite_movies(user):

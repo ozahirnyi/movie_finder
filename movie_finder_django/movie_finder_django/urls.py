@@ -1,12 +1,15 @@
 from django.contrib import admin
 from django.urls import path
 
-from views.auth_views import LoginView, RegistrationView
-from views.finder_views import FindMovieView
+from api_auth.views import LoginView, RegistrationView
+from api.views import FindMovieView
 
 urlpatterns = [
-    path('admin/', admin.site.urls),
-    path('find_movie/<str:expression>/', FindMovieView.as_view(), name='find_movie'),
+    # Finder
     path('login/', LoginView.as_view(), name='login'),
     path('registration/', RegistrationView.as_view(), name='register'),
+
+    # Auth
+    path('admin/', admin.site.urls),
+    path('find_movie/<str:expression>/', FindMovieView.as_view(), name='find_movie'),
 ]
