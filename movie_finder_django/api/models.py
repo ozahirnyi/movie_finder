@@ -2,12 +2,10 @@ import json
 
 import regex
 import requests
+from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import User
 from django.db import models
-from django.db.models import Count
-
-from django.conf import settings
 
 from api.errors import FindMovieNotExist
 
@@ -28,9 +26,7 @@ class Movie(models.Model):
 
     @property
     def get_top_10(self):
-        return {'movies': [UserFavorite.objects.annotate(
-                               movie_count=Count('movie')).order_by(
-                               'movie_count')]}
+        pass
 
     @staticmethod
     def find_movie(expression):
@@ -57,22 +53,15 @@ class Movie(models.Model):
         return self.title
 
 
-class UserFavorite(models.Model):
-    user = models.ForeignKey(get_user_model(), on_delete=models.SET_NULL, null=True)
-    movie = models.ForeignKey(Movie, on_delete=models.SET_NULL, null=True)
+class WatchLater(models.Model):
+    user = models.ForeignKey(get_user_model(), on_delete=models.CASCADE)
+    movie = models.ForeignKey(Movie, on_delete=models.CASCADE)
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         app_label = 'api'
-
-    @staticmethod
-    def get_favorite_movies(user):
-        return [user_favorite.movie for user_favorite in
-                UserFavorite.objects.select_related('movie').filter(
-                    user=user).order_by(
-                    '-updated_at')]
 
     def __str__(self):
         return f'{self.user} | {self.movie}'
