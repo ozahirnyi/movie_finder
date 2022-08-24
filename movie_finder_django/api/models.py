@@ -2,11 +2,14 @@ import json
 
 import regex
 import requests
+from django.contrib.auth import get_user_model
 from django.contrib.auth.models import User
 from django.db import models
 from django.db.models import Count
 
 from django.conf import settings
+
+from api.errors import FindMovieNotExist
 
 
 class Movie(models.Model):
@@ -32,10 +35,13 @@ class Movie(models.Model):
     @staticmethod
     def find_movie(expression):
         response = requests.get(settings.IMDB_API_URL + settings.IMDB_API_KEY + '/' + expression)
-        parsed_response = json.loads(response.text)
+        parsed_response = json.loads(response.text)['results']
         movies = []
 
-        for data in parsed_response['results']:
+        if not parsed_response:
+            raise FindMovieNotExist
+
+        for data in parsed_response:
             description = regex.sub(r'\(|\)', '', data['description']).split(' ', 1)
             movie = Movie.objects.create(
                 title=data['title'],
@@ -52,7 +58,7 @@ class Movie(models.Model):
 
 
 class UserFavorite(models.Model):
-    user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
+    user = models.ForeignKey(get_user_model(), on_delete=models.SET_NULL, null=True)
     movie = models.ForeignKey(Movie, on_delete=models.SET_NULL, null=True)
 
     created_at = models.DateTimeField(auto_now_add=True)

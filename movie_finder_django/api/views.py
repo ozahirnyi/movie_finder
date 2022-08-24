@@ -33,7 +33,7 @@ def add_to_favorites(movie, user):
 
 class FindMovieView(GenericAPIView):
     queryset = Movie.objects.all()
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.AllowAny]
     serializer_class = MovieSerializer
 
     def get(self, *args, **kwargs):

@@ -1,62 +1,78 @@
 from django.contrib.auth import authenticate, get_user_model
 from rest_framework import serializers
 
-from api_auth.errors import UserAlreadyExist
+User = get_user_model()
 
 
 class LoginSerializer(serializers.Serializer):
-    username = serializers.CharField(
-        label="Username",
-    )
-    password = serializers.CharField(
-        label="Password",
-        style={'input_type': 'password'},
-    )
+    email = serializers.CharField(max_length=255)
+    username = serializers.CharField(max_length=255, read_only=True)
+    password = serializers.CharField(max_length=128, write_only=True)
+    token = serializers.CharField(max_length=255, read_only=True)
 
-    def validate(self, attrs):
-        username = attrs.get('username')
-        password = attrs.get('password')
+    def validate(self, data):
+        email = data.get('email', None)
+        password = data.get('password', None)
 
-        if username and password:
-            user = authenticate(username=username, password=password)
-            if not user:
-                raise serializers.ValidationError('Access denied: wrong username or password.')
-        else:
-            raise serializers.ValidationError('Both "username" and "password" are required.')
+        if email is None:
+            raise serializers.ValidationError('An email address is required to log in.')
 
-        attrs['user'] = user
-        return attrs
+        if password is None:
+            raise serializers.ValidationError('A password is required to log in.')
+
+        user = authenticate(username=email, password=password)
+
+        if user is None:
+            raise serializers.ValidationError('A user with this email and password was not found.')
+
+        if not user.is_active:
+            raise serializers.ValidationError('This user has been deactivated.')
+
+        return {
+            'email': user.email,
+            'username': user.username,
+        }
 
 
 class RegistrationSerializer(serializers.ModelSerializer):
-    username = serializers.CharField(
-        label="Username",
-    )
     password = serializers.CharField(
-        label="Password",
-        style={'input_type': 'password'},
+        max_length=128,
+        min_length=8,
+        write_only=True,
     )
+
+    token = serializers.CharField(max_length=255, read_only=True)
 
     class Meta:
-        model = get_user_model()
-        fields = [
-            'id',
-            'username',
-            'password',
-        ]
+        model = User
+        fields = ['email', 'username', 'password', 'token']
 
     def create(self, validated_data):
-        username = validated_data.get('username')
-        password = validated_data.get('password')
+        return User.objects.create_user(**validated_data)
 
-        if username and password:
-            User = get_user_model()
 
-            if User.objects.filter(username=username).exists():
-                raise UserAlreadyExist
+class UserSerializer(serializers.ModelSerializer):
+    password = serializers.CharField(
+        max_length=128,
+        min_length=8,
+        write_only=True
+    )
+    email = serializers.EmailField()
+    username = serializers.CharField()
 
-            user = User.objects.create_user(username=username, password=password)
-        else:
-            raise serializers.ValidationError('Both "username" and "password" are required.')
+    class Meta:
+        model = User
+        fields = ['email', 'username', 'password']
 
-        return user
+    def update(self, instance, validated_data):
+        password = validated_data.pop('password', None)
+
+        for key, value in validated_data.items():
+            setattr(instance, key, value)
+
+        if password is not None:
+            instance.set_password(password)
+
+        instance.save()
+
+        return instance
