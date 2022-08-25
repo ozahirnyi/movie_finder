@@ -47,13 +47,18 @@ class Movie(models.Model):
                 type=description[1] if len(description) > 1 else None,
             )
             movies.append(movie)
+        # TODO: uncomment when start use postgresql. > movie_finder_django/api/tests.py
+        # Movie.objects.bulk_create(movies)
         return movies
 
     def __str__(self):
         return self.title
 
 
-class WatchLater(models.Model):
+class UserMovieMixin(models.Model):
+    related_model = Movie
+    related_model_field = 'movie_id'
+
     user = models.ForeignKey(get_user_model(), on_delete=models.CASCADE)
     movie = models.ForeignKey(Movie, on_delete=models.CASCADE)
 
@@ -62,6 +67,15 @@ class WatchLater(models.Model):
 
     class Meta:
         app_label = 'api'
+        abstract = True
 
     def __str__(self):
         return f'{self.user} | {self.movie}'
+
+
+class WatchLaterMovie(UserMovieMixin):
+    pass
+
+
+class LikeMovie(UserMovieMixin):
+    pass

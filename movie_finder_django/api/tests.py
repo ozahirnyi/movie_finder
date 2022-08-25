@@ -4,46 +4,70 @@ from rest_framework import status
 from rest_framework.test import APITestCase
 from rest_framework_simplejwt.tokens import RefreshToken
 
-from .models import Movie, WatchLater
+from .models import Movie, WatchLaterMovie, LikeMovie
 
 
 class FinderTests(APITestCase):
 
     @classmethod
     def setUpTestData(cls):
-        cls.movie = Movie.objects.create(title='test', imdb_id='test')
+        cls.movie = Movie.objects.create(title='test', imdb_id='1')
 
     def setUp(self) -> None:
         self.user = get_user_model().objects.create_user(username='neo', email='neo@neo.neo', password='neoneoneo')
         refresh = RefreshToken.for_user(self.user)
         self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {refresh.access_token}')
 
+    def test_get_movie(self):
+        with self.assertNumQueries(2):
+            response = self.client.get(reverse('movie', kwargs={'id': self.movie.id}))
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+    def test_like_movie(self):
+        self.client.force_login(self.user)
+        with self.assertNumQueries(2):
+            response = self.client.post(reverse('movie_like', kwargs={'id': self.movie.id}))
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+    def test_unlike_movie(self):
+        LikeMovie.objects.create(user=self.user, movie=self.movie)
+        self.client.force_login(self.user)
+        with self.assertNumQueries(2):
+            response = self.client.post(reverse('movie_unlike', kwargs={'id': self.movie.id}))
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
     def test_find_movie(self):
         self.client.force_login(self.user)
+        # TODO: uncomment when start use postgresql. > movie_finder_django/api/models.py
+        # with self.assertNumQueries(3):
         response = self.client.get(reverse('find_movie', kwargs={'expression': 'Shrek'}))
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertTrue(Movie.objects.get(id=response.data[0]['id']))
 
     def test_create_watch_later(self):
         self.client.force_login(self.user)
-        response = self.client.post(reverse('watch_later_create'), data={'movie': self.movie.id})
+        with self.assertNumQueries(3):
+            response = self.client.post(reverse('watch_later_create'), data={'movie': self.movie.imdb_id})
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-        wl = WatchLater.objects.filter(user=self.user, movie=self.movie)
+        wl = WatchLaterMovie.objects.filter(user=self.user, movie=self.movie)
         self.assertTrue(wl.exists())
 
     def test_delete_watch_later(self):
-        wl = WatchLater.objects.create(user=self.user, movie=self.movie)
+        wl = WatchLaterMovie.objects.create(user=self.user, movie=self.movie)
 
         self.client.force_login(self.user)
-        response = self.client.delete(reverse('watch_later_destroy', kwargs={'pk': wl.id}))
+        with self.assertNumQueries(3):
+            response = self.client.delete(reverse('watch_later_destroy', kwargs={'pk': wl.id}))
         self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
-        wl = WatchLater.objects.filter(user=self.user, movie=self.movie)
+        wl = WatchLaterMovie.objects.filter(user=self.user, movie=self.movie)
         self.assertFalse(wl.exists())
 
     def test_get_watch_later(self):
-        WatchLater.objects.create(user=self.user, movie=self.movie)
+        WatchLaterMovie.objects.create(user=self.user, movie=self.movie)
+        wrong_user = get_user_model().objects.create_user(username='notneo', email='notneo@neo.neo', password='neoneoneo')
+        WatchLaterMovie.objects.create(user=wrong_user, movie=self.movie)
 
         self.client.force_login(self.user)
-        response = self.client.get(reverse('watch_later_list'))
+        with self.assertNumQueries(2):
+            response = self.client.get(reverse('watch_later_list'))
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertTrue(response.data[0]['user'], self.user.id)
+        self.assertEqual(len(response.data), 1)

@@ -2,7 +2,8 @@ from django.contrib import admin
 from django.urls import path
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
-from api.views import FindMovieView, WatchLaterListView, WatchLaterDestroyView, WatchLaterCreateView
+from api.views import FindMovieView, WatchLaterListView, WatchLaterDestroyView, WatchLaterCreateView, MovieView, \
+    MovieUnlikeView, MovieLikeView
 from api_auth.views import LoginAPIView, RegistrationAPIView, UserRetrieveUpdateAPIView
 
 urlpatterns = [
@@ -15,6 +16,9 @@ urlpatterns = [
     path('admin/', admin.site.urls),
 
     # Finder
+    path('movie/<int:id>/', MovieView.as_view(), name='movie'),
+    path('movie/<int:id>/like/', MovieLikeView.as_view(), name='movie_like'),
+    path('movie/<int:id>/unlike/', MovieUnlikeView.as_view(), name='movie_unlike'),
     path('find_movie/<str:expression>/', FindMovieView.as_view(), name='find_movie'),
     path('watch_later/list/', WatchLaterListView.as_view(), name='watch_later_list'),
     path('watch_later/create/', WatchLaterCreateView.as_view(), name='watch_later_create'),

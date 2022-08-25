@@ -1,16 +1,41 @@
-from rest_framework import permissions
-from rest_framework.generics import GenericAPIView, DestroyAPIView, CreateAPIView
+from rest_framework import permissions, status
+from rest_framework.generics import GenericAPIView, DestroyAPIView, CreateAPIView, ListAPIView
 from rest_framework.response import Response
 
 from .errors import FindMovieNotExist
-from .models import Movie, WatchLater
-from .serializers import MovieSerializer, WatchLaterSerializer, WatchLaterCreateSerializer
+from .models import Movie, WatchLaterMovie, LikeMovie
+from .serializers import MovieSerializer,  WatchLaterCreateSerializer, WatchLaterListSerializer
+
+
+class MovieView(ListAPIView):
+    permission_classes = [permissions.AllowAny]
+    serializer_class = MovieSerializer
+    queryset = Movie.objects.all()
+
+
+class MovieLikeView(CreateAPIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request, *args, **kwargs):
+        LikeMovie.objects.create(user=self.request.user, movie_id=kwargs.get('id'))
+
+        return Response(status=status.HTTP_201_CREATED)
+
+
+class MovieUnlikeView(GenericAPIView):
+    permission_classes = [permissions.IsAuthenticated]
+    queryset = LikeMovie.objects.all()
+
+    def post(self, request, *args, **kwargs):
+        LikeMovie.objects.filter(user=self.request.user, movie_id=kwargs.get('id')).delete()
+
+        return Response(status=status.HTTP_200_OK)
 
 
 class FindMovieView(GenericAPIView):
-    queryset = Movie.objects.all()
     permission_classes = [permissions.AllowAny]
     serializer_class = MovieSerializer
+    queryset = Movie.objects.all()
 
     def get(self, *args, **kwargs):
         expression = kwargs.get('expression')
@@ -34,24 +59,16 @@ class WatchLaterCreateView(CreateAPIView):
         return context
 
 
-class WatchLaterListView(GenericAPIView):
+class WatchLaterListView(ListAPIView):
     permission_classes = [permissions.IsAuthenticated]
-    serializer_class = WatchLaterSerializer
+    serializer_class = WatchLaterListSerializer
 
-    def get(self, *args, **kwargs):
-        watch_later = WatchLater.objects.filter(user=self.request.user)
-        serializer = self.get_serializer(data=watch_later, many=True)
-        serializer.is_valid()
+    def get_queryset(self):
+        queryset = WatchLaterMovie.objects.filter(user_id=self.request.user).select_related('movie')
 
-        return Response(serializer.data)
+        return queryset
 
 
 class WatchLaterDestroyView(DestroyAPIView):
     permission_classes = [permissions.IsAuthenticated]
-    serializer_class = WatchLaterSerializer
-    queryset = WatchLater.objects.all()
-
-    def get_serializer_context(self):
-        context = super().get_serializer_context()
-        context['user'] = self.request.user
-        return context
+    queryset = WatchLaterMovie.objects.all()
