@@ -1,10 +1,11 @@
+from django.db.models import Count, OuterRef, Exists
 from rest_framework import permissions, status
 from rest_framework.generics import GenericAPIView, DestroyAPIView, CreateAPIView, ListAPIView
 from rest_framework.response import Response
 
 from .errors import FindMovieNotExist
 from .models import Movie, WatchLaterMovie, LikeMovie
-from .serializers import MovieSerializer,  WatchLaterCreateSerializer, WatchLaterListSerializer
+from .serializers import MovieSerializer, WatchLaterCreateSerializer, WatchLaterListSerializer
 
 
 class MovieView(ListAPIView):
@@ -32,20 +33,21 @@ class MovieUnlikeView(GenericAPIView):
         return Response(status=status.HTTP_200_OK)
 
 
-class FindMovieView(GenericAPIView):
+class FindMovieView(ListAPIView):
     permission_classes = [permissions.AllowAny]
     serializer_class = MovieSerializer
-    queryset = Movie.objects.all()
 
     def get(self, *args, **kwargs):
         expression = kwargs.get('expression')
 
-        movies = Movie.objects.filter(title__regex=expression)
-        if not movies.exists():
-            movies = Movie.find_movie(expression)
-            if len(movies) == 0:
-                raise FindMovieNotExist
-        data = self.get_serializer(movies, many=True).data
+        movie_ids = Movie.get_movies_from_imdb(expression)
+        if not len(movie_ids):
+            raise FindMovieNotExist
+        qs = Movie.objects.filter(pk__in=movie_ids).annotate(likes_count=Count('likemovie')).annotate(
+            is_liked=Exists(LikeMovie.objects.filter(user=self.request.user, movie_id=OuterRef('pk'))),
+        )
+
+        data = self.get_serializer(qs, many=True).data
         return Response(data)
 
 

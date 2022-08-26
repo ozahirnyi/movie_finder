@@ -1,12 +1,16 @@
 from rest_framework import serializers
 
-from .models import Movie, WatchLaterMovie, LikeMovie
+from .models import Movie, WatchLaterMovie
 
 
 class MovieSerializer(serializers.ModelSerializer):
+    likes_count = serializers.IntegerField(read_only=True)
+    is_liked = serializers.BooleanField(read_only=True)
+
     class Meta:
         model = Movie
         fields = '__all__'
+        extra_fields = ('is_liked', 'likes_count')
 
 
 class WatchLaterSerializer(serializers.ModelSerializer):

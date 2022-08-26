@@ -1,4 +1,5 @@
 import json
+from typing import List, Optional
 
 import regex
 import requests
@@ -29,27 +30,27 @@ class Movie(models.Model):
         pass
 
     @staticmethod
-    def find_movie(expression):
+    def get_movies_from_imdb(expression: str) -> Optional[List[int]]:
         response = requests.get(settings.IMDB_API_URL + settings.IMDB_API_KEY + '/' + expression)
         parsed_response = json.loads(response.text)['results']
-        movies = []
+        movie_ids = []
 
         if not parsed_response:
             raise FindMovieNotExist
 
         for data in parsed_response:
             description = regex.sub(r'\(|\)', '', data['description']).split(' ', 1)
-            movie = Movie.objects.create(
+            movie = Movie.objects.update_or_create(
                 title=data['title'],
                 imdb_id=data['id'],
                 poster=data['image'],
                 year=description[0] if len(description) > 0 else None,
                 type=description[1] if len(description) > 1 else None,
             )
-            movies.append(movie)
+            movie_ids.append(movie[0].id)
         # TODO: uncomment when start use postgresql. > movie_finder_django/api/tests.py
         # Movie.objects.bulk_create(movies)
-        return movies
+        return movie_ids
 
     def __str__(self):
         return self.title
