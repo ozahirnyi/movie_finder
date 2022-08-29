@@ -5,6 +5,7 @@ from rest_framework.response import Response
 
 from .errors import FindMovieNotExist
 from .models import Movie, WatchLaterMovie, LikeMovie
+from .paginations import MoviesPagination
 from .serializers import MovieSerializer, WatchLaterCreateSerializer, WatchLaterListSerializer
 
 
@@ -36,6 +37,7 @@ class MovieUnlikeView(GenericAPIView):
 class FindMovieView(ListAPIView):
     permission_classes = [permissions.AllowAny]
     serializer_class = MovieSerializer
+    pagination_class = MoviesPagination
 
     def get(self, *args, **kwargs):
         expression = kwargs.get('expression')
@@ -44,11 +46,13 @@ class FindMovieView(ListAPIView):
         if not len(movie_ids):
             raise FindMovieNotExist
         qs = Movie.objects.filter(pk__in=movie_ids).annotate(likes_count=Count('likemovie')).annotate(
-            is_liked=Exists(LikeMovie.objects.filter(user=self.request.user, movie_id=OuterRef('pk'))),
+            is_liked=Exists(LikeMovie.objects.filter(user_id=self.request.user.id, movie_id=OuterRef('pk'))),
         )
 
+        qs = self.paginate_queryset(qs)
+
         data = self.get_serializer(qs, many=True).data
-        return Response(data)
+        return self.get_paginated_response(data)
 
 
 class WatchLaterCreateView(CreateAPIView):
