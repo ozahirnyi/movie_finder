@@ -68,10 +68,12 @@ class WatchLaterCreateView(CreateAPIView):
 class WatchLaterListView(ListAPIView):
     permission_classes = [permissions.IsAuthenticated]
     serializer_class = WatchLaterListSerializer
+    pagination_class = MoviesPagination
 
     def get_queryset(self):
         queryset = WatchLaterMovie.objects.filter(user_id=self.request.user).select_related('movie')
 
+        queryset = self.paginate_queryset(queryset)
         return queryset
 
 
