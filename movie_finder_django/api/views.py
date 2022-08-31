@@ -45,9 +45,12 @@ class FindMovieView(ListAPIView):
         movie_ids = Movie.get_movies_from_imdb(expression)
         if not len(movie_ids):
             raise FindMovieNotExist
-        qs = Movie.objects.filter(pk__in=movie_ids).annotate(likes_count=Count('likemovie')).annotate(
-            is_liked=Exists(LikeMovie.objects.filter(user_id=self.request.user.id, movie_id=OuterRef('pk'))),
-        )
+        qs = Movie.objects.filter(pk__in=movie_ids).annotate(likes_count=Count('likemovie'))
+
+        if self.request.user.is_authenticated:
+            qs = qs.annotate(
+                is_liked=Exists(LikeMovie.objects.filter(user_id=self.request.user.id, movie_id=OuterRef('pk'))),
+            )
 
         qs = self.paginate_queryset(qs)
 
