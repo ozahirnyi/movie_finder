@@ -1,9 +1,10 @@
+from django.contrib.auth import get_user_model
 from rest_framework import permissions, status
-from rest_framework.generics import RetrieveUpdateAPIView
+from rest_framework.generics import RetrieveUpdateAPIView, UpdateAPIView
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from .serializers import LoginSerializer, RegistrationSerializer, UserSerializer
+from .serializers import LoginSerializer, RegistrationSerializer, UserSerializer, ChangePasswordSerializer
 
 
 class LoginAPIView(APIView):
@@ -39,6 +40,24 @@ class UserRetrieveUpdateAPIView(RetrieveUpdateAPIView):
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     def update(self, request, *args, **kwargs):
+        serializer_data = request.data
+
+        serializer = self.serializer_class(
+            request.user,
+            data=serializer_data,
+            partial=True,
+        )
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class ChangePasswordAPIView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+    serializer_class = ChangePasswordSerializer
+
+    def patch(self, request, *args, **kwargs):
         serializer_data = request.data
 
         serializer = self.serializer_class(

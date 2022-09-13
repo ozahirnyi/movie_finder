@@ -4,7 +4,7 @@ from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
 from api.views import FindMovieView, WatchLaterListView, WatchLaterDestroyView, WatchLaterCreateView, MovieView, \
     MovieUnlikeView, MovieLikeView
-from api_auth.views import LoginAPIView, RegistrationAPIView, UserRetrieveUpdateAPIView
+from api_auth.views import LoginAPIView, RegistrationAPIView, UserRetrieveUpdateAPIView, ChangePasswordAPIView
 
 urlpatterns = [
     # Auth
@@ -13,6 +13,7 @@ urlpatterns = [
     path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
     path('registration/', RegistrationAPIView.as_view(), name='register'),
     path('user/', UserRetrieveUpdateAPIView.as_view(), name='user'),
+    path('user/change_password/', ChangePasswordAPIView.as_view(), name='change_password'),
     path('admin/', admin.site.urls),
 
     # Finder
