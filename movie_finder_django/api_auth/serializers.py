@@ -1,5 +1,6 @@
 from django.contrib.auth import authenticate, get_user_model
 from rest_framework import serializers
+from api_auth.errors import ChangePasswordError
 
 User = get_user_model()
 
@@ -74,5 +75,34 @@ class UserSerializer(serializers.ModelSerializer):
             instance.set_password(password)
 
         instance.save()
+
+        return instance
+
+
+class ChangePasswordSerializer(serializers.Serializer):
+    old_password = serializers.CharField(
+        max_length=128,
+        min_length=8,
+        write_only=True
+    )
+    new_password = serializers.CharField(
+        max_length=128,
+        min_length=8,
+        write_only=True
+    )
+
+    class Meta:
+        model = User
+        fields = ('password', )
+
+    def update(self, instance, validated_data):
+        old_password = validated_data.pop('old_password', None)
+        new_password = validated_data.pop('new_password', None)
+
+        if instance.check_password(old_password):
+            instance.set_password(new_password)
+            instance.save(update_fields=['password'])
+        else:
+            raise ChangePasswordError
 
         return instance
