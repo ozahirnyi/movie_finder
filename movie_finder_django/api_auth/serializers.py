@@ -103,6 +103,6 @@ class ChangePasswordSerializer(serializers.Serializer):
             instance.set_password(new_password)
             instance.save(update_fields=['password'])
         else:
-            raise ChangePasswordError()
+            raise ChangePasswordError
 
         return instance

@@ -1,10 +1,10 @@
 from django.contrib import admin
 from django.urls import path
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
-
 from api.views import FindMovieView, WatchLaterListView, WatchLaterDestroyView, WatchLaterCreateView, MovieView, \
     MovieUnlikeView, MovieLikeView
 from api_auth.views import LoginAPIView, RegistrationAPIView, UserRetrieveUpdateAPIView, ChangePasswordAPIView
+
 
 urlpatterns = [
     # Auth

@@ -8,6 +8,6 @@ class UserAlreadyExist(APIException):
     default_detail = 'User already exist'
 
 class ChangePasswordError(APIException):
-    status_code = status.HTTP_401_UNAUTHORIZED
+    status_code = status.HTTP_400_BAD_REQUEST
     default_code = 'WRONG_CURRENT_PASSWORD'
     default_detail = 'You entered the wrong current password'

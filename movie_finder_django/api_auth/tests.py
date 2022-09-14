@@ -2,9 +2,7 @@ from django.contrib.auth import get_user_model
 from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APITestCase
-from rest_framework.views import exception_handler
 from rest_framework_simplejwt.tokens import RefreshToken
-
 from api_auth.errors import ChangePasswordError
 
 
@@ -49,9 +47,8 @@ class AuthTests(APITestCase):
         self.assertEqual(self.user.email, new_data['email'])
 
     def test_change_password(self):
-        old_password = 'neoneoneo'
         new_data = {
-            'old_password': old_password,
+            'old_password': 'neoneoneo',
             'new_password': 'test_new_pass',
         }
 
@@ -59,18 +56,17 @@ class AuthTests(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.user.refresh_from_db()
-        self.assertNotEqual(self.user.password, old_password)
+        self.assertNotEqual(self.user.password, new_data['old_password'])
 
     def test_change_password_wrong_old(self):
-        old_password = 'neoneoneo-wrong'
         new_data = {
-            'old_password': old_password,
+            'old_password': 'neoneoneo-wrong',
             'new_password': 'test_new_pass',
         }
         response = self.client.patch(reverse('change_password'), data=new_data)
         default_code = response.data['detail'].code
         default_detail = response.data['detail']
 
-        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertEqual(default_code, ChangePasswordError.default_code)
         self.assertEqual(default_detail, ChangePasswordError.default_detail)
