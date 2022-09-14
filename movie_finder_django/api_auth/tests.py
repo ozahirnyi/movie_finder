@@ -5,6 +5,8 @@ from rest_framework.test import APITestCase
 from rest_framework.views import exception_handler
 from rest_framework_simplejwt.tokens import RefreshToken
 
+from api_auth.errors import ChangePasswordError
+
 
 class AuthTests(APITestCase):
     @classmethod
@@ -37,8 +39,6 @@ class AuthTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
     def test_update_user(self):
-        self.client.force_login(self.user)
-
         new_data = {
             'email': 'new_test@new.test',
             'username': 'newusername',
@@ -51,7 +51,6 @@ class AuthTests(APITestCase):
         self.assertEqual(self.user.email, new_data['email'])
 
     def test_change_password(self):
-        self.client.force_login(self.user)
         old_password = 'neoneoneo'
         new_data = {
             'old_password': old_password,
@@ -65,18 +64,15 @@ class AuthTests(APITestCase):
         self.assertNotEqual(self.user.password, old_password)
 
     def test_change_password_wrong_old(self):
-        user = self.client.force_login(self.user)
         old_password = 'neoneoneo-wrong'
         new_data = {
             'old_password': old_password,
             'new_password': 'test_new_pass',
         }
-
         response = self.client.patch(reverse('change_password'), data=new_data)
-        response2 = exception_handler(response, context=response.status_code)
-        print(f'response: {response}')
-        print(f'response2: {response2}')
-        # print(f'user: {user}')
+        default_code = response.data['detail'].code
+        default_detail = response.data['detail']
+
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
-        # self.assertEqual(response.default_code, 'WRONG_CURRENT_PASSWORD')
-        # self.assertEqual(response.default_detail, 'You entered the wrong current password')
+        self.assertEqual(default_code, ChangePasswordError.default_code)
+        self.assertEqual(default_detail, ChangePasswordError.default_detail)
