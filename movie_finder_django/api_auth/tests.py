@@ -13,8 +13,6 @@ class AuthTests(APITestCase):
     def setUpTestData(cls):
         cls.register_data = {'email': 'test@test.test', 'username': 'Shrek', 'password': 'test_pass'}
         cls.login_data = {'email': 'test@test.test', 'password': 'test_pass'}
-        cls.pass_change_data = {'password': 'test_pass', 'newPassword': 'test_new_pass',
-                                'newPasswordConfirmation': 'test_new_pass'}
 
     def setUp(self) -> None:
         self.user = get_user_model().objects.create_user(username='neo', email='neo@neo.neo', password='neoneoneo')
