@@ -1,6 +1,7 @@
 from django.db.models import Count, OuterRef, Exists
 from rest_framework import permissions, status
-from rest_framework.generics import GenericAPIView, DestroyAPIView, CreateAPIView, ListAPIView
+from rest_framework.generics import GenericAPIView, DestroyAPIView, CreateAPIView, ListAPIView, get_object_or_404, \
+    RetrieveAPIView
 from rest_framework.response import Response
 
 from .errors import FindMovieNotExist
@@ -9,10 +10,20 @@ from .paginations import MoviesPagination
 from .serializers import MovieSerializer, WatchLaterCreateSerializer, WatchLaterListSerializer
 
 
-class MovieView(ListAPIView):
+class MovieView(RetrieveAPIView):
     permission_classes = [permissions.AllowAny]
     serializer_class = MovieSerializer
-    queryset = Movie.objects.all()
+    lookup_field = 'id'
+
+    def get_queryset(self):
+        qs = Movie.objects.all().annotate(likes_count=Count('likemovie'))
+
+        if self.request.user.is_authenticated:
+            qs = qs.annotate(
+                is_liked=Exists(LikeMovie.objects.filter(user_id=self.request.user.id, movie_id=OuterRef('pk'))),
+            )
+
+        return qs
 
 
 class MovieLikeView(CreateAPIView):
