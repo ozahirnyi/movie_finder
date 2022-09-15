@@ -16,12 +16,16 @@ class MovieView(RetrieveAPIView):
     lookup_field = 'id'
 
     def get_queryset(self):
-        qs = Movie.objects.all().annotate(likes_count=Count('likemovie'))
+        is_liked_query = LikeMovie.objects.filter(user_id=self.request.user.id, movie_id=OuterRef('pk'))
 
-        if self.request.user.is_authenticated:
-            qs = qs.annotate(
-                is_liked=Exists(LikeMovie.objects.filter(user_id=self.request.user.id, movie_id=OuterRef('pk'))),
+        qs = (
+            Movie.objects
+            .all()
+            .annotate(
+                likes_count=Count('likemovie'),
+                is_liked=Exists(is_liked_query),
             )
+        )
 
         return qs
 
@@ -56,12 +60,17 @@ class FindMovieView(ListAPIView):
         movie_ids = Movie.get_movies_from_imdb(expression)
         if not len(movie_ids):
             raise FindMovieNotExist
-        qs = Movie.objects.filter(pk__in=movie_ids).annotate(likes_count=Count('likemovie'))
 
-        if self.request.user.is_authenticated:
-            qs = qs.annotate(
-                is_liked=Exists(LikeMovie.objects.filter(user_id=self.request.user.id, movie_id=OuterRef('pk'))),
+        is_liked_query = LikeMovie.objects.filter(user_id=self.request.user.id, movie_id=OuterRef('pk'))
+
+        qs = (
+            Movie.objects
+            .filter(pk__in=movie_ids)
+            .annotate(
+                likes_count=Count('likemovie'),
+                is_liked=Exists(is_liked_query),
             )
+        )
 
         qs = self.paginate_queryset(qs)
 
@@ -85,7 +94,13 @@ class WatchLaterListView(ListAPIView):
     pagination_class = MoviesPagination
 
     def get_queryset(self):
-        queryset = WatchLaterMovie.objects.filter(user_id=self.request.user).select_related('movie')
+        is_liked_query = LikeMovie.objects.filter(user_id=self.request.user.id, movie_id=OuterRef('pk'))
+        queryset = (
+            WatchLaterMovie.objects
+            .filter(user_id=self.request.user)
+            .select_related('movie')
+            .annotate(is_liked=Exists(is_liked_query))
+        )
 
         queryset = self.paginate_queryset(queryset)
         return queryset
