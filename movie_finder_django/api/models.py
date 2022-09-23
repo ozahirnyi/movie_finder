@@ -73,7 +73,10 @@ class UserMovie(models.Model):
 
 
 class WatchLaterMovie(UserMovie):
-    pass
+    class Meta(UserMovie.Meta):
+        constraints = [
+            models.UniqueConstraint(fields=['user', 'movie'], name='watchlater-user-movie-unique')
+        ]
 
 
 class LikeMovie(UserMovie):

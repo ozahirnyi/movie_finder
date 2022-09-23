@@ -31,12 +31,14 @@ class FinderTests(APITestCase):
 
     def test_like_movie_error(self):
         self.client.force_login(self.user)
-        with self.assertNumQueries(4):
+        with self.assertNumQueries(2):
             response = self.client.post(reverse('movie_like', kwargs={'id': self.movie.id}))
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        with self.assertNumQueries(2):
             response = self.client.post(reverse('movie_like', kwargs={'id': self.movie.id}))
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         default_code = response.data['detail'].code
         default_detail = response.data['detail']
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertEqual(default_code, AddLikeError.default_code)
         self.assertEqual(default_detail, AddLikeError.default_detail)
 
