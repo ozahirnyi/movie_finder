@@ -1,10 +1,12 @@
+from django.db import IntegrityError, transaction
 from django.db.models import Count, OuterRef, Exists
+from django.db.transaction import TransactionManagementError
 from rest_framework import permissions, status
 from rest_framework.generics import GenericAPIView, DestroyAPIView, CreateAPIView, ListAPIView, get_object_or_404, \
     RetrieveAPIView
 from rest_framework.response import Response
 
-from .errors import FindMovieNotExist
+from .errors import FindMovieNotExist, AddLikeError
 from .models import Movie, WatchLaterMovie, LikeMovie
 from .paginations import MoviesPagination
 from .serializers import MovieSerializer, WatchLaterCreateSerializer, WatchLaterListSerializer
@@ -26,11 +28,29 @@ class MovieView(RetrieveAPIView):
         return qs
 
 
+# class MovieLikeView(CreateAPIView):
+#     permission_classes = [permissions.IsAuthenticated]
+#
+#     def post(self, request, *args, **kwargs):
+#         user = self.request.user
+#         movie_id = kwargs.get('id')
+#         like_count = LikeMovie.objects.filter(user=user, movie_id=movie_id).count()
+#
+#         if like_count == 0:
+#             LikeMovie.objects.create(user=user, movie_id=movie_id)
+#             return Response(status=status.HTTP_201_CREATED)
+#
+#         raise AddLikeError
+
+
 class MovieLikeView(CreateAPIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request, *args, **kwargs):
-        LikeMovie.objects.create(user=self.request.user, movie_id=kwargs.get('id'))
+        try:
+            LikeMovie.objects.create(user=self.request.user, movie_id=kwargs.get('id'))
+        except IntegrityError:
+            raise AddLikeError
 
         return Response(status=status.HTTP_201_CREATED)
 

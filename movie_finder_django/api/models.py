@@ -7,6 +7,7 @@ from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import User
 from django.db import models
+from django.db.models import UniqueConstraint
 
 from api.errors import FindMovieNotExist
 
@@ -56,7 +57,7 @@ class Movie(models.Model):
         return self.title
 
 
-class UserMovieMixin(models.Model):
+class UserMovie(models.Model):
     related_model = Movie
     related_model_field = 'movie_id'
 
@@ -69,14 +70,21 @@ class UserMovieMixin(models.Model):
     class Meta:
         app_label = 'api'
         abstract = True
+        # constraints = [
+        #     models.UniqueConstraint(fields=['user', 'movie'], name="%%(class)-user-movie-unique")
+        # ]
+        # unique_together = ("user", "movie")
 
     def __str__(self):
         return f'{self.user} | {self.movie}'
 
 
-class WatchLaterMovie(UserMovieMixin):
+class WatchLaterMovie(UserMovie):
     pass
 
 
-class LikeMovie(UserMovieMixin):
-    pass
+class LikeMovie(UserMovie):
+    class Meta(UserMovie.Meta):
+        constraints = [
+            models.UniqueConstraint(fields=['user', 'movie'], name='like-user-movie-unique')
+        ]
