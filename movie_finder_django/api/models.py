@@ -1,13 +1,11 @@
 import json
-from typing import List, Optional
-
 import regex
 import requests
+from typing import List, Optional
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import User
 from django.db import models
-
 from api.errors import FindMovieNotExist
 
 
@@ -56,7 +54,7 @@ class Movie(models.Model):
         return self.title
 
 
-class UserMovieMixin(models.Model):
+class UserMovie(models.Model):
     related_model = Movie
     related_model_field = 'movie_id'
 
@@ -74,9 +72,12 @@ class UserMovieMixin(models.Model):
         return f'{self.user} | {self.movie}'
 
 
-class WatchLaterMovie(UserMovieMixin):
+class WatchLaterMovie(UserMovie):
     pass
 
 
-class LikeMovie(UserMovieMixin):
-    pass
+class LikeMovie(UserMovie):
+    class Meta(UserMovie.Meta):
+        constraints = [
+            models.UniqueConstraint(fields=['user', 'movie'], name='like-user-movie-unique')
+        ]
