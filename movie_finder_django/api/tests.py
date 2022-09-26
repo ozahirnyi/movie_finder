@@ -3,7 +3,7 @@ from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APITestCase
 from rest_framework_simplejwt.tokens import RefreshToken
-
+from .errors import AddLikeError
 from .models import Movie, WatchLaterMovie, LikeMovie
 
 
@@ -28,6 +28,19 @@ class FinderTests(APITestCase):
         with self.assertNumQueries(2):
             response = self.client.post(reverse('movie_like', kwargs={'id': self.movie.id}))
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+    def test_like_movie_error(self):
+        self.client.force_login(self.user)
+        with self.assertNumQueries(2):
+            response = self.client.post(reverse('movie_like', kwargs={'id': self.movie.id}))
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        with self.assertNumQueries(2):
+            response = self.client.post(reverse('movie_like', kwargs={'id': self.movie.id}))
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        default_code = response.data['detail'].code
+        default_detail = response.data['detail']
+        self.assertEqual(default_code, AddLikeError.default_code)
+        self.assertEqual(default_detail, AddLikeError.default_detail)
 
     def test_unlike_movie(self):
         LikeMovie.objects.create(user=self.user, movie=self.movie)
