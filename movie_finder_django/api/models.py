@@ -1,14 +1,12 @@
 import json
-from typing import List, Optional
-
 import regex
 import requests
+from typing import List, Optional
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import User
 from django.db import models
 from django.db.models import UniqueConstraint
-
 from api.errors import FindMovieNotExist
 
 
@@ -70,17 +68,16 @@ class UserMovie(models.Model):
     class Meta:
         app_label = 'api'
         abstract = True
-        # constraints = [
-        #     models.UniqueConstraint(fields=['user', 'movie'], name="%%(class)-user-movie-unique")
-        # ]
-        # unique_together = ("user", "movie")
 
     def __str__(self):
         return f'{self.user} | {self.movie}'
 
 
 class WatchLaterMovie(UserMovie):
-    pass
+    class Meta(UserMovie.Meta):
+        constraints = [
+            models.UniqueConstraint(fields=['user', 'movie'], name='watchlater-user-movie-unique')
+        ]
 
 
 class LikeMovie(UserMovie):

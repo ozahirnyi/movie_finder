@@ -3,7 +3,10 @@ from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APITestCase
 from rest_framework_simplejwt.tokens import RefreshToken
+<<<<<<< HEAD
 
+=======
+>>>>>>> afa1bd3d57b760786e9d1fd1f85aa34f2f4027fb
 from .errors import AddLikeError
 from .models import Movie, WatchLaterMovie, LikeMovie
 
@@ -32,6 +35,7 @@ class FinderTests(APITestCase):
 
     def test_like_movie_error(self):
         self.client.force_login(self.user)
+<<<<<<< HEAD
         with self.assertNumQueries(4):
             response = self.client.post(reverse('movie_like', kwargs={'id': self.movie.id}))
             response2 = self.client.post(reverse('movie_like', kwargs={'id': self.movie.id}))
@@ -41,6 +45,16 @@ class FinderTests(APITestCase):
         default_detail = response.data['detail']
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertEqual(response2.status_code, status.HTTP_400_BAD_REQUEST)
+=======
+        with self.assertNumQueries(2):
+            response = self.client.post(reverse('movie_like', kwargs={'id': self.movie.id}))
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        with self.assertNumQueries(2):
+            response = self.client.post(reverse('movie_like', kwargs={'id': self.movie.id}))
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        default_code = response.data['detail'].code
+        default_detail = response.data['detail']
+>>>>>>> afa1bd3d57b760786e9d1fd1f85aa34f2f4027fb
         self.assertEqual(default_code, AddLikeError.default_code)
         self.assertEqual(default_detail, AddLikeError.default_detail)
 
