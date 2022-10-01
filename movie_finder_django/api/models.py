@@ -21,7 +21,7 @@ class Movie(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        app_label = 'api'
+        app_label = "api"
 
     @property
     def get_top_10(self):
@@ -29,19 +29,21 @@ class Movie(models.Model):
 
     @staticmethod
     def get_movies_from_imdb(expression: str) -> Optional[List[int]]:
-        response = requests.get(settings.IMDB_API_URL + settings.IMDB_API_KEY + '/' + expression)
-        parsed_response = json.loads(response.text)['results']
+        response = requests.get(
+            settings.IMDB_API_URL + settings.IMDB_API_KEY + "/" + expression
+        )
+        parsed_response = json.loads(response.text)["results"]
         movie_ids = []
 
         if not parsed_response:
             raise FindMovieNotExist
 
         for data in parsed_response:
-            description = regex.sub(r'\(|\)', '', data['description']).split(' ', 1)
+            description = regex.sub(r"\(|\)", "", data["description"]).split(" ", 1)
             movie = Movie.objects.update_or_create(
-                title=data['title'],
-                imdb_id=data['id'],
-                poster=data['image'],
+                title=data["title"],
+                imdb_id=data["id"],
+                poster=data["image"],
                 year=description[0] if len(description) > 0 else None,
                 type=description[1] if len(description) > 1 else None,
             )
@@ -56,7 +58,7 @@ class Movie(models.Model):
 
 class UserMovie(models.Model):
     related_model = Movie
-    related_model_field = 'movie_id'
+    related_model_field = "movie_id"
 
     user = models.ForeignKey(get_user_model(), on_delete=models.CASCADE)
     movie = models.ForeignKey(Movie, on_delete=models.CASCADE)
@@ -65,22 +67,26 @@ class UserMovie(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        app_label = 'api'
+        app_label = "api"
         abstract = True
 
     def __str__(self):
-        return f'{self.user} | {self.movie}'
+        return f"{self.user} | {self.movie}"
 
 
 class WatchLaterMovie(UserMovie):
     class Meta(UserMovie.Meta):
         constraints = [
-            models.UniqueConstraint(fields=['user', 'movie'], name='watchlater-user-movie-unique')
+            models.UniqueConstraint(
+                fields=["user", "movie"], name="watchlater-user-movie-unique"
+            )
         ]
 
 
 class LikeMovie(UserMovie):
     class Meta(UserMovie.Meta):
         constraints = [
-            models.UniqueConstraint(fields=['user', 'movie'], name='like-user-movie-unique')
+            models.UniqueConstraint(
+                fields=["user", "movie"], name="like-user-movie-unique"
+            )
         ]
