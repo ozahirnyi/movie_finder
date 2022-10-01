@@ -1,15 +1,18 @@
-from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
+from django.contrib.auth.models import (
+    AbstractBaseUser,
+    BaseUserManager,
+    PermissionsMixin,
+)
 from django.db import models
 
 
 class UserManager(BaseUserManager):
-
     def create_user(self, username, email, password=None):
         if username is None:
-            raise TypeError('Users must have a username.')
+            raise TypeError("Users must have a username.")
 
         if email is None:
-            raise TypeError('Users must have an email address.')
+            raise TypeError("Users must have an email address.")
 
         user = self.model(username=username, email=self.normalize_email(email))
         user.set_password(password)
@@ -19,7 +22,7 @@ class UserManager(BaseUserManager):
 
     def create_superuser(self, username, email, password):
         if password is None:
-            raise TypeError('Superusers must have a password.')
+            raise TypeError("Superusers must have a password.")
 
         user = self.create_user(username, email, password)
         user.is_superuser = True
@@ -39,7 +42,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
-    USERNAME_FIELD = 'email'
+    USERNAME_FIELD = "email"
 
     objects = UserManager()
 
