@@ -123,13 +123,13 @@ class WatchLaterListView(ListAPIView):
                 likes_count=Count("movie__likemovie", distinct=True),
                 is_liked=Exists(
                     LikeMovie.objects.filter(
-                        user_id=self.request.user.id, movie_id=OuterRef("pk")
+                        user_id=self.request.user.id, movie_id=OuterRef("movie__pk")
                     )
                 ),
                 watch_later_count=Count("movie__watchlatermovie", distinct=True),
                 is_watch_later=Exists(
                     WatchLaterMovie.objects.filter(
-                        user_id=self.request.user.id, movie_id=OuterRef("pk")
+                        user_id=self.request.user.id, movie_id=OuterRef("movie__pk")
                     )
                 ),
             )
