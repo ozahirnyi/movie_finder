@@ -115,28 +115,24 @@ class WatchLaterListView(ListAPIView):
     pagination_class = MoviesPagination
 
     def get_queryset(self):
-
-        queryset = (
+        return (
             WatchLaterMovie.objects.filter(user_id=self.request.user)
             .select_related("movie")
             .annotate(
-                likes_count=Count("movie__likemovie", distinct=True),
+                likes_count=Count("movie__likemovie"),
                 is_liked=Exists(
                     LikeMovie.objects.filter(
                         user_id=self.request.user.id, movie_id=OuterRef("movie__pk")
-                    )
+                    ),
                 ),
-                watch_later_count=Count("movie__watchlatermovie", distinct=True),
+                watch_later_count=Count("movie__watchlatermovie"),
                 is_watch_later=Exists(
                     WatchLaterMovie.objects.filter(
                         user_id=self.request.user.id, movie_id=OuterRef("movie__pk")
-                    )
+                    ),
                 ),
             )
         )
-
-        queryset = self.paginate_queryset(queryset)
-        return queryset
 
 
 class WatchLaterDestroyView(DestroyAPIView):

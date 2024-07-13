@@ -1,4 +1,5 @@
 import os
+import sys
 from datetime import timedelta
 from pathlib import Path
 
@@ -64,11 +65,18 @@ TEMPLATES = [
 WSGI_APPLICATION = "movie_finder_django.wsgi.application"
 
 DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "db.sqlite3",
-    }
+    'default': {
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': BASE_DIR / 'db.sqlite3',
+    },
+    'test': {
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': BASE_DIR / 'test_db.sqlite3',
+    },
 }
+
+if 'test' in sys.argv or 'test_coverage' in sys.argv:  # перевіряємо, що ми запускаємо тести
+    DATABASES['default'] = DATABASES['test']
 
 AUTH_PASSWORD_VALIDATORS = [
     {

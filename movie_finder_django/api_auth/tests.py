@@ -3,7 +3,8 @@ from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APITestCase
 from rest_framework_simplejwt.tokens import RefreshToken
-from api_auth.errors import ChangePasswordError
+
+from .errors import ChangePasswordError
 
 
 class AuthTests(APITestCase):

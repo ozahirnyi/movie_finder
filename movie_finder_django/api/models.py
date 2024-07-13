@@ -1,12 +1,11 @@
 import json
-import regex
 import requests
 from typing import List, Optional
 from django.conf import settings
 from django.contrib.auth import get_user_model
-from django.contrib.auth.models import User
 from django.db import models
-from api.errors import FindMovieNotExist
+
+from .errors import FindMovieNotExist
 
 
 class Movie(models.Model):
@@ -28,7 +27,7 @@ class Movie(models.Model):
         pass
 
     @staticmethod
-    def get_movies_from_imdb(expression: str) -> Optional[List[int]]:
+    def get_movies_from_imdb(expression: str) -> list:
         response = requests.get(
             settings.IMDB_API_URL + settings.IMDB_API_KEY + "/" + expression
         )
@@ -39,7 +38,7 @@ class Movie(models.Model):
             raise FindMovieNotExist
 
         for data in parsed_response:
-            description = regex.sub(r"\(|\)", "", data["description"]).split(" ", 1)
+            description = data["description"]
             movie = Movie.objects.update_or_create(
                 title=data["title"],
                 imdb_id=data["id"],

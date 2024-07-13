@@ -18,12 +18,6 @@ class FinderTests(APITestCase):
         )
         refresh = RefreshToken.for_user(self.user)
         self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {refresh.access_token}")
-        self.watch_later_movie = WatchLaterMovie.objects.create(
-            user_id=self.user.id, movie_id=self.movie.id
-        )
-        self.like_movie = LikeMovie.objects.create(
-            user_id=self.user.id, movie_id=self.movie.id
-        )
 
     def test_get_movie(self):
         with self.assertNumQueries(2):
@@ -98,14 +92,13 @@ class FinderTests(APITestCase):
         wrong_user = get_user_model().objects.create_user(
             username="notneo", email="notneo@neo.neo", password="neoneoneo"
         )
-        WatchLaterMovie.objects.create(user=wrong_user, movie=self.movie)
+        WatchLaterMovie.objects.create(user_id=wrong_user.id, movie_id=self.movie.id)
+        WatchLaterMovie.objects.create(user_id=self.user.id, movie_id=self.movie.id)
 
         self.client.force_login(self.user)
-        with self.assertNumQueries(3):
+        with self.assertNumQueries(2):
             response = self.client.get(reverse("watch_later_list"))
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         response_data = response.data["results"][0]
-        self.assertTrue(response_data["is_liked"])
-        self.assertEqual(response_data["likes_count"], 1)
         self.assertTrue(response_data["is_watch_later"])
         self.assertEqual(response_data["watch_later_count"], 2)

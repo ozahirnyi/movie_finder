@@ -1,6 +1,7 @@
 from django.contrib.auth import authenticate, get_user_model
 from rest_framework import serializers
-from api_auth.errors import ChangePasswordError
+
+from .errors import ChangePasswordError
 
 User = get_user_model()
 
