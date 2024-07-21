@@ -1,5 +1,6 @@
 from django.db import IntegrityError
 from django.db.models import Count, OuterRef, Exists
+from django.http import JsonResponse
 from rest_framework import permissions, status
 from rest_framework.generics import (
     GenericAPIView,
@@ -9,7 +10,7 @@ from rest_framework.generics import (
     RetrieveAPIView,
 )
 from rest_framework.response import Response
-from .errors import FindMovieNotExist, AddLikeError
+from .errors import AddLikeError
 from .models import Movie, WatchLaterMovie, LikeMovie
 from .paginations import MoviesPagination
 from .serializers import (
@@ -17,6 +18,7 @@ from .serializers import (
     WatchLaterCreateSerializer,
     WatchLaterListSerializer,
 )
+from .find_movie import FindMovieAiClient
 
 
 class MovieView(RetrieveAPIView):
@@ -71,32 +73,31 @@ class FindMovieView(ListAPIView):
     serializer_class = MovieSerializer
     pagination_class = MoviesPagination
 
-    def get(self, *args, **kwargs):
-        expression = kwargs.get("expression")
-        movie_ids = Movie.get_movies_from_imdb(expression)
-
-        if not len(movie_ids):
-            raise FindMovieNotExist
-
-        qs = Movie.objects.filter(pk__in=movie_ids).annotate(
-            likes_count=Count("likemovie", distinct=True),
-            is_liked=Exists(
-                LikeMovie.objects.filter(
-                    user_id=self.request.user.id, movie_id=OuterRef("pk")
-                )
-            ),
-            watch_later_count=Count("watchlatermovie", distinct=True),
-            is_watch_later=Exists(
-                WatchLaterMovie.objects.filter(
-                    user_id=self.request.user.id, movie_id=OuterRef("pk")
-                )
-            ),
+    def get_queryset(self):
+        return (
+            Movie.objects
+            .filter(title__icontains=self.kwargs.get("expression"))
+            .with_is_liked(self.request.user.id)
+            .with_is_watch_later(self.request.user.id)
+            .with_likes_count()
+            .with_watch_later_count()
         )
 
-        qs = self.paginate_queryset(qs)
+    def get(self, *args, **kwargs):
+        # Get from imdb and save to db
+        if not self.request.query_params.get("test"):
+            Movie.get_movies_from_imdb(kwargs.get("expression"))
+        return super().get(*args, **kwargs)
 
-        data = self.get_serializer(qs, many=True).data
-        return self.get_paginated_response(data)
+
+class FindMovieAiView(ListAPIView):
+    permission_classes = [permissions.IsAuthenticated]
+    serializer_class = MovieSerializer
+    pagination_class = MoviesPagination
+
+    async def get(self, request, *args, **kwargs):
+        movies = await FindMovieAiClient.find_movies(self.request.query_params["prompt"])
+        return JsonResponse(movies)
 
 
 class WatchLaterCreateView(CreateAPIView):

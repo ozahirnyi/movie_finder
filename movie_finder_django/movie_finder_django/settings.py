@@ -7,7 +7,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 AUTH_USER_MODEL = "api_auth.User"
 
-IMDB_API_URL = "https://imdb-api.com/en/API/Search/"
+IMDB_API_URL = "https://api.collectapi.com/imdb/imdbSearchByName"
 IMDB_API_KEY = os.getenv("IMDB_API_KEY")
 
 SECRET_KEY = os.getenv("DJANGO_KEY")
@@ -97,6 +97,9 @@ REST_FRAMEWORK = {
     "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.LimitOffsetPagination",
     "DEFAULT_AUTHENTICATION_CLASSES": [
         "rest_framework_simplejwt.authentication.JWTAuthentication",
+    ],
+    'DEFAULT_RENDERER_CLASSES': [
+        'rest_framework.renderers.JSONRenderer',
     ],
 }
 

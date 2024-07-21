@@ -7,15 +7,15 @@ from api.views import (
     WatchLaterCreateView, WatchLaterDestroyView,
 )
 from api_auth.views import (
-    LoginAPIView, RegistrationAPIView, UserRetrieveUpdateAPIView, ChangePasswordAPIView,
+    SignInApiView, SignUpApiView, UserRetrieveUpdateAPIView, ChangePasswordAPIView,
 )
 
 urlpatterns = [
     # Auth
-    path("login/", LoginAPIView.as_view(), name="login"),
+    path("signin/", SignInApiView.as_view(), name="signin"),
     path("api/token/", TokenObtainPairView.as_view(), name="token_obtain_pair"),
     path("api/token/refresh/", TokenRefreshView.as_view(), name="token_refresh"),
-    path("registration/", RegistrationAPIView.as_view(), name="register"),
+    path("signup/", SignUpApiView.as_view(), name="signup"),
     path("user/", UserRetrieveUpdateAPIView.as_view(), name="user"),
     path("user/change_password/", ChangePasswordAPIView.as_view(), name="change_password"),
     path("admin/", admin.site.urls),
