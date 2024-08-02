@@ -27,21 +27,13 @@ class MovieView(RetrieveAPIView):
     lookup_field = "id"
 
     def get_queryset(self):
-        is_liked_query = LikeMovie.objects.filter(
-            user_id=self.request.user.id, movie_id=OuterRef("pk")
+        return (
+            Movie.objects
+            .with_is_liked(self.request.user.id)
+            .with_is_watch_later(self.request.user.id)
+            .with_likes_count()
+            .with_watch_later_count()
         )
-        is_watch_later_query = WatchLaterMovie.objects.filter(
-            user_id=self.request.user.id, movie_id=OuterRef("pk")
-        )
-
-        qs = Movie.objects.all().annotate(
-            likes_count=Count("likemovie", distinct=True),
-            is_liked=Exists(is_liked_query),
-            watch_later_count=Count("watchlatermovie", distinct=True),
-            is_watch_later=Exists(is_watch_later_query),
-        )
-
-        return qs
 
 
 class MovieLikeView(CreateAPIView):

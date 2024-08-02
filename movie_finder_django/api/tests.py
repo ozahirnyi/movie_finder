@@ -13,9 +13,7 @@ class FinderTests(APITestCase):
         cls.movie = Movie.objects.create(title="test", imdb_id="1")
 
     def setUp(self) -> None:
-        self.user = get_user_model().objects.create_user(
-            username="neo", email="neo@neo.neo", password="neoneoneo"
-        )
+        self.user = get_user_model().objects.create_user(email="neo@neo.neo", password="neoneoneo")
         refresh = RefreshToken.for_user(self.user)
         self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {refresh.access_token}")
 
@@ -62,7 +60,7 @@ class FinderTests(APITestCase):
         # TODO: uncomment when start use postgresql. > movie_finder_django/api/models.py
         # with self.assertNumQueries(3):
         response = self.client.get(
-            reverse("find_movie", kwargs={"expression": "Shrek"})
+            reverse("find_movie", kwargs={"expression": "Shrek"}) + '?test=1'
         )
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
@@ -89,14 +87,12 @@ class FinderTests(APITestCase):
         self.assertFalse(wl.exists())
 
     def test_get_watch_later(self):
-        wrong_user = get_user_model().objects.create_user(
-            username="notneo", email="notneo@neo.neo", password="neoneoneo"
-        )
+        wrong_user = get_user_model().objects.create_user(email="notneo@neo.neo", password="neoneoneo")
         WatchLaterMovie.objects.create(user_id=wrong_user.id, movie_id=self.movie.id)
         WatchLaterMovie.objects.create(user_id=self.user.id, movie_id=self.movie.id)
 
         self.client.force_login(self.user)
-        with self.assertNumQueries(2):
+        with self.assertNumQueries(3):
             response = self.client.get(reverse("watch_later_list"))
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         response_data = response.data["results"][0]

@@ -30,10 +30,8 @@ class Movie(models.Model):
             headers={'authorization': settings.IMDB_API_KEY, 'content-type': 'application/json'},
             timeout=10,
         )
-        parsed_response = json.loads(response.text)["result"]
         movie_ids = []
-
-        for data in parsed_response:
+        for data in json.loads(response.text)["result"]:
             movie = Movie.objects.update_or_create(
                 title=data["Title"],
                 imdb_id=data["imdbID"],

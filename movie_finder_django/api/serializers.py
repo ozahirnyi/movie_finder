@@ -14,6 +14,7 @@ class MovieSerializer(serializers.ModelSerializer, LikesWatchLaterSerializer):
         model = Movie
         fields = (
             "id",
+            "imdb_id",
             "title",
             "year",
             "type",
