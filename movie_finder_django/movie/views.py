@@ -1,6 +1,5 @@
 from django.db import IntegrityError
 from django.db.models import Count, OuterRef, Exists
-from django.http import JsonResponse
 from rest_framework import permissions, status
 from rest_framework.generics import (
     GenericAPIView,
@@ -18,7 +17,9 @@ from .serializers import (
     WatchLaterCreateSerializer,
     WatchLaterListSerializer,
 )
-from .find_movie import FindMovieAiClient
+from .ai_find_movie import FindMovieAiClient
+
+from .services import MovieService
 
 
 class MovieView(RetrieveAPIView):
@@ -78,18 +79,19 @@ class FindMovieView(ListAPIView):
     def get(self, *args, **kwargs):
         # Get from imdb and save to db
         if not self.request.query_params.get("test"):
-            Movie.get_movies_from_imdb(kwargs.get("expression"))
+            MovieService.get_movies_from_imdb(kwargs.get("expression"))
         return super().get(*args, **kwargs)
 
 
 class FindMovieAiView(ListAPIView):
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.AllowAny]
     serializer_class = MovieSerializer
     pagination_class = MoviesPagination
 
-    async def get(self, request, *args, **kwargs):
-        movies = await FindMovieAiClient.find_movies(self.request.query_params["prompt"])
-        return JsonResponse(movies)
+    def post(self, request, *args, **kwargs):
+        if prompt := self.request.data.get("prompt"):
+            movies = FindMovieAiClient(prompt).find_movies()
+        return Response(status=status.HTTP_200_OK)
 
 
 class WatchLaterCreateView(CreateAPIView):

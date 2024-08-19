@@ -21,28 +21,7 @@ class Movie(models.Model):
     objects = MovieManager.as_manager()
 
     class Meta:
-        app_label = "api"
-
-    @staticmethod
-    def get_movies_from_imdb(expression: str) -> list:
-        response = requests.get(
-            settings.IMDB_API_URL + "?query=" + expression,
-            headers={'authorization': settings.IMDB_API_KEY, 'content-type': 'application/json'},
-            timeout=10,
-        )
-        movie_ids = []
-        for data in json.loads(response.text)["result"]:
-            movie = Movie.objects.update_or_create(
-                title=data["Title"],
-                imdb_id=data["imdbID"],
-                poster=data["Poster"],
-                year=data["Year"],
-                type=data["Type"],
-            )
-            movie_ids.append(movie[0].id)
-        # TODO: uncomment when start use postgresql. > movie_finder_django/api/tests.py
-        # Movie.objects.bulk_create(movies)
-        return movie_ids
+        app_label = "movie"
 
     def __str__(self):
         return self.title
@@ -59,7 +38,7 @@ class UserMovie(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        app_label = "api"
+        app_label = "movie"
         abstract = True
 
     def __str__(self):

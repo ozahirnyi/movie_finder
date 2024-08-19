@@ -5,10 +5,13 @@ from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-AUTH_USER_MODEL = "api_auth.User"
+AUTH_USER_MODEL = "auth_app.User"
 
 IMDB_API_URL = "https://api.collectapi.com/imdb/imdbSearchByName"
 IMDB_API_KEY = os.getenv("IMDB_API_KEY")
+
+ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY")
+MAX_PROMPT_TOKENS_LENGTH = 1000
 
 SECRET_KEY = os.getenv("DJANGO_KEY")
 
@@ -25,8 +28,8 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "corsheaders",
     "rest_framework.authtoken",
-    "api",
-    "api_auth",
+    "movie",
+    "auth_app",
 ]
 
 MIDDLEWARE = [
@@ -80,16 +83,16 @@ if 'test' in sys.argv or 'test_coverage' in sys.argv:  # перевіряємо,
 
 AUTH_PASSWORD_VALIDATORS = [
     {
-        "NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator",
+        "NAME": "django.contrib.auth_app.password_validation.UserAttributeSimilarityValidator",
     },
     {
-        "NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",
+        "NAME": "django.contrib.auth_app.password_validation.MinimumLengthValidator",
     },
     {
-        "NAME": "django.contrib.auth.password_validation.CommonPasswordValidator",
+        "NAME": "django.contrib.auth_app.password_validation.CommonPasswordValidator",
     },
     {
-        "NAME": "django.contrib.auth.password_validation.NumericPasswordValidator",
+        "NAME": "django.contrib.auth_app.password_validation.NumericPasswordValidator",
     },
 ]
 
