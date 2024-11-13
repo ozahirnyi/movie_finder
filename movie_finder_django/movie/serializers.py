@@ -38,7 +38,6 @@ class WatchLaterListSerializer(serializers.ModelSerializer, LikesWatchLaterSeria
     class Meta:
         model = WatchLaterMovie
         fields = (
-            "id",
             "movie",
             "is_liked",
             "likes_count",

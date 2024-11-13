@@ -119,7 +119,7 @@ class WatchLaterListView(ListAPIView):
 
     def get_queryset(self):
         return (
-            WatchLaterMovie.objects.filter(user_id=self.request.user)
+            WatchLaterMovie.objects.filter(user_id=self.request.user.id)
             .select_related("movie")
             .annotate(
                 likes_count=Count("movie__likemovie"),
