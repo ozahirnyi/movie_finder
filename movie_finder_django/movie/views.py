@@ -140,4 +140,10 @@ class WatchLaterListView(ListAPIView):
 
 class WatchLaterDestroyView(DestroyAPIView):
     permission_classes = [permissions.IsAuthenticated]
-    queryset = WatchLaterMovie.objects.all()
+
+    def delete(self, request, *args, **kwargs):
+        WatchLaterMovie.objects.filter(
+            user_id=self.request.user.id, movie_id=kwargs.get("pk")
+        ).delete()
+
+        return Response(status=status.HTTP_204_NO_CONTENT)
