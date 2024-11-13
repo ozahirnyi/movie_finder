@@ -3,18 +3,19 @@ from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APITestCase
 from rest_framework_simplejwt.tokens import RefreshToken
-from api_auth.errors import ChangePasswordError
+
+from .errors import ChangePasswordError
 
 
 class AuthTests(APITestCase):
     @classmethod
     def setUpTestData(cls):
-        cls.register_data = {
+        cls.signup_data = {
             "email": "test@test.test",
             "username": "Shrek",
             "password": "test_pass",
         }
-        cls.login_data = {"email": "test@test.test", "password": "test_pass"}
+        cls.signin_data = {"email": "test@test.test", "password": "test_pass"}
 
     def setUp(self) -> None:
         self.user = get_user_model().objects.create_user(
@@ -23,21 +24,21 @@ class AuthTests(APITestCase):
         refresh = RefreshToken.for_user(self.user)
         self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {refresh.access_token}")
 
-    def test_register(self):
-        response = self.client.post(reverse("register"), data=self.register_data)
+    def test_signup(self):
+        response = self.client.post(reverse("signup"), data=self.signup_data)
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
 
-    def test_register_user_already_exist(self):
-        response = self.client.post(reverse("register"), data=self.register_data)
+    def test_signup_user_already_exist(self):
+        response = self.client.post(reverse("signup"), data=self.signup_data)
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-        response = self.client.post(reverse("register"), data=self.register_data)
+        response = self.client.post(reverse("signup"), data=self.signup_data)
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
-    def test_login(self):
-        response = self.client.post(reverse("register"), data=self.register_data)
+    def test_signin(self):
+        response = self.client.post(reverse("signup"), data=self.signup_data)
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
 
-        response = self.client.post(reverse("login"), data=self.login_data)
+        response = self.client.post(reverse("signin"), data=self.signin_data)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
     def test_update_user(self):

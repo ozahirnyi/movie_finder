@@ -12,8 +12,13 @@ class LikesWatchLaterSerializer(serializers.Serializer):
 class MovieSerializer(serializers.ModelSerializer, LikesWatchLaterSerializer):
     class Meta:
         model = Movie
-        fields = "__all__"
-        extra_fields = (
+        fields = (
+            "id",
+            "imdb_id",
+            "title",
+            "year",
+            "type",
+            "poster",
             "is_liked",
             "likes_count",
             "is_watch_later",

@@ -9,7 +9,7 @@ from rest_framework.generics import (
     RetrieveAPIView,
 )
 from rest_framework.response import Response
-from .errors import FindMovieNotExist, AddLikeError
+from .errors import AddLikeError
 from .models import Movie, WatchLaterMovie, LikeMovie
 from .paginations import MoviesPagination
 from .serializers import (
@@ -17,6 +17,9 @@ from .serializers import (
     WatchLaterCreateSerializer,
     WatchLaterListSerializer,
 )
+from .ai_find_movie import FindMovieAiClient
+
+from .services import MovieService
 
 
 class MovieView(RetrieveAPIView):
@@ -25,21 +28,13 @@ class MovieView(RetrieveAPIView):
     lookup_field = "id"
 
     def get_queryset(self):
-        is_liked_query = LikeMovie.objects.filter(
-            user_id=self.request.user.id, movie_id=OuterRef("pk")
+        return (
+            Movie.objects
+            .with_is_liked(self.request.user.id)
+            .with_is_watch_later(self.request.user.id)
+            .with_likes_count()
+            .with_watch_later_count()
         )
-        is_watch_later_query = WatchLaterMovie.objects.filter(
-            user_id=self.request.user.id, movie_id=OuterRef("pk")
-        )
-
-        qs = Movie.objects.all().annotate(
-            likes_count=Count("likemovie", distinct=True),
-            is_liked=Exists(is_liked_query),
-            watch_later_count=Count("watchlatermovie", distinct=True),
-            is_watch_later=Exists(is_watch_later_query),
-        )
-
-        return qs
 
 
 class MovieLikeView(CreateAPIView):
@@ -71,32 +66,32 @@ class FindMovieView(ListAPIView):
     serializer_class = MovieSerializer
     pagination_class = MoviesPagination
 
-    def get(self, *args, **kwargs):
-        expression = kwargs.get("expression")
-        movie_ids = Movie.get_movies_from_imdb(expression)
-
-        if not len(movie_ids):
-            raise FindMovieNotExist
-
-        qs = Movie.objects.filter(pk__in=movie_ids).annotate(
-            likes_count=Count("likemovie", distinct=True),
-            is_liked=Exists(
-                LikeMovie.objects.filter(
-                    user_id=self.request.user.id, movie_id=OuterRef("pk")
-                )
-            ),
-            watch_later_count=Count("watchlatermovie", distinct=True),
-            is_watch_later=Exists(
-                WatchLaterMovie.objects.filter(
-                    user_id=self.request.user.id, movie_id=OuterRef("pk")
-                )
-            ),
+    def get_queryset(self):
+        return (
+            Movie.objects
+            .filter(title__icontains=self.kwargs.get("expression"))
+            .with_is_liked(self.request.user.id)
+            .with_is_watch_later(self.request.user.id)
+            .with_likes_count()
+            .with_watch_later_count()
         )
 
-        qs = self.paginate_queryset(qs)
+    def get(self, *args, **kwargs):
+        # Get from imdb and save to db
+        if not self.request.query_params.get("test"):
+            MovieService.get_movies_from_imdb(kwargs.get("expression"))
+        return super().get(*args, **kwargs)
 
-        data = self.get_serializer(qs, many=True).data
-        return self.get_paginated_response(data)
+
+class FindMovieAiView(ListAPIView):
+    permission_classes = [permissions.AllowAny]
+    serializer_class = MovieSerializer
+    pagination_class = MoviesPagination
+
+    def post(self, request, *args, **kwargs):
+        if prompt := self.request.data.get("prompt"):
+            movies = FindMovieAiClient(prompt).find_movies()
+        return Response(status=status.HTTP_200_OK)
 
 
 class WatchLaterCreateView(CreateAPIView):
@@ -115,28 +110,24 @@ class WatchLaterListView(ListAPIView):
     pagination_class = MoviesPagination
 
     def get_queryset(self):
-
-        queryset = (
+        return (
             WatchLaterMovie.objects.filter(user_id=self.request.user)
             .select_related("movie")
             .annotate(
-                likes_count=Count("movie__likemovie", distinct=True),
+                likes_count=Count("movie__likemovie"),
                 is_liked=Exists(
                     LikeMovie.objects.filter(
                         user_id=self.request.user.id, movie_id=OuterRef("movie__pk")
-                    )
+                    ),
                 ),
-                watch_later_count=Count("movie__watchlatermovie", distinct=True),
+                watch_later_count=Count("movie__watchlatermovie"),
                 is_watch_later=Exists(
                     WatchLaterMovie.objects.filter(
                         user_id=self.request.user.id, movie_id=OuterRef("movie__pk")
-                    )
+                    ),
                 ),
             )
         )
-
-        queryset = self.paginate_queryset(queryset)
-        return queryset
 
 
 class WatchLaterDestroyView(DestroyAPIView):

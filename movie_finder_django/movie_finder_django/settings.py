@@ -1,13 +1,17 @@
 import os
+import sys
 from datetime import timedelta
 from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-AUTH_USER_MODEL = "api_auth.User"
+AUTH_USER_MODEL = "auth_app.User"
 
-IMDB_API_URL = "https://imdb-api.com/en/API/Search/"
+IMDB_API_URL = "https://api.collectapi.com/imdb/imdbSearchByName"
 IMDB_API_KEY = os.getenv("IMDB_API_KEY")
+
+ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY")
+MAX_PROMPT_TOKENS_LENGTH = 1000
 
 SECRET_KEY = os.getenv("DJANGO_KEY")
 
@@ -24,8 +28,8 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "corsheaders",
     "rest_framework.authtoken",
-    "api",
-    "api_auth",
+    "movie",
+    "auth_app",
 ]
 
 MIDDLEWARE = [
@@ -64,24 +68,31 @@ TEMPLATES = [
 WSGI_APPLICATION = "movie_finder_django.wsgi.application"
 
 DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "db.sqlite3",
-    }
+    'default': {
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': BASE_DIR / 'db.sqlite3',
+    },
+    'test': {
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': BASE_DIR / 'test_db.sqlite3',
+    },
 }
+
+if 'test' in sys.argv or 'test_coverage' in sys.argv:  # перевіряємо, що ми запускаємо тести
+    DATABASES['default'] = DATABASES['test']
 
 AUTH_PASSWORD_VALIDATORS = [
     {
-        "NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator",
+        "NAME": "django.contrib.auth_app.password_validation.UserAttributeSimilarityValidator",
     },
     {
-        "NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",
+        "NAME": "django.contrib.auth_app.password_validation.MinimumLengthValidator",
     },
     {
-        "NAME": "django.contrib.auth.password_validation.CommonPasswordValidator",
+        "NAME": "django.contrib.auth_app.password_validation.CommonPasswordValidator",
     },
     {
-        "NAME": "django.contrib.auth.password_validation.NumericPasswordValidator",
+        "NAME": "django.contrib.auth_app.password_validation.NumericPasswordValidator",
     },
 ]
 
@@ -89,6 +100,9 @@ REST_FRAMEWORK = {
     "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.LimitOffsetPagination",
     "DEFAULT_AUTHENTICATION_CLASSES": [
         "rest_framework_simplejwt.authentication.JWTAuthentication",
+    ],
+    'DEFAULT_RENDERER_CLASSES': [
+        'rest_framework.renderers.JSONRenderer',
     ],
 }
 

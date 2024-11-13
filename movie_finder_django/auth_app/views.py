@@ -1,5 +1,5 @@
 from rest_framework import permissions, status
-from rest_framework.generics import RetrieveUpdateAPIView
+from rest_framework.generics import RetrieveUpdateAPIView, CreateAPIView
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from .serializers import (
@@ -10,7 +10,7 @@ from .serializers import (
 )
 
 
-class LoginAPIView(APIView):
+class SignInApiView(APIView):
     permission_classes = [permissions.AllowAny]
     serializer_class = LoginSerializer
 
@@ -21,16 +21,9 @@ class LoginAPIView(APIView):
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 
-class RegistrationAPIView(APIView):
+class SignUpApiView(CreateAPIView):
     permission_classes = [permissions.AllowAny]
     serializer_class = RegistrationSerializer
-
-    def post(self, request):
-        serializer = self.serializer_class(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        serializer.save()
-
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 
 class UserRetrieveUpdateAPIView(RetrieveUpdateAPIView):
