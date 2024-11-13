@@ -5,7 +5,7 @@ from dataclasses import dataclass
 class ImdbMovie:
     title: str
     imdb_id: str
-    poster_url: str
+    poster: str
     year: str
     type: str
 

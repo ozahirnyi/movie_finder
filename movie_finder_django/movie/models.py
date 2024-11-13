@@ -8,7 +8,7 @@ from .managers import MovieManager
 
 
 class Movie(models.Model):
-    title = models.CharField(max_length=128)
+    title = models.CharField(max_length=128, unique=True)
     imdb_id = models.CharField(max_length=128)
     wiki_link = models.CharField(max_length=255, null=True)
     year = models.CharField(max_length=16, null=True)

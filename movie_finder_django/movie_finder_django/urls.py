@@ -10,19 +10,26 @@ from auth_app.views import (
     SignInApiView, SignUpApiView, UserRetrieveUpdateAPIView, ChangePasswordAPIView,
 )
 
-urlpatterns = [
-    # Auth
+auth_patterns = [
     path("signin/", SignInApiView.as_view(), name="signin"),
-    path("movie/token/", TokenObtainPairView.as_view(), name="token_obtain_pair"),
-    path("movie/token/refresh/", TokenRefreshView.as_view(), name="token_refresh"),
+    path("token/", TokenObtainPairView.as_view(), name="token_obtain_pair"),
+    path("token/refresh/", TokenRefreshView.as_view(), name="token_refresh"),
     path("signup/", SignUpApiView.as_view(), name="signup"),
-    path("user/", UserRetrieveUpdateAPIView.as_view(), name="user"),
-    path("user/change_password/", ChangePasswordAPIView.as_view(), name="change_password"),
+]
+
+users_patterns = [
+    path("users/", UserRetrieveUpdateAPIView.as_view(), name="user"),
+    path("users/change_password/", ChangePasswordAPIView.as_view(), name="change_password"),
+]
+
+admin_patterns = [
     path("admin/", admin.site.urls),
-    # Finder
-    path("movie/<int:id>/", MovieView.as_view(), name="movie"),
-    path("movie/<int:id>/like/", MovieLikeView.as_view(), name="movie_like"),
-    path("movie/<int:id>/unlike/", MovieUnlikeView.as_view(), name="movie_unlike"),
+]
+
+movies_patterns = [
+    path("movies/<int:id>/", MovieView.as_view(), name="movie"),
+    path("movies/<int:id>/like/", MovieLikeView.as_view(), name="movie_like"),
+    path("movies/<int:id>/unlike/", MovieUnlikeView.as_view(), name="movie_unlike"),
     path("find_movie/<str:expression>/", FindMovieView.as_view(), name="find_movie"),
     path("find_movie_ai/", FindMovieAiView.as_view(), name="find_movie_ai"),
     path("watch_later/list/", WatchLaterListView.as_view(), name="watch_later_list"),
@@ -33,3 +40,5 @@ urlpatterns = [
         name="watch_later_destroy",
     ),
 ]
+
+urlpatterns = auth_patterns + users_patterns + admin_patterns + movies_patterns

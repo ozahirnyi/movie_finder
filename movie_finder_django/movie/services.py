@@ -21,7 +21,7 @@ class MovieService:
                 ImdbMovie(
                     title=data["Title"],
                     imdb_id=data["imdbID"],
-                    poster_url=data["Poster"],
+                    poster=data["Poster"],
                     year=data["Year"],
                     type=data["Type"],
                 )

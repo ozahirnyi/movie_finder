@@ -21,6 +21,8 @@ from .ai_find_movie import FindMovieAiClient
 
 from .services import MovieService
 
+from dataclasses import asdict
+
 
 class MovieView(RetrieveAPIView):
     permission_classes = [permissions.AllowAny]
@@ -79,7 +81,13 @@ class FindMovieView(ListAPIView):
     def get(self, *args, **kwargs):
         # Get from imdb and save to db
         if not self.request.query_params.get("test"):
-            MovieService.get_movies_from_imdb(kwargs.get("expression"))
+            movies = MovieService.get_movies_from_imdb(kwargs.get("expression"))
+            Movie.objects.bulk_create(
+                [Movie(**asdict(movie)) for movie in movies],
+                update_conflicts=True,
+                unique_fields=['title'],
+                update_fields=['imdb_id', 'poster', 'year', 'type', 'poster']
+            )
         return super().get(*args, **kwargs)
 
 
