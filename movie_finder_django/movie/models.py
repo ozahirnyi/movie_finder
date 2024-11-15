@@ -14,6 +14,8 @@ class Movie(models.Model):
     year = models.CharField(max_length=16, null=True)
     type = models.CharField(max_length=128, null=True)
     poster = models.CharField(max_length=255, null=True)
+    genre = models.CharField(max_length=255, null=True)
+    plot = models.TextField(null=True)
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

@@ -3,10 +3,10 @@ from .models import Movie, WatchLaterMovie
 
 
 class LikesWatchLaterSerializer(serializers.Serializer):
-    likes_count = serializers.IntegerField(read_only=True)
-    is_liked = serializers.BooleanField(read_only=True)
-    watch_later_count = serializers.IntegerField(read_only=True)
-    is_watch_later = serializers.BooleanField(read_only=True)
+    likes_count = serializers.IntegerField(read_only=True, default=0)
+    is_liked = serializers.BooleanField(read_only=True, default=False)
+    watch_later_count = serializers.IntegerField(read_only=True, default=0)
+    is_watch_later = serializers.BooleanField(read_only=True, default=False)
 
 
 class MovieSerializer(serializers.ModelSerializer, LikesWatchLaterSerializer):
@@ -19,6 +19,8 @@ class MovieSerializer(serializers.ModelSerializer, LikesWatchLaterSerializer):
             "year",
             "type",
             "poster",
+            "genre",
+            "plot",
             "is_liked",
             "likes_count",
             "is_watch_later",

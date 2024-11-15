@@ -97,9 +97,32 @@ class FindMovieAiView(ListAPIView):
     pagination_class = MoviesPagination
 
     def post(self, request, *args, **kwargs):
-        if prompt := self.request.data.get("prompt"):
-            movies = FindMovieAiClient(prompt).find_movies()
-        return Response(status=status.HTTP_200_OK)
+        prompt = self.request.data.get("prompt")
+        if not prompt:
+            return Response(status=status.HTTP_400_BAD_REQUEST)
+        ai_movies = FindMovieAiClient(prompt).find_movies()
+        movies = []
+        for ai_movie in ai_movies:
+            imdb_movie = next(
+                filter(lambda x: x.title == ai_movie.title, MovieService.get_movies_from_imdb(ai_movie.title)),
+                None
+            )
+            if imdb_movie:
+                movies.append(
+                    Movie(
+                        **asdict(imdb_movie),
+                        genre=ai_movie.genre,
+                        plot=ai_movie.plot,
+                    )
+                )
+        Movie.objects.bulk_create(
+            movies,
+            update_conflicts=True,
+            unique_fields=['title'],
+            update_fields=['imdb_id', 'poster', 'year', 'type', 'poster', 'genre', 'plot']
+        )
+        serialized_movies = MovieSerializer(movies, many=True)
+        return Response(serialized_movies.data, status=status.HTTP_200_OK)
 
 
 class WatchLaterCreateView(CreateAPIView):
