@@ -9,6 +9,8 @@ from rest_framework.generics import (
     RetrieveAPIView,
 )
 from rest_framework.response import Response
+
+from throttling.throttling import MovieAnonRateThrottle, MovieUserRateThrottle
 from .errors import AddLikeError
 from .models import Movie, WatchLaterMovie, LikeMovie
 from .paginations import MoviesPagination
@@ -95,6 +97,7 @@ class FindMovieAiView(ListAPIView):
     permission_classes = [permissions.AllowAny]
     serializer_class = MovieSerializer
     pagination_class = MoviesPagination
+    throttle_classes = [MovieAnonRateThrottle, MovieUserRateThrottle]
 
     def post(self, request, *args, **kwargs):
         prompt = self.request.data.get("prompt")
