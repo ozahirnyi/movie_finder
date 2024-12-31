@@ -18,6 +18,7 @@ from .serializers import (
     MovieSerializer,
     WatchLaterCreateSerializer,
     WatchLaterListSerializer,
+    InputSerializer
 )
 from .ai_find_movie import FindMovieAiClient
 
@@ -100,10 +101,12 @@ class FindMovieAiView(ListAPIView):
     throttle_classes = [MovieAnonRateThrottle, MovieUserRateThrottle]
 
     def post(self, request, *args, **kwargs):
-        prompt = self.request.data.get("prompt")
-        if not prompt:
-            return Response(status=status.HTTP_400_BAD_REQUEST)
-        ai_movies = FindMovieAiClient(prompt).find_movies()
+        input_serializer = InputSerializer(data=request.data)
+        if not input_serializer.is_valid():
+            return Response(input_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        prompt = input_serializer.data.get("prompt")
+        # ai_movies = FindMovieAiClient(prompt).find_movies()
+        ai_movies = []
         movies = []
         for ai_movie in ai_movies:
             imdb_movie = next(

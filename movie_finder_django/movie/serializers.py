@@ -61,3 +61,7 @@ class WatchLaterCreateSerializer(serializers.ModelSerializer):
         validated_data["user"] = self.context["user"]
 
         return super().create(validated_data)
+
+
+class InputSerializer(serializers.Serializer):
+    prompt = serializers.CharField(max_length=255, required=True, allow_blank=False)
