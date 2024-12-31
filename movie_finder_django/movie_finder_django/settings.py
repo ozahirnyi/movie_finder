@@ -3,6 +3,7 @@ import sys
 from datetime import timedelta
 from pathlib import Path
 from dotenv import load_dotenv
+from throttling.throttling import MovieAnonRateThrottle, MovieUserRateThrottle
 
 load_dotenv()
 
@@ -107,6 +108,14 @@ REST_FRAMEWORK = {
     'DEFAULT_RENDERER_CLASSES': [
         'rest_framework.renderers.JSONRenderer',
     ],
+    'DEFAULT_THROTTLE_CLASSES': [
+        'rest_framework.throttling.MovieAnonRateThrottle',
+        'rest_framework.throttling.MovieUserRateThrottle'
+    ],
+    'DEFAULT_THROTTLE_RATES': {
+        'anon': '100/day',
+        'user': '1000/day'
+    }
 }
 
 AUTHENTICATION_BACKENDS = [
