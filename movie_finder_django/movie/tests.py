@@ -6,6 +6,7 @@ from rest_framework import status
 from rest_framework.test import APITestCase
 from rest_framework_simplejwt.tokens import RefreshToken
 
+from .dataclasses import AiMovie, ImdbMovie
 from .errors import AddLikeError
 from .models import Movie, WatchLaterMovie, LikeMovie
 
@@ -112,14 +113,14 @@ class FindMovieAiTests(APITestCase):
     @patch('movie.services.MovieService.get_movies_from_imdb')
     def test_find_movie_ai(self, mock_get_movies_from_imdb, mock_find_movies):
         mock_find_movies.return_value = [
-            Mock(title="Shrek", genre="Animation", plot="A green ogre saves a princess."),
-            Mock(title="Shrek 2", genre="Animation", plot="The ogre meets his in-laws."),
+            AiMovie(title="Shrek", genre="Animation", plot="A green ogre saves a princess."),
+            AiMovie(title="Shrek 2", genre="Animation", plot="The ogre meets his in-laws."),
         ]
 
         mock_get_movies_from_imdb.side_effect = lambda title: [
-            Mock(title=title, imdb_id="12345", poster="http://poster.url", year=2001, type="movie")
+            ImdbMovie(title=title, imdb_id="12345", poster="http://poster.url", year="2001", type="movie")
             if title == "Shrek" else
-            Mock(title=title, imdb_id="67890", poster="http://poster.url", year=2004, type="movie")
+            ImdbMovie(title=title, imdb_id="67890", poster="http://poster.url", year="2004", type="movie")
         ]
 
         response = self.client.post(
