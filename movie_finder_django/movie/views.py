@@ -106,6 +106,7 @@ class FindMovieAiView(ListAPIView):
             return Response(input_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         prompt = input_serializer.data.get("prompt")
         ai_movies = FindMovieAiClient(prompt).find_movies()
+        # ai_movies = []
         movies = []
         for ai_movie in ai_movies:
             imdb_movie = next(
