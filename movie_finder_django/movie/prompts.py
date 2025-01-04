@@ -15,5 +15,5 @@ Follow these steps to complete the task:
 5. Format your response as follows:
    - If the list is empty, simply return empty list: []
    - If the list contains movies, return json object with list of movies. With this keys: title, genre, plot
-   - Return only this json string. No any extra information
+   - Return only this json string. All response data must be in English. No any extra information
 """
