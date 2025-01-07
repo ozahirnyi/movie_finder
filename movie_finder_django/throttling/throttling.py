@@ -1,23 +1,23 @@
-from rest_framework.throttling import SimpleRateThrottle, UserRateThrottle
-from .fingerprint import get_fingerprint
+from rest_framework.throttling import SimpleRateThrottle
 
 
-class MovieAnonRateThrottle(SimpleRateThrottle):
-    scope = "anon"
-    rate = "5/min"
-
-    def get_cache_key(self, request, view):
-        fingerprint = get_fingerprint(request)
-        return f"anon-{fingerprint}"
-
-
-class MovieUserRateThrottle(SimpleRateThrottle):
-    scope = "user"
-    rate = "5/min"
+class IpBasedRateThrottle(SimpleRateThrottle):
+    scope = "ip"
+    rate = "10/day"
 
     def get_cache_key(self, request, view):
-        if request.user.is_authenticated:
-            user_id = request.user.id
-            fingerprint = get_fingerprint(request)
-            return f"user-{user_id}-{fingerprint}"
-        return None
+        ip_address = request.META.get('REMOTE_ADDR', '')
+        if not ip_address:
+            return None
+        return f"ip-{ip_address}"
+
+
+class UserAgentRateThrottle(SimpleRateThrottle):
+    scope = "user_agent"
+    rate = "2/day"
+
+    def get_cache_key(self, request, view):
+        user_agent = request.META.get('HTTP_USER_AGENT', '')
+        if not user_agent:
+            return None
+        return f"user_agent-{user_agent}"

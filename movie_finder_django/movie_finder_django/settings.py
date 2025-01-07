@@ -15,7 +15,7 @@ IMDB_API_URL = "https://api.collectapi.com/imdb/imdbSearchByName"
 IMDB_API_KEY = os.getenv("IMDB_API_KEY")
 
 ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY")
-MAX_PROMPT_TOKENS_LENGTH = 1000
+MAX_PROMPT_TOKENS_LENGTH = 255
 
 SECRET_KEY = os.getenv("DJANGO_KEY")
 
@@ -108,14 +108,8 @@ REST_FRAMEWORK = {
     'DEFAULT_RENDERER_CLASSES': [
         'rest_framework.renderers.JSONRenderer',
     ],
-    'DEFAULT_THROTTLE_CLASSES': [
-        'throttling.throttling.MovieAnonRateThrottle',
-        'throttling.throttling.MovieUserRateThrottle'
-    ],
-    'DEFAULT_THROTTLE_RATES': {
-        'anon': '100/day',
-        'user': '1000/day'
-    }
+    'DEFAULT_THROTTLE_CLASSES': [],
+    'DEFAULT_THROTTLE_RATES': {}
 }
 
 AUTHENTICATION_BACKENDS = [

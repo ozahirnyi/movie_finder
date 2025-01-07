@@ -10,7 +10,7 @@ from rest_framework.generics import (
 )
 from rest_framework.response import Response
 
-from throttling.throttling import MovieAnonRateThrottle, MovieUserRateThrottle
+from throttling.throttling import IpBasedRateThrottle, UserAgentRateThrottle
 from .errors import AddLikeError
 from .models import Movie, WatchLaterMovie, LikeMovie
 from .paginations import MoviesPagination
@@ -18,7 +18,7 @@ from .serializers import (
     MovieSerializer,
     WatchLaterCreateSerializer,
     WatchLaterListSerializer,
-    InputSerializer
+    FindMovieAiViewRequestSerializer
 )
 from .ai_find_movie import FindMovieAiClient
 
@@ -70,6 +70,7 @@ class FindMovieView(ListAPIView):
     permission_classes = [permissions.AllowAny]
     serializer_class = MovieSerializer
     pagination_class = MoviesPagination
+    throttle_classes = [IpBasedRateThrottle, UserAgentRateThrottle]
 
     def get_queryset(self):
         return (
@@ -98,15 +99,14 @@ class FindMovieAiView(ListAPIView):
     permission_classes = [permissions.AllowAny]
     serializer_class = MovieSerializer
     pagination_class = MoviesPagination
-    throttle_classes = [MovieAnonRateThrottle, MovieUserRateThrottle]
+    throttle_classes = [IpBasedRateThrottle, UserAgentRateThrottle]
 
     def post(self, request, *args, **kwargs):
-        input_serializer = InputSerializer(data=request.data)
-        if not input_serializer.is_valid():
-            return Response(input_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        input_serializer = FindMovieAiViewRequestSerializer(data=request.data)
+        input_serializer.is_valid(raise_exception=True)
         prompt = input_serializer.data.get("prompt")
         ai_movies = FindMovieAiClient(prompt).find_movies()
-        # ai_movies = []
+
         movies = []
         for ai_movie in ai_movies:
             imdb_movie = next(

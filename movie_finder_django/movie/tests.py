@@ -1,4 +1,4 @@
-from unittest.mock import patch, Mock
+from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
 from django.urls import reverse
@@ -117,11 +117,20 @@ class FindMovieAiTests(APITestCase):
             AiMovie(title="Shrek 2", genre="Animation", plot="The ogre meets his in-laws."),
         ]
 
-        mock_get_movies_from_imdb.side_effect = lambda title: [
-            ImdbMovie(title=title, imdb_id="12345", poster="http://poster.url", year="2001", type="movie")
-            if title == "Shrek" else
-            ImdbMovie(title=title, imdb_id="67890", poster="http://poster.url", year="2004", type="movie")
-        ]
+        def mock_get_movies(title):
+            movies = {
+                "Shrek": ImdbMovie(
+                    title="Shrek", imdb_id="12345", poster="http://poster.url",
+                    year="2001", type="movie"
+                ),
+                "Shrek 2": ImdbMovie(
+                    title="Shrek 2", imdb_id="67890", poster="http://poster.url",
+                    year="2004", type="movie"
+                ),
+            }
+            return [movies.get(title)] if title in movies else []
+
+        mock_get_movies_from_imdb.side_effect = mock_get_movies
 
         response = self.client.post(
             reverse("find_movie_ai"),
@@ -140,10 +149,21 @@ class FindMovieAiTests(APITestCase):
 
         self.assertTrue(Movie.objects.filter(title="Shrek").exists())
 
-    def test_invalid_prompt(self):
+    def test_prompt_max_length(self):
+        max_length = 255
+        valid_prompt = "A" * max_length
+        invalid_prompt = "A" * (max_length + 1)
+
         response = self.client.post(
             reverse("find_movie_ai"),
-            data={"wrong_key": "Shrek"},
+            data={"prompt": valid_prompt},
             format="json",
         )
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(response.status_code, status.HTTP_200_OK, "Valid prompt length should pass.")
+
+        response = self.client.post(
+            reverse("find_movie_ai"),
+            data={"prompt": invalid_prompt},
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST, "Invalid prompt length should fail.")
