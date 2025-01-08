@@ -1,3 +1,5 @@
+from time import daylight
+
 from django.db import IntegrityError
 from django.db.models import Count, OuterRef, Exists
 from rest_framework import permissions, status
@@ -83,7 +85,8 @@ class FindMovieView(ListAPIView):
         )
 
     def get(self, *args, **kwargs):
-        # Get from imdb and save to db
+        self._update_throttling_movie_view()
+
         if not self.request.query_params.get("test"):
             movies = MovieService.get_movies_from_imdb(kwargs.get("expression"))
             Movie.objects.bulk_create(
@@ -94,6 +97,10 @@ class FindMovieView(ListAPIView):
             )
         return super().get(*args, **kwargs)
 
+    def _update_throttling_find_movie_view(self):
+        IpBasedRateThrottle.rate = "60/day"
+        UserAgentRateThrottle.rate = "20/day"
+
 
 class FindMovieAiView(ListAPIView):
     permission_classes = [permissions.AllowAny]
@@ -102,6 +109,8 @@ class FindMovieAiView(ListAPIView):
     throttle_classes = [IpBasedRateThrottle, UserAgentRateThrottle]
 
     def post(self, request, *args, **kwargs):
+
+        self._update_throttling_find_movie_ai_view()
         input_serializer = FindMovieAiViewRequestSerializer(data=request.data)
         input_serializer.is_valid(raise_exception=True)
         prompt = input_serializer.data.get("prompt")
@@ -129,6 +138,10 @@ class FindMovieAiView(ListAPIView):
         )
         serialized_movies = MovieSerializer(movies, many=True)
         return Response(serialized_movies.data, status=status.HTTP_200_OK)
+
+    def _update_throttling_find_movie_ai_view(self):
+        IpBasedRateThrottle.rate = "6/day"
+        UserAgentRateThrottle.rate = "2/day"
 
 
 class WatchLaterCreateView(CreateAPIView):

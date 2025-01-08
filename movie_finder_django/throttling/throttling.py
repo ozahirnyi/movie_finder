@@ -3,7 +3,7 @@ from rest_framework.throttling import SimpleRateThrottle
 
 class IpBasedRateThrottle(SimpleRateThrottle):
     scope = "ip"
-    rate = "10/day"
+    rate = "6/day"
 
     def get_cache_key(self, request, view):
         ip_address = request.META.get('REMOTE_ADDR', '')
