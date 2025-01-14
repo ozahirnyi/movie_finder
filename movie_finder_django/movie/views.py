@@ -1,3 +1,5 @@
+from dataclasses import asdict
+
 from django.db import IntegrityError
 from django.db.models import Count, OuterRef, Exists
 from rest_framework import permissions, status
@@ -9,6 +11,9 @@ from rest_framework.generics import (
     RetrieveAPIView,
 )
 from rest_framework.response import Response
+
+from throttling.throttling import IpBasedRateThrottle, UserAgentRateThrottle
+from .ai_find_movie import FindMovieAiClient
 from .errors import AddLikeError
 from .models import Movie, WatchLaterMovie, LikeMovie
 from .paginations import MoviesPagination
@@ -16,12 +21,9 @@ from .serializers import (
     MovieSerializer,
     WatchLaterCreateSerializer,
     WatchLaterListSerializer,
+    FindMovieAiViewRequestSerializer
 )
-from .ai_find_movie import FindMovieAiClient
-
 from .services import MovieService
-
-from dataclasses import asdict
 
 
 class MovieView(RetrieveAPIView):
@@ -67,6 +69,7 @@ class FindMovieView(ListAPIView):
     permission_classes = [permissions.AllowAny]
     serializer_class = MovieSerializer
     pagination_class = MoviesPagination
+    throttle_classes = [IpBasedRateThrottle, UserAgentRateThrottle]
 
     def get_queryset(self):
         return (
@@ -79,7 +82,8 @@ class FindMovieView(ListAPIView):
         )
 
     def get(self, *args, **kwargs):
-        # Get from imdb and save to db
+        self._update_throttling_find_movie_view()
+
         if not self.request.query_params.get("test"):
             movies = MovieService.get_movies_from_imdb(kwargs.get("expression"))
             Movie.objects.bulk_create(
@@ -90,17 +94,25 @@ class FindMovieView(ListAPIView):
             )
         return super().get(*args, **kwargs)
 
+    def _update_throttling_find_movie_view(self):
+        IpBasedRateThrottle.rate = "60/day"
+        UserAgentRateThrottle.rate = "20/day"
+
 
 class FindMovieAiView(ListAPIView):
     permission_classes = [permissions.AllowAny]
     serializer_class = MovieSerializer
     pagination_class = MoviesPagination
+    throttle_classes = [IpBasedRateThrottle, UserAgentRateThrottle]
 
     def post(self, request, *args, **kwargs):
-        prompt = self.request.data.get("prompt")
-        if not prompt:
-            return Response(status=status.HTTP_400_BAD_REQUEST)
+
+        self._update_throttling_find_movie_ai_view()
+        input_serializer = FindMovieAiViewRequestSerializer(data=request.data)
+        input_serializer.is_valid(raise_exception=True)
+        prompt = input_serializer.data.get("prompt")
         ai_movies = FindMovieAiClient(prompt).find_movies()
+
         movies = []
         for ai_movie in ai_movies:
             imdb_movie = next(
@@ -123,6 +135,10 @@ class FindMovieAiView(ListAPIView):
         )
         serialized_movies = MovieSerializer(movies, many=True)
         return Response(serialized_movies.data, status=status.HTTP_200_OK)
+
+    def _update_throttling_find_movie_ai_view(self):
+        IpBasedRateThrottle.rate = "6/day"
+        UserAgentRateThrottle.rate = "2/day"
 
 
 class WatchLaterCreateView(CreateAPIView):

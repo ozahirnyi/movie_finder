@@ -13,7 +13,7 @@ class MovieService:
         response = requests.get(
             settings.IMDB_API_URL + "?limit=1&query=" + expression,
             headers={'authorization': settings.IMDB_API_KEY, 'content-type': 'application/json'},
-            timeout=10,
+            timeout=30,
         )
         imdb_movies = []
         for data in json.loads(response.text)["result"]:
