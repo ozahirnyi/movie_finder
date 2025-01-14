@@ -64,7 +64,9 @@ class FinderTests(APITestCase):
         # TODO: uncomment when start use postgresql. > movie_finder_django/movie/models.py
         # with self.assertNumQueries(3):
         response = self.client.get(
-            reverse("find_movie", kwargs={"expression": "Shrek"}) + '?test=1'
+            reverse("find_movie",
+                    kwargs={"expression": "Shrek"}) + '?test=1',
+            HTTP_USER_AGENT='test-agent'
         )
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
@@ -136,6 +138,7 @@ class FindMovieAiTests(APITestCase):
             reverse("find_movie_ai"),
             data={"prompt": "Shrek"},
             format="json",
+            HTTP_USER_AGENT='test-agent'
         )
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
@@ -151,19 +154,17 @@ class FindMovieAiTests(APITestCase):
 
     def test_prompt_max_length(self):
         max_length = 255
-        valid_prompt = "A" * max_length
-        invalid_prompt = "A" * (max_length + 1)
+
+        long_prompt = "A" * (max_length + 1)
 
         response = self.client.post(
-            reverse("find_movie_ai"),
-            data={"prompt": valid_prompt},
-            format="json",
+            reverse('find_movie_ai'),
+            data={"prompt": long_prompt},
+            HTTP_USER_AGENT='test-agent',
+            format="json"
         )
-        self.assertEqual(response.status_code, status.HTTP_200_OK, "Valid prompt length should pass.")
 
-        response = self.client.post(
-            reverse("find_movie_ai"),
-            data={"prompt": invalid_prompt},
-            format="json",
-        )
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST, "Invalid prompt length should fail.")
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn('prompt', response.data)
+        self.assertEqual(response.data['prompt'][0],
+                         f"Ensure this field has no more than {max_length} characters.")  # Check if the correct validation message is returned

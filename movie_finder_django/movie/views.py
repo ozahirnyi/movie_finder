@@ -1,4 +1,4 @@
-from time import daylight
+from dataclasses import asdict
 
 from django.db import IntegrityError
 from django.db.models import Count, OuterRef, Exists
@@ -13,6 +13,7 @@ from rest_framework.generics import (
 from rest_framework.response import Response
 
 from throttling.throttling import IpBasedRateThrottle, UserAgentRateThrottle
+from .ai_find_movie import FindMovieAiClient
 from .errors import AddLikeError
 from .models import Movie, WatchLaterMovie, LikeMovie
 from .paginations import MoviesPagination
@@ -22,11 +23,7 @@ from .serializers import (
     WatchLaterListSerializer,
     FindMovieAiViewRequestSerializer
 )
-from .ai_find_movie import FindMovieAiClient
-
 from .services import MovieService
-
-from dataclasses import asdict
 
 
 class MovieView(RetrieveAPIView):
@@ -85,7 +82,7 @@ class FindMovieView(ListAPIView):
         )
 
     def get(self, *args, **kwargs):
-        self._update_throttling_movie_view()
+        self._update_throttling_find_movie_view()
 
         if not self.request.query_params.get("test"):
             movies = MovieService.get_movies_from_imdb(kwargs.get("expression"))

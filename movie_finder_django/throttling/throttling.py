@@ -8,8 +8,9 @@ class IpBasedRateThrottle(SimpleRateThrottle):
     def get_cache_key(self, request, view):
         ip_address = request.META.get('REMOTE_ADDR', '')
         if not ip_address:
-            return None
+            raise ValueError("Cannot determine IP address of the client.")
         return f"ip-{ip_address}"
+
 
 
 class UserAgentRateThrottle(SimpleRateThrottle):
@@ -19,5 +20,5 @@ class UserAgentRateThrottle(SimpleRateThrottle):
     def get_cache_key(self, request, view):
         user_agent = request.META.get('HTTP_USER_AGENT', '')
         if not user_agent:
-            return None
+            raise ValueError("No User-Agent found in the request.")
         return f"user_agent-{user_agent}"
