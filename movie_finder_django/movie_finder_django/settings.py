@@ -15,7 +15,7 @@ IMDB_API_URL = "https://api.collectapi.com/imdb/imdbSearchByName"
 IMDB_API_KEY = os.getenv("IMDB_API_KEY")
 
 ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY")
-MAX_PROMPT_TOKENS_LENGTH = 100
+MAX_PROMPT_TOKENS_LENGTH = 1000
 
 SECRET_KEY = os.getenv("DJANGO_KEY")
 
