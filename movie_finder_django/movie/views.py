@@ -107,7 +107,7 @@ class FindMovieAiView(APIView):
         input_serializer.is_valid(raise_exception=True)
         prompt = input_serializer.data.get("prompt")
         ai_movies = FindMovieAiClient(prompt).find_movies()
-        # ai_movies = []
+
         movies = []
         for ai_movie in ai_movies:
             imdb_movie = next(

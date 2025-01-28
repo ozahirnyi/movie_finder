@@ -1,3 +1,4 @@
+from rest_framework.exceptions import ValidationError
 from rest_framework.throttling import SimpleRateThrottle
 
 
@@ -7,7 +8,7 @@ class UaBaseThrottle(SimpleRateThrottle):
     def get_cache_key(self, request, view):
         user_agent = request.META.get('HTTP_USER_AGENT')
         if not user_agent:
-            return None
+            raise ValidationError("User agent is required")
         return f"throttle_ua_{user_agent}"
 
 
@@ -25,7 +26,7 @@ class ForwardedForBaseThrottle(SimpleRateThrottle):
     def get_cache_key(self, request, view):
         forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
         if not forwarded_for:
-            return None
+            raise ValidationError("Forwarded for is required")
 
         client_ip = forwarded_for.split(',')[0].strip()
         return f"throttle_forwarded_{client_ip}"
