@@ -1,3 +1,5 @@
+from dataclasses import asdict
+
 from django.db import IntegrityError
 from django.db.models import Count, OuterRef, Exists
 from rest_framework import permissions, status
@@ -9,6 +11,11 @@ from rest_framework.generics import (
     RetrieveAPIView,
 )
 from rest_framework.response import Response
+from rest_framework.views import APIView
+
+from throttling.throttling import RegularSearchUaThrottle, RegularSearchIpThrottle, RegularSearchForwardedThrottle, \
+    AiSearchUaThrottle, AiSearchIpThrottle, AiSearchForwardedThrottle
+from .ai_find_movie import FindMovieAiClient
 from .errors import AddLikeError
 from .models import Movie, WatchLaterMovie, LikeMovie
 from .paginations import MoviesPagination
@@ -16,12 +23,9 @@ from .serializers import (
     MovieSerializer,
     WatchLaterCreateSerializer,
     WatchLaterListSerializer,
+    FindMovieAiViewRequestSerializer
 )
-from .ai_find_movie import FindMovieAiClient
-
 from .services import MovieService
-
-from dataclasses import asdict
 
 
 class MovieView(RetrieveAPIView):
@@ -67,6 +71,7 @@ class FindMovieView(ListAPIView):
     permission_classes = [permissions.AllowAny]
     serializer_class = MovieSerializer
     pagination_class = MoviesPagination
+    throttle_classes = [RegularSearchUaThrottle, RegularSearchIpThrottle, RegularSearchForwardedThrottle]
 
     def get_queryset(self):
         return (
@@ -79,7 +84,6 @@ class FindMovieView(ListAPIView):
         )
 
     def get(self, *args, **kwargs):
-        # Get from imdb and save to db
         if not self.request.query_params.get("test"):
             movies = MovieService.get_movies_from_imdb(kwargs.get("expression"))
             Movie.objects.bulk_create(
@@ -91,16 +95,19 @@ class FindMovieView(ListAPIView):
         return super().get(*args, **kwargs)
 
 
-class FindMovieAiView(ListAPIView):
+class FindMovieAiView(APIView):
     permission_classes = [permissions.AllowAny]
     serializer_class = MovieSerializer
     pagination_class = MoviesPagination
+    throttle_classes = [AiSearchUaThrottle, AiSearchIpThrottle, AiSearchForwardedThrottle]
 
     def post(self, request, *args, **kwargs):
-        prompt = self.request.data.get("prompt")
-        if not prompt:
-            return Response(status=status.HTTP_400_BAD_REQUEST)
+
+        input_serializer = FindMovieAiViewRequestSerializer(data=request.data)
+        input_serializer.is_valid(raise_exception=True)
+        prompt = input_serializer.data.get("prompt")
         ai_movies = FindMovieAiClient(prompt).find_movies()
+
         movies = []
         for ai_movie in ai_movies:
             imdb_movie = next(

@@ -1,8 +1,12 @@
+from unittest.mock import patch
+
 from django.contrib.auth import get_user_model
 from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APITestCase
 from rest_framework_simplejwt.tokens import RefreshToken
+
+from .dataclasses import AiMovie, ImdbMovie
 from .errors import AddLikeError
 from .models import Movie, WatchLaterMovie, LikeMovie
 
@@ -60,7 +64,9 @@ class FinderTests(APITestCase):
         # TODO: uncomment when start use postgresql. > movie_finder_django/movie/models.py
         # with self.assertNumQueries(3):
         response = self.client.get(
-            reverse("find_movie", kwargs={"expression": "Shrek"}) + '?test=1'
+            reverse("find_movie",
+                    kwargs={"expression": "Shrek"}) + '?test=1',
+            HTTP_USER_AGENT='test-agent'
         )
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
@@ -98,3 +104,67 @@ class FinderTests(APITestCase):
         response_data = response.data["results"][0]
         self.assertTrue(response_data["is_watch_later"])
         self.assertEqual(response_data["watch_later_count"], 2)
+
+
+class FindMovieAiTests(APITestCase):
+    def setUp(self):
+        self.user = get_user_model().objects.create_user(email="neo@neo.neo", password="neoneoneo")
+        self.client.force_login(self.user)
+
+    @patch('movie.ai_find_movie.FindMovieAiClient.find_movies')
+    @patch('movie.services.MovieService.get_movies_from_imdb')
+    def test_find_movie_ai(self, mock_get_movies_from_imdb, mock_find_movies):
+        mock_find_movies.return_value = [
+            AiMovie(title="Shrek", genre="Animation", plot="A green ogre saves a princess."),
+            AiMovie(title="Shrek 2", genre="Animation", plot="The ogre meets his in-laws."),
+        ]
+
+        def mock_get_movies(title):
+            movies = {
+                "Shrek": ImdbMovie(
+                    title="Shrek", imdb_id="12345", poster="http://poster.url",
+                    year="2001", type="movie"
+                ),
+                "Shrek 2": ImdbMovie(
+                    title="Shrek 2", imdb_id="67890", poster="http://poster.url",
+                    year="2004", type="movie"
+                ),
+            }
+            return [movies.get(title)] if title in movies else []
+
+        mock_get_movies_from_imdb.side_effect = mock_get_movies
+
+        response = self.client.post(
+            reverse("find_movie_ai"),
+            data={"prompt": "Shrek"},
+            format="json",
+            HTTP_USER_AGENT='test-agent'
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data), 2)
+
+        movie = response.data[0]
+        self.assertEqual(movie["title"], "Shrek")
+        self.assertEqual(movie["genre"], "Animation")
+        self.assertEqual(movie["plot"], "A green ogre saves a princess.")
+        self.assertEqual(movie["imdb_id"], "12345")
+
+        self.assertTrue(Movie.objects.filter(title="Shrek").exists())
+
+    def test_prompt_max_length(self):
+        max_length = 255
+
+        long_prompt = "A" * (max_length + 1)
+
+        response = self.client.post(
+            reverse('find_movie_ai'),
+            data={"prompt": long_prompt},
+            HTTP_USER_AGENT='test-agent',
+            format="json"
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn('prompt', response.data)
+        self.assertEqual(response.data['prompt'][0],
+                         f"Ensure this field has no more than {max_length} characters.")  # Check if the correct validation message is returned
