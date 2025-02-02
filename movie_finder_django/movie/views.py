@@ -2,6 +2,7 @@ from dataclasses import asdict
 
 from django.db import IntegrityError
 from django.db.models import Count, OuterRef, Exists
+from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import permissions, status
 from rest_framework.generics import (
     GenericAPIView,
@@ -26,6 +27,8 @@ from .serializers import (
     FindMovieAiViewRequestSerializer
 )
 from .services import MovieService
+from .filters import MovieFilter, WatchLaterFilter
+from rest_framework.filters import OrderingFilter
 
 
 class MovieView(RetrieveAPIView):
@@ -72,11 +75,19 @@ class FindMovieView(ListAPIView):
     serializer_class = MovieSerializer
     pagination_class = MoviesPagination
     throttle_classes = [RegularSearchUaThrottle, RegularSearchIpThrottle, RegularSearchForwardedThrottle]
+    filter_backends = [DjangoFilterBackend]
+    filterset_class = MovieFilter
+    search_fields = ['title']
+    ordering_fields = ['title', 'genre', 'year']
+    ordering = ['title']
 
     def get_queryset(self):
+        queryset = Movie.objects.all()
+        expression = self.kwargs.get("expression")
+        if expression:
+            queryset = queryset.filter(title__icontains=expression)
         return (
-            Movie.objects
-            .filter(title__icontains=self.kwargs.get("expression"))
+            queryset
             .with_is_liked(self.request.user.id)
             .with_is_watch_later(self.request.user.id)
             .with_likes_count()
@@ -146,6 +157,11 @@ class WatchLaterListView(ListAPIView):
     permission_classes = [permissions.IsAuthenticated]
     serializer_class = WatchLaterListSerializer
     pagination_class = MoviesPagination
+    filter_backends = [DjangoFilterBackend]
+    filterset_class = WatchLaterFilter
+    search_fields = ['movie__title']
+    ordering_fields = ['movie__title', 'movie__genre', 'movie__year']
+    ordering = ['movie__title']
 
     def get_queryset(self):
         return (

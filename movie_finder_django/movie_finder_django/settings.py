@@ -34,6 +34,7 @@ INSTALLED_APPS = [
     "rest_framework.authtoken",
     "movie",
     "auth_app",
+    "django_filters",
 ]
 
 MIDDLEWARE = [
@@ -109,7 +110,6 @@ REST_FRAMEWORK = {
     'DEFAULT_RENDERER_CLASSES': [
         'rest_framework.renderers.JSONRenderer',
     ],
-
 }
 
 AUTHENTICATION_BACKENDS = [
