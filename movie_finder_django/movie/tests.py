@@ -17,7 +17,9 @@ class FinderTests(APITestCase):
         cls.movie = Movie.objects.create(title="test", imdb_id="1")
 
     def setUp(self) -> None:
-        self.user = get_user_model().objects.create_user(email="neo@neo.neo", password="neoneoneo")
+        self.user = get_user_model().objects.create_user(
+            email="neo@neo.neo", password="neoneoneo"
+        )
         refresh = RefreshToken.for_user(self.user)
         self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {refresh.access_token}")
 
@@ -64,9 +66,8 @@ class FinderTests(APITestCase):
         # TODO: uncomment when start use postgresql. > movie_finder_django/movie/models.py
         # with self.assertNumQueries(3):
         response = self.client.get(
-            reverse("find_movie",
-                    kwargs={"expression": "Shrek"}) + '?test=1',
-            HTTP_USER_AGENT='test-agent'
+            reverse("find_movie", kwargs={"expression": "Shrek"}) + "?test=1",
+            HTTP_USER_AGENT="test-agent",
         )
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
@@ -93,7 +94,9 @@ class FinderTests(APITestCase):
         self.assertFalse(wl.exists())
 
     def test_get_watch_later(self):
-        wrong_user = get_user_model().objects.create_user(email="notneo@neo.neo", password="neoneoneo")
+        wrong_user = get_user_model().objects.create_user(
+            email="notneo@neo.neo", password="neoneoneo"
+        )
         WatchLaterMovie.objects.create(user_id=wrong_user.id, movie_id=self.movie.id)
         WatchLaterMovie.objects.create(user_id=self.user.id, movie_id=self.movie.id)
 
@@ -108,26 +111,38 @@ class FinderTests(APITestCase):
 
 class FindMovieAiTests(APITestCase):
     def setUp(self):
-        self.user = get_user_model().objects.create_user(email="neo@neo.neo", password="neoneoneo")
+        self.user = get_user_model().objects.create_user(
+            email="neo@neo.neo", password="neoneoneo"
+        )
         self.client.force_login(self.user)
 
-    @patch('movie.ai_find_movie.FindMovieAiClient.find_movies')
-    @patch('movie.services.MovieService.get_movies_from_imdb')
+    @patch("movie.ai_find_movie.FindMovieAiClient.find_movies")
+    @patch("movie.services.MovieService.get_movies_from_imdb")
     def test_find_movie_ai(self, mock_get_movies_from_imdb, mock_find_movies):
         mock_find_movies.return_value = [
-            AiMovie(title="Shrek", genre="Animation", plot="A green ogre saves a princess."),
-            AiMovie(title="Shrek 2", genre="Animation", plot="The ogre meets his in-laws."),
+            AiMovie(
+                title="Shrek", genre="Animation", plot="A green ogre saves a princess."
+            ),
+            AiMovie(
+                title="Shrek 2", genre="Animation", plot="The ogre meets his in-laws."
+            ),
         ]
 
         def mock_get_movies(title):
             movies = {
                 "Shrek": ImdbMovie(
-                    title="Shrek", imdb_id="12345", poster="http://poster.url",
-                    year="2001", type="movie"
+                    title="Shrek",
+                    imdb_id="12345",
+                    poster="http://poster.url",
+                    year="2001",
+                    type="movie",
                 ),
                 "Shrek 2": ImdbMovie(
-                    title="Shrek 2", imdb_id="67890", poster="http://poster.url",
-                    year="2004", type="movie"
+                    title="Shrek 2",
+                    imdb_id="67890",
+                    poster="http://poster.url",
+                    year="2004",
+                    type="movie",
                 ),
             }
             return [movies.get(title)] if title in movies else []
@@ -138,7 +153,7 @@ class FindMovieAiTests(APITestCase):
             reverse("find_movie_ai"),
             data={"prompt": "Shrek"},
             format="json",
-            HTTP_USER_AGENT='test-agent'
+            HTTP_USER_AGENT="test-agent",
         )
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
@@ -158,13 +173,15 @@ class FindMovieAiTests(APITestCase):
         long_prompt = "A" * (max_length + 1)
 
         response = self.client.post(
-            reverse('find_movie_ai'),
+            reverse("find_movie_ai"),
             data={"prompt": long_prompt},
-            HTTP_USER_AGENT='test-agent',
-            format="json"
+            HTTP_USER_AGENT="test-agent",
+            format="json",
         )
 
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertIn('prompt', response.data)
-        self.assertEqual(response.data['prompt'][0],
-                         f"Ensure this field has no more than {max_length} characters.")  # Check if the correct validation message is returned
+        self.assertIn("prompt", response.data)
+        self.assertEqual(
+            response.data["prompt"][0],
+            f"Ensure this field has no more than {max_length} characters.",
+        )  # Check if the correct validation message is returned

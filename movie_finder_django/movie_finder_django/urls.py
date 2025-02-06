@@ -3,11 +3,20 @@ from django.urls import path
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
 from movie.views import (
-    MovieView, MovieLikeView, MovieUnlikeView, FindMovieView, WatchLaterListView,
-    WatchLaterCreateView, WatchLaterDestroyView, FindMovieAiView
+    MovieView,
+    MovieLikeView,
+    MovieUnlikeView,
+    FindMovieView,
+    WatchLaterListView,
+    WatchLaterCreateView,
+    WatchLaterDestroyView,
+    FindMovieAiView,
 )
 from auth_app.views import (
-    SignInApiView, SignUpApiView, UserRetrieveUpdateAPIView, ChangePasswordAPIView,
+    SignInApiView,
+    SignUpApiView,
+    UserRetrieveUpdateAPIView,
+    ChangePasswordAPIView,
 )
 
 auth_patterns = [
@@ -19,7 +28,11 @@ auth_patterns = [
 
 users_patterns = [
     path("users/", UserRetrieveUpdateAPIView.as_view(), name="user"),
-    path("users/change_password/", ChangePasswordAPIView.as_view(), name="change_password"),
+    path(
+        "users/change_password/",
+        ChangePasswordAPIView.as_view(),
+        name="change_password",
+    ),
 ]
 
 admin_patterns = [
@@ -33,7 +46,9 @@ movies_patterns = [
     path("find_movie/<str:expression>/", FindMovieView.as_view(), name="find_movie"),
     path("find_movie_ai/", FindMovieAiView.as_view(), name="find_movie_ai"),
     path("watch_later/list/", WatchLaterListView.as_view(), name="watch_later_list"),
-    path("watch_later/create/", WatchLaterCreateView.as_view(), name="watch_later_create"),
+    path(
+        "watch_later/create/", WatchLaterCreateView.as_view(), name="watch_later_create"
+    ),
     path(
         "watch_later/<int:pk>/destroy/",
         WatchLaterDestroyView.as_view(),

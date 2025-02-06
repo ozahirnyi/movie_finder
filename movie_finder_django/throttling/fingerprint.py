@@ -3,8 +3,8 @@ from user_agents import parse
 
 
 def get_fingerprint(request):
-    user_agent = request.META.get('HTTP_USER_AGENT', '')
-    ip_address = request.META.get('REMOTE_ADDR', '')
+    user_agent = request.META.get("HTTP_USER_AGENT", "")
+    ip_address = request.META.get("REMOTE_ADDR", "")
 
     ua = parse(user_agent)
     device_info = f"{ua.browser.family}-{ua.os.family}-{ua.device.family}"
