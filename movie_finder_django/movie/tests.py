@@ -200,39 +200,40 @@ class FindMovieFiltersTests(APITestCase):
             email="neo@neo.neo", password="neoneoneo"
         )
         refresh = RefreshToken.for_user(self.user)
-        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {refresh.access_token}")
+        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {refresh.access_token}", HTTP_USER_AGENT="test-agent",
+                                HTTP_X_FORWARDED_FOR="127.0.0.1")
 
     def test_filter_by_title(self):
         url = reverse("find_movie", kwargs={"expression": "Shrek"}) + "?title=Shrek"
 
-        response = self.client.get(url, HTTP_USER_AGENT="test-agent", HTTP_X_FORWARDED_FOR="127.0.0.1")
+        response = self.client.get(url)
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
     def test_filter_by_genre(self):
         url = reverse("find_movie", kwargs={"expression": "Shrek"}) + "?genre=Comedy"
 
-        response = self.client.get(url, HTTP_USER_AGENT="test-agent", HTTP_X_FORWARDED_FOR="127.0.0.1")
+        response = self.client.get(url)
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
     def test_filter_by_year(self):
         url = reverse("find_movie", kwargs={"expression": "Shrek"}) + "?year=2001"
 
-        response = self.client.get(url, HTTP_USER_AGENT="test-agent", HTTP_X_FORWARDED_FOR="127.0.0.1")
+        response = self.client.get(url)
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
     def test_filter_by_imdb_id(self):
         url = reverse("find_movie", kwargs={"expression": "Shrek"}) + "?imdb_id=1"
 
-        response = self.client.get(url, HTTP_USER_AGENT="test-agent", HTTP_X_FORWARDED_FOR="127.0.0.1")
+        response = self.client.get(url)
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
     def test_sorting_by_title(self):
         url = reverse("find_movie", kwargs={"expression": "Shrek"}) + "?ordering=title"
-        response = self.client.get(url, HTTP_USER_AGENT="test-agent", HTTP_X_FORWARDED_FOR="127.0.0.1")
+        response = self.client.get(url)
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         titles = [movie["title"] for movie in response.data["results"]]
@@ -240,7 +241,7 @@ class FindMovieFiltersTests(APITestCase):
 
     def test_sorting_by_year(self):
         url = reverse("find_movie", kwargs={"expression": "Shrek"}) + "?ordering=year"
-        response = self.client.get(url, HTTP_USER_AGENT="test-agent", HTTP_X_FORWARDED_FOR="127.0.0.1")
+        response = self.client.get(url)
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         years = [int(movie["year"]) for movie in response.data["results"]]
@@ -248,7 +249,7 @@ class FindMovieFiltersTests(APITestCase):
 
     def test_sorting_by_imdb_id(self):
         url = reverse("find_movie", kwargs={"expression": "Shrek"}) + "?ordering=imdb_id"
-        response = self.client.get(url, HTTP_USER_AGENT="test-agent", HTTP_X_FORWARDED_FOR="127.0.0.1")
+        response = self.client.get(url)
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         imdb_ids = [movie["imdb_id"] for movie in response.data["results"]]
@@ -256,7 +257,7 @@ class FindMovieFiltersTests(APITestCase):
 
     def test_sorting_by_genre(self):
         url = reverse("find_movie", kwargs={"expression": "Shrek"}) + "?ordering=genre"
-        response = self.client.get(url, HTTP_USER_AGENT="test-agent", HTTP_X_FORWARDED_FOR="127.0.0.1")
+        response = self.client.get(url)
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         genres = [movie["genre"] if movie["genre"] else "" for movie in response.data["results"]]
@@ -265,7 +266,7 @@ class FindMovieFiltersTests(APITestCase):
 
     def test_sorting_by_default(self):
         url = reverse("find_movie", kwargs={"expression": "Shrek"})
-        response = self.client.get(url, HTTP_USER_AGENT="test-agent", HTTP_X_FORWARDED_FOR="127.0.0.1")
+        response = self.client.get(url)
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         imdb_ids = [movie["imdb_id"] for movie in response.data["results"]]
