@@ -200,7 +200,7 @@ class FindMovieAiTests(APITestCase):
 
 class FindMovieFiltersTests(APITestCase):
     @classmethod
-    def setUpTestData(self):
+    def setUpTestData(cls):
         Movie.objects.create(title="Shrek", imdb_id="1", year="2001", genre="Comedy")
         Movie.objects.create(title="Shrek 2", imdb_id="2", year="2004", genre="Animation")
 
