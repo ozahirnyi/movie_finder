@@ -6,10 +6,11 @@ class MovieFilter(django_filters.FilterSet):
     title = django_filters.CharFilter(lookup_expr="icontains")
     genre = django_filters.CharFilter(lookup_expr="icontains")
     year = django_filters.CharFilter(lookup_expr="icontains")
+    imdb_id = django_filters.CharFilter(lookup_expr="exact")
 
     class Meta:
         model = Movie
-        fields = ["title", "genre", "year"]
+        fields = ["imdb_id", "title", "genre", "year"]
 
 
 class WatchLaterFilter(MovieFilter):
@@ -19,4 +20,5 @@ class WatchLaterFilter(MovieFilter):
             "movie__title": ["icontains"],
             "movie__genre": ["icontains"],
             "movie__year": ["icontains"],
+            "movie__imdb_id": ["exact"],
         }

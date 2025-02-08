@@ -87,8 +87,8 @@ class FindMovieView(ListAPIView):
     filter_backends = [DjangoFilterBackend, OrderingFilter]
     filterset_class = MovieFilter
     search_fields = ["title"]
-    ordering_fields = ["title", "genre", "year"]
-    ordering = ["title"]
+    ordering_fields = ["imdb_id", "title", "genre", "year"]
+    ordering = ["imdb_id"]
 
     def get_queryset(self):
         queryset = Movie.objects.all()
@@ -183,8 +183,8 @@ class WatchLaterListView(ListAPIView):
     filter_backends = [DjangoFilterBackend, OrderingFilter]
     filterset_class = WatchLaterFilter
     search_fields = ["movie__title"]
-    ordering_fields = ["movie__title", "movie__genre", "movie__year"]
-    ordering = ["movie__title"]
+    ordering_fields = ["movie__imdb_id", "movie__title", "movie__genre", "movie__year"]
+    ordering = ["movie__imdb_id"]
 
     def get_queryset(self):
         return (

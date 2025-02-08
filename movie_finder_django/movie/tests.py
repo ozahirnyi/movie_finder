@@ -185,3 +185,88 @@ class FindMovieAiTests(APITestCase):
             response.data["prompt"][0],
             f"Ensure this field has no more than {max_length} characters.",
         )  # Check if the correct validation message is returned
+
+
+class FindMovieFiltersTests(APITestCase):
+    @classmethod
+    def setUpTestData(self):
+        Movie.objects.create(title="Shrek", imdb_id="1", year="2001", genre="Comedy")
+        Movie.objects.create(title="Shrek 2", imdb_id="2", year="2004", genre="Animation")
+        Movie.objects.create(title="The Matrix", imdb_id="3", year="1999", genre="Action")
+        Movie.objects.create(title="The Matrix Reloaded", imdb_id="4", year="2002", genre="Action")
+
+    def setUp(self):
+        self.user = get_user_model().objects.create_user(
+            email="neo@neo.neo", password="neoneoneo"
+        )
+        refresh = RefreshToken.for_user(self.user)
+        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {refresh.access_token}")
+
+    def test_filter_by_title(self):
+        url = reverse("find_movie", kwargs={"expression": "Shrek"}) + "?title=Shrek"
+
+        response = self.client.get(url, HTTP_USER_AGENT="test-agent", HTTP_X_FORWARDED_FOR="127.0.0.1")
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+    def test_filter_by_genre(self):
+        url = reverse("find_movie", kwargs={"expression": "Shrek"}) + "?genre=Comedy"
+
+        response = self.client.get(url, HTTP_USER_AGENT="test-agent", HTTP_X_FORWARDED_FOR="127.0.0.1")
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+    def test_filter_by_year(self):
+        url = reverse("find_movie", kwargs={"expression": "Shrek"}) + "?year=2001"
+
+        response = self.client.get(url, HTTP_USER_AGENT="test-agent", HTTP_X_FORWARDED_FOR="127.0.0.1")
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+    def test_filter_by_imdb_id(self):
+        url = reverse("find_movie", kwargs={"expression": "Shrek"}) + "?imdb_id=1"
+
+        response = self.client.get(url, HTTP_USER_AGENT="test-agent", HTTP_X_FORWARDED_FOR="127.0.0.1")
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+    def test_sorting_by_title(self):
+        url = reverse("find_movie", kwargs={"expression": "Shrek"}) + "?ordering=title"
+        response = self.client.get(url, HTTP_USER_AGENT="test-agent", HTTP_X_FORWARDED_FOR="127.0.0.1")
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        titles = [movie["title"] for movie in response.data["results"]]
+        self.assertEqual(titles, sorted(titles))
+
+    def test_sorting_by_year(self):
+        url = reverse("find_movie", kwargs={"expression": "Shrek"}) + "?ordering=year"
+        response = self.client.get(url, HTTP_USER_AGENT="test-agent", HTTP_X_FORWARDED_FOR="127.0.0.1")
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        years = [int(movie["year"]) for movie in response.data["results"]]
+        self.assertEqual(years, sorted(years))
+
+    def test_sorting_by_imdb_id(self):
+        url = reverse("find_movie", kwargs={"expression": "Shrek"}) + "?ordering=imdb_id"
+        response = self.client.get(url, HTTP_USER_AGENT="test-agent", HTTP_X_FORWARDED_FOR="127.0.0.1")
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        imdb_ids = [movie["imdb_id"] for movie in response.data["results"]]
+        self.assertEqual(imdb_ids, sorted(imdb_ids))
+
+    def test_sorting_by_genre(self):
+        url = reverse("find_movie", kwargs={"expression": "Shrek"}) + "?ordering=genre"
+        response = self.client.get(url, HTTP_USER_AGENT="test-agent", HTTP_X_FORWARDED_FOR="127.0.0.1")
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        genres = [movie["genre"] if movie["genre"] else "" for movie in response.data["results"]]
+        print(genres)
+        self.assertEqual(genres, sorted(genres))
+
+    def test_sorting_by_default(self):
+        url = reverse("find_movie", kwargs={"expression": "Shrek"})
+        response = self.client.get(url, HTTP_USER_AGENT="test-agent", HTTP_X_FORWARDED_FOR="127.0.0.1")
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        imdb_ids = [movie["imdb_id"] for movie in response.data["results"]]
+        self.assertEqual(imdb_ids, sorted(imdb_ids))
