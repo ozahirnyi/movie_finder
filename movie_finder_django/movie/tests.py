@@ -203,8 +203,6 @@ class FindMovieFiltersTests(APITestCase):
     def setUpTestData(self):
         Movie.objects.create(title="Shrek", imdb_id="1", year="2001", genre="Comedy")
         Movie.objects.create(title="Shrek 2", imdb_id="2", year="2004", genre="Animation")
-        Movie.objects.create(title="The Matrix", imdb_id="3", year="1999", genre="Action")
-        Movie.objects.create(title="The Matrix Reloaded", imdb_id="4", year="2002", genre="Action")
 
     def setUp(self):
         self.user = get_user_model().objects.create_user(
