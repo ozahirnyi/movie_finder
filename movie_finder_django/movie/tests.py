@@ -68,6 +68,7 @@ class FinderTests(APITestCase):
         response = self.client.get(
             reverse("find_movie", kwargs={"expression": "Shrek"}) + "?test=1",
             HTTP_USER_AGENT="test-agent",
+            HTTP_X_FORWARDED_FOR="127.0.0.1"
         )
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
@@ -77,6 +78,7 @@ class FinderTests(APITestCase):
             response = self.client.post(
                 reverse("watch_later_create"), data={"movie": self.movie.imdb_id}
             )
+
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         wl = WatchLaterMovie.objects.filter(user=self.user, movie=self.movie)
         self.assertTrue(wl.exists())
@@ -85,10 +87,11 @@ class FinderTests(APITestCase):
         wl = WatchLaterMovie.objects.create(user=self.user, movie=self.movie)
 
         self.client.force_login(self.user)
-        with self.assertNumQueries(3):
+        with self.assertNumQueries(2):
             response = self.client.delete(
                 reverse("watch_later_destroy", kwargs={"pk": wl.id})
             )
+
         self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
         wl = WatchLaterMovie.objects.filter(user=self.user, movie=self.movie)
         self.assertFalse(wl.exists())
@@ -114,7 +117,12 @@ class FindMovieAiTests(APITestCase):
         self.user = get_user_model().objects.create_user(
             email="neo@neo.neo", password="neoneoneo"
         )
-        self.client.force_login(self.user)
+        refresh = RefreshToken.for_user(self.user)
+        self.client.credentials(
+            HTTP_AUTHORIZATION=f"Bearer {refresh.access_token}",
+            HTTP_USER_AGENT="test-agent",
+            HTTP_X_FORWARDED_FOR="127.0.0.1"
+        )
 
     @patch("movie.ai_find_movie.FindMovieAiClient.find_movies")
     @patch("movie.services.MovieService.get_movies_from_imdb")
@@ -154,6 +162,7 @@ class FindMovieAiTests(APITestCase):
             data={"prompt": "Shrek"},
             format="json",
             HTTP_USER_AGENT="test-agent",
+            HTTP_X_FORWARDED_FOR="127.0.0.1"
         )
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
@@ -176,7 +185,9 @@ class FindMovieAiTests(APITestCase):
             reverse("find_movie_ai"),
             data={"prompt": long_prompt},
             HTTP_USER_AGENT="test-agent",
+            HTTP_X_FORWARDED_FOR="127.0.0.1",
             format="json",
+
         )
 
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
@@ -200,8 +211,11 @@ class FindMovieFiltersTests(APITestCase):
             email="neo@neo.neo", password="neoneoneo"
         )
         refresh = RefreshToken.for_user(self.user)
-        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {refresh.access_token}", HTTP_USER_AGENT="test-agent",
-                                HTTP_X_FORWARDED_FOR="127.0.0.1")
+        self.client.credentials(
+            HTTP_AUTHORIZATION=f"Bearer {refresh.access_token}",
+            HTTP_USER_AGENT="test-agent",
+            HTTP_X_FORWARDED_FOR="127.0.0.1"
+        )
 
     def test_filter_by_title(self):
         url = reverse("find_movie", kwargs={"expression": "Shrek"}) + "?title=Shrek"
@@ -261,7 +275,6 @@ class FindMovieFiltersTests(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         genres = [movie["genre"] if movie["genre"] else "" for movie in response.data["results"]]
-        print(genres)
         self.assertEqual(genres, sorted(genres))
 
     def test_sorting_by_default(self):
