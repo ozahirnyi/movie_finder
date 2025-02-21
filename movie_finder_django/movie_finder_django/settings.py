@@ -34,6 +34,7 @@ INSTALLED_APPS = [
     "rest_framework.authtoken",
     "movie",
     "auth_app",
+    "django_filters",
 ]
 
 MIDDLEWARE = [
@@ -45,7 +46,6 @@ MIDDLEWARE = [
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "corsheaders.middleware.CorsMiddleware",
-
 ]
 
 ROOT_URLCONF = "movie_finder_django.urls"
@@ -73,18 +73,20 @@ TEMPLATES = [
 WSGI_APPLICATION = "movie_finder_django.wsgi.application"
 
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+    "default": {
+        "ENGINE": "django.db.backends.sqlite3",
+        "NAME": BASE_DIR / "db.sqlite3",
     },
-    'test': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'test_db.sqlite3',
+    "test": {
+        "ENGINE": "django.db.backends.sqlite3",
+        "NAME": BASE_DIR / "test_db.sqlite3",
     },
 }
 
-if 'test' in sys.argv or 'test_coverage' in sys.argv:  # перевіряємо, що ми запускаємо тести
-    DATABASES['default'] = DATABASES['test']
+if (
+    "test" in sys.argv or "test_coverage" in sys.argv
+):  # перевіряємо, що ми запускаємо тести
+    DATABASES["default"] = DATABASES["test"]
 
 AUTH_PASSWORD_VALIDATORS = [
     {
@@ -106,10 +108,9 @@ REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": [
         "rest_framework_simplejwt.authentication.JWTAuthentication",
     ],
-    'DEFAULT_RENDERER_CLASSES': [
-        'rest_framework.renderers.JSONRenderer',
+    "DEFAULT_RENDERER_CLASSES": [
+        "rest_framework.renderers.JSONRenderer",
     ],
-
 }
 
 AUTHENTICATION_BACKENDS = [

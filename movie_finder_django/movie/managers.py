@@ -28,4 +28,6 @@ class MovieManager(models.QuerySet):
         return self.annotate(likes_count=models.Count("likemovie", distinct=True))
 
     def with_watch_later_count(self):
-        return self.annotate(watch_later_count=models.Count("watchlatermovie", distinct=True))
+        return self.annotate(
+            watch_later_count=models.Count("watchlatermovie", distinct=True)
+        )

@@ -2,7 +2,9 @@ from dataclasses import asdict
 
 from django.db import IntegrityError
 from django.db.models import Count, OuterRef, Exists
+from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import permissions, status
+from rest_framework.filters import OrderingFilter
 from rest_framework.generics import (
     GenericAPIView,
     DestroyAPIView,
@@ -13,17 +15,24 @@ from rest_framework.generics import (
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from throttling.throttling import RegularSearchUaThrottle, RegularSearchIpThrottle, RegularSearchForwardedThrottle, \
-    AiSearchUaThrottle, AiSearchIpThrottle, AiSearchForwardedThrottle
+from throttling.throttling import (
+    RegularSearchUaThrottle,
+    RegularSearchIpThrottle,
+    RegularSearchForwardedThrottle,
+    AiSearchUaThrottle,
+    AiSearchIpThrottle,
+    AiSearchForwardedThrottle,
+)
 from .ai_find_movie import FindMovieAiClient
 from .errors import AddLikeError
+from .filters import MovieFilter, WatchLaterFilter
 from .models import Movie, WatchLaterMovie, LikeMovie
 from .paginations import MoviesPagination
 from .serializers import (
     MovieSerializer,
     WatchLaterCreateSerializer,
     WatchLaterListSerializer,
-    FindMovieAiViewRequestSerializer
+    FindMovieAiViewRequestSerializer,
 )
 from .services import MovieService
 
@@ -35,8 +44,7 @@ class MovieView(RetrieveAPIView):
 
     def get_queryset(self):
         return (
-            Movie.objects
-            .with_is_liked(self.request.user.id)
+            Movie.objects.with_is_liked(self.request.user.id)
             .with_is_watch_later(self.request.user.id)
             .with_likes_count()
             .with_watch_later_count()
@@ -71,13 +79,24 @@ class FindMovieView(ListAPIView):
     permission_classes = [permissions.AllowAny]
     serializer_class = MovieSerializer
     pagination_class = MoviesPagination
-    throttle_classes = [RegularSearchUaThrottle, RegularSearchIpThrottle, RegularSearchForwardedThrottle]
+    throttle_classes = [
+        RegularSearchUaThrottle,
+        RegularSearchIpThrottle,
+        RegularSearchForwardedThrottle,
+    ]
+    filter_backends = [DjangoFilterBackend, OrderingFilter]
+    filterset_class = MovieFilter
+    search_fields = ["title"]
+    ordering_fields = ["imdb_id", "title", "genre", "year"]
+    ordering = ["imdb_id"]
 
     def get_queryset(self):
+        queryset = Movie.objects.all()
+        expression = self.kwargs.get("expression")
+        if expression:
+            queryset = queryset.filter(title__icontains=expression)
         return (
-            Movie.objects
-            .filter(title__icontains=self.kwargs.get("expression"))
-            .with_is_liked(self.request.user.id)
+            queryset.with_is_liked(self.request.user.id)
             .with_is_watch_later(self.request.user.id)
             .with_likes_count()
             .with_watch_later_count()
@@ -89,8 +108,8 @@ class FindMovieView(ListAPIView):
             Movie.objects.bulk_create(
                 [Movie(**asdict(movie)) for movie in movies],
                 update_conflicts=True,
-                unique_fields=['title'],
-                update_fields=['imdb_id', 'poster', 'year', 'type', 'poster']
+                unique_fields=["title"],
+                update_fields=["imdb_id", "poster", "year", "type", "poster"],
             )
         return super().get(*args, **kwargs)
 
@@ -99,7 +118,11 @@ class FindMovieAiView(APIView):
     permission_classes = [permissions.AllowAny]
     serializer_class = MovieSerializer
     pagination_class = MoviesPagination
-    throttle_classes = [AiSearchUaThrottle, AiSearchIpThrottle, AiSearchForwardedThrottle]
+    throttle_classes = [
+        AiSearchUaThrottle,
+        AiSearchIpThrottle,
+        AiSearchForwardedThrottle,
+    ]
 
     def post(self, request, *args, **kwargs):
 
@@ -111,8 +134,11 @@ class FindMovieAiView(APIView):
         movies = []
         for ai_movie in ai_movies:
             imdb_movie = next(
-                filter(lambda x: x.title == ai_movie.title, MovieService.get_movies_from_imdb(ai_movie.title)),
-                None
+                filter(
+                    lambda x: x.title == ai_movie.title,
+                    MovieService.get_movies_from_imdb(ai_movie.title),
+                ),
+                None,
             )
             if imdb_movie:
                 movies.append(
@@ -125,8 +151,16 @@ class FindMovieAiView(APIView):
         Movie.objects.bulk_create(
             movies,
             update_conflicts=True,
-            unique_fields=['title'],
-            update_fields=['imdb_id', 'poster', 'year', 'type', 'poster', 'genre', 'plot']
+            unique_fields=["title"],
+            update_fields=[
+                "imdb_id",
+                "poster",
+                "year",
+                "type",
+                "poster",
+                "genre",
+                "plot",
+            ],
         )
         serialized_movies = MovieSerializer(movies, many=True)
         return Response(serialized_movies.data, status=status.HTTP_200_OK)
@@ -146,6 +180,11 @@ class WatchLaterListView(ListAPIView):
     permission_classes = [permissions.IsAuthenticated]
     serializer_class = WatchLaterListSerializer
     pagination_class = MoviesPagination
+    filter_backends = [DjangoFilterBackend, OrderingFilter]
+    filterset_class = WatchLaterFilter
+    search_fields = ["movie__title"]
+    ordering_fields = ["movie__imdb_id", "movie__title", "movie__genre", "movie__year"]
+    ordering = ["movie__imdb_id"]
 
     def get_queryset(self):
         return (

@@ -12,7 +12,10 @@ class MovieService:
     def get_movies_from_imdb(expression: str) -> list[ImdbMovie]:
         response = requests.get(
             settings.IMDB_API_URL + "?limit=1&query=" + expression,
-            headers={'authorization': settings.IMDB_API_KEY, 'content-type': 'application/json'},
+            headers={
+                "authorization": settings.IMDB_API_KEY,
+                "content-type": "application/json",
+            },
             timeout=30,
         )
         imdb_movies = []
@@ -31,4 +34,3 @@ class MovieService:
     @staticmethod
     def get_movies_from_ai(expression: str) -> list[AiMovie]:
         return FindMovieAiClient(expression).find_movies()
-

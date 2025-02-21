@@ -17,7 +17,9 @@ class FinderTests(APITestCase):
         cls.movie = Movie.objects.create(title="test", imdb_id="1")
 
     def setUp(self) -> None:
-        self.user = get_user_model().objects.create_user(email="neo@neo.neo", password="neoneoneo")
+        self.user = get_user_model().objects.create_user(
+            email="neo@neo.neo", password="neoneoneo"
+        )
         refresh = RefreshToken.for_user(self.user)
         self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {refresh.access_token}")
 
@@ -64,9 +66,9 @@ class FinderTests(APITestCase):
         # TODO: uncomment when start use postgresql. > movie_finder_django/movie/models.py
         # with self.assertNumQueries(3):
         response = self.client.get(
-            reverse("find_movie",
-                    kwargs={"expression": "Shrek"}) + '?test=1',
-            HTTP_USER_AGENT='test-agent'
+            reverse("find_movie", kwargs={"expression": "Shrek"}) + "?test=1",
+            HTTP_USER_AGENT="test-agent",
+            HTTP_X_FORWARDED_FOR="127.0.0.1"
         )
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
@@ -76,6 +78,7 @@ class FinderTests(APITestCase):
             response = self.client.post(
                 reverse("watch_later_create"), data={"movie": self.movie.imdb_id}
             )
+
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         wl = WatchLaterMovie.objects.filter(user=self.user, movie=self.movie)
         self.assertTrue(wl.exists())
@@ -84,16 +87,19 @@ class FinderTests(APITestCase):
         wl = WatchLaterMovie.objects.create(user=self.user, movie=self.movie)
 
         self.client.force_login(self.user)
-        with self.assertNumQueries(3):
+        with self.assertNumQueries(2):
             response = self.client.delete(
                 reverse("watch_later_destroy", kwargs={"pk": wl.id})
             )
+
         self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
         wl = WatchLaterMovie.objects.filter(user=self.user, movie=self.movie)
         self.assertFalse(wl.exists())
 
     def test_get_watch_later(self):
-        wrong_user = get_user_model().objects.create_user(email="notneo@neo.neo", password="neoneoneo")
+        wrong_user = get_user_model().objects.create_user(
+            email="notneo@neo.neo", password="neoneoneo"
+        )
         WatchLaterMovie.objects.create(user_id=wrong_user.id, movie_id=self.movie.id)
         WatchLaterMovie.objects.create(user_id=self.user.id, movie_id=self.movie.id)
 
@@ -108,26 +114,43 @@ class FinderTests(APITestCase):
 
 class FindMovieAiTests(APITestCase):
     def setUp(self):
-        self.user = get_user_model().objects.create_user(email="neo@neo.neo", password="neoneoneo")
-        self.client.force_login(self.user)
+        self.user = get_user_model().objects.create_user(
+            email="neo@neo.neo", password="neoneoneo"
+        )
+        refresh = RefreshToken.for_user(self.user)
+        self.client.credentials(
+            HTTP_AUTHORIZATION=f"Bearer {refresh.access_token}",
+            HTTP_USER_AGENT="test-agent",
+            HTTP_X_FORWARDED_FOR="127.0.0.1"
+        )
 
-    @patch('movie.ai_find_movie.FindMovieAiClient.find_movies')
-    @patch('movie.services.MovieService.get_movies_from_imdb')
+    @patch("movie.ai_find_movie.FindMovieAiClient.find_movies")
+    @patch("movie.services.MovieService.get_movies_from_imdb")
     def test_find_movie_ai(self, mock_get_movies_from_imdb, mock_find_movies):
         mock_find_movies.return_value = [
-            AiMovie(title="Shrek", genre="Animation", plot="A green ogre saves a princess."),
-            AiMovie(title="Shrek 2", genre="Animation", plot="The ogre meets his in-laws."),
+            AiMovie(
+                title="Shrek", genre="Animation", plot="A green ogre saves a princess."
+            ),
+            AiMovie(
+                title="Shrek 2", genre="Animation", plot="The ogre meets his in-laws."
+            ),
         ]
 
         def mock_get_movies(title):
             movies = {
                 "Shrek": ImdbMovie(
-                    title="Shrek", imdb_id="12345", poster="http://poster.url",
-                    year="2001", type="movie"
+                    title="Shrek",
+                    imdb_id="12345",
+                    poster="http://poster.url",
+                    year="2001",
+                    type="movie",
                 ),
                 "Shrek 2": ImdbMovie(
-                    title="Shrek 2", imdb_id="67890", poster="http://poster.url",
-                    year="2004", type="movie"
+                    title="Shrek 2",
+                    imdb_id="67890",
+                    poster="http://poster.url",
+                    year="2004",
+                    type="movie",
                 ),
             }
             return [movies.get(title)] if title in movies else []
@@ -138,7 +161,8 @@ class FindMovieAiTests(APITestCase):
             reverse("find_movie_ai"),
             data={"prompt": "Shrek"},
             format="json",
-            HTTP_USER_AGENT='test-agent'
+            HTTP_USER_AGENT="test-agent",
+            HTTP_X_FORWARDED_FOR="127.0.0.1"
         )
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
@@ -158,13 +182,103 @@ class FindMovieAiTests(APITestCase):
         long_prompt = "A" * (max_length + 1)
 
         response = self.client.post(
-            reverse('find_movie_ai'),
+            reverse("find_movie_ai"),
             data={"prompt": long_prompt},
-            HTTP_USER_AGENT='test-agent',
-            format="json"
+            HTTP_USER_AGENT="test-agent",
+            HTTP_X_FORWARDED_FOR="127.0.0.1",
+            format="json",
+
         )
 
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertIn('prompt', response.data)
-        self.assertEqual(response.data['prompt'][0],
-                         f"Ensure this field has no more than {max_length} characters.")  # Check if the correct validation message is returned
+        self.assertIn("prompt", response.data)
+        self.assertEqual(
+            response.data["prompt"][0],
+            f"Ensure this field has no more than {max_length} characters.",
+        )  # Check if the correct validation message is returned
+
+
+class FindMovieFiltersTests(APITestCase):
+    @classmethod
+    def setUpTestData(cls):
+        Movie.objects.create(title="Shrek", imdb_id="1", year="2001", genre="Comedy")
+        Movie.objects.create(title="Shrek 2", imdb_id="2", year="2004", genre="Animation")
+
+    def setUp(self):
+        self.user = get_user_model().objects.create_user(
+            email="neo@neo.neo", password="neoneoneo"
+        )
+        refresh = RefreshToken.for_user(self.user)
+        self.client.credentials(
+            HTTP_AUTHORIZATION=f"Bearer {refresh.access_token}",
+            HTTP_USER_AGENT="test-agent",
+            HTTP_X_FORWARDED_FOR="127.0.0.1"
+        )
+
+    def test_filter_by_title(self):
+        url = reverse("find_movie", kwargs={"expression": "Shrek"}) + "?title=Shrek"
+
+        response = self.client.get(url)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+    def test_filter_by_genre(self):
+        url = reverse("find_movie", kwargs={"expression": "Shrek"}) + "?genre=Comedy"
+
+        response = self.client.get(url)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+    def test_filter_by_year(self):
+        url = reverse("find_movie", kwargs={"expression": "Shrek"}) + "?year=2001"
+
+        response = self.client.get(url)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+    def test_filter_by_imdb_id(self):
+        url = reverse("find_movie", kwargs={"expression": "Shrek"}) + "?imdb_id=1"
+
+        response = self.client.get(url)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+    def test_sorting_by_title(self):
+        url = reverse("find_movie", kwargs={"expression": "Shrek"}) + "?ordering=title"
+        response = self.client.get(url)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        titles = [movie["title"] for movie in response.data["results"]]
+        self.assertEqual(titles, sorted(titles))
+
+    def test_sorting_by_year(self):
+        url = reverse("find_movie", kwargs={"expression": "Shrek"}) + "?ordering=year"
+        response = self.client.get(url)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        years = [int(movie["year"]) for movie in response.data["results"]]
+        self.assertEqual(years, sorted(years))
+
+    def test_sorting_by_imdb_id(self):
+        url = reverse("find_movie", kwargs={"expression": "Shrek"}) + "?ordering=imdb_id"
+        response = self.client.get(url)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        imdb_ids = [movie["imdb_id"] for movie in response.data["results"]]
+        self.assertEqual(imdb_ids, sorted(imdb_ids))
+
+    def test_sorting_by_genre(self):
+        url = reverse("find_movie", kwargs={"expression": "Shrek"}) + "?ordering=genre"
+        response = self.client.get(url)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        genres = [movie["genre"] if movie["genre"] else "" for movie in response.data["results"]]
+        self.assertEqual(genres, sorted(genres))
+
+    def test_sorting_by_default(self):
+        url = reverse("find_movie", kwargs={"expression": "Shrek"})
+        response = self.client.get(url)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        imdb_ids = [movie["imdb_id"] for movie in response.data["results"]]
+        self.assertEqual(imdb_ids, sorted(imdb_ids))

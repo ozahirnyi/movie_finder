@@ -13,8 +13,8 @@ class FindMovieAiClient:
         self.expression = expression
         self._client = None
         self.base_parameters = {
-            'model': 'claude-3-5-sonnet-20240620',
-            'max_tokens': 1024,
+            "model": "claude-3-5-sonnet-20240620",
+            "max_tokens": 1024,
         }
 
     def find_movies(self) -> list[AiMovie]:
@@ -24,11 +24,13 @@ class FindMovieAiClient:
             **self.base_parameters,
             messages=[
                 {
-                    'role': 'user',
-                    'content': [
+                    "role": "user",
+                    "content": [
                         {
-                            'type': 'text',
-                            'text': find_movies_prompt.format(REQUIREMENTS=self.expression),
+                            "type": "text",
+                            "text": find_movies_prompt.format(
+                                REQUIREMENTS=self.expression
+                            ),
                         },
                     ],
                 },
@@ -37,7 +39,9 @@ class FindMovieAiClient:
         return self._parse_response(response)
 
     def count_tokens(self) -> int:
-        return Client().count_tokens(find_movies_prompt.format(REQUIREMENTS=self.expression))
+        return Client().count_tokens(
+            find_movies_prompt.format(REQUIREMENTS=self.expression)
+        )
 
     @staticmethod
     def _parse_response(response) -> list[AiMovie]:
