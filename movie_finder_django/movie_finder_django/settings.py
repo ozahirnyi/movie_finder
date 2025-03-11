@@ -89,7 +89,7 @@ DATABASES = {
 }
 
 if (
-    "test" in sys.argv or "test_coverage" in sys.argv
+        "test" in sys.argv or "test_coverage" in sys.argv
 ):  # перевіряємо, що ми запускаємо тести
     DATABASES["default"] = DATABASES["test"]
 
@@ -121,8 +121,20 @@ REST_FRAMEWORK = {
 AUTHENTICATION_BACKENDS = [
     "django.contrib.auth.backends.ModelBackend",
     "allauth.account.auth_backends.AuthenticationBackend",
-
 ]
+
+SOCIALACCOUNT_PROVIDERS = {
+    "google": {
+        "SCOPE": ["profile", "email"],
+        "AUTH_PARAMS": {"access_type": "offline", "prompt": "consent"},
+        "OAUTH_PKCE_ENABLED": True,
+    },
+}
+
+SITE_ID = 1
+ACCOUNT_EMAIL_VERIFICATION = "mandatory"
+ACCOUNT_EMAIL_REQUIRED = True
+ACCOUNT_AUTHENTICATION_METHOD = "email"
 
 LANGUAGE_CODE = "en-us"
 
