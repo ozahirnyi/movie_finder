@@ -1,7 +1,13 @@
 from django.contrib import admin
-from django.urls import path
+from django.urls import path, include
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
+from auth_app.views import (
+    SignInApiView,
+    SignUpApiView,
+    UserRetrieveUpdateAPIView,
+    ChangePasswordAPIView,
+)
 from movie.views import (
     MovieView,
     MovieLikeView,
@@ -12,18 +18,14 @@ from movie.views import (
     WatchLaterDestroyView,
     FindMovieAiView,
 )
-from auth_app.views import (
-    SignInApiView,
-    SignUpApiView,
-    UserRetrieveUpdateAPIView,
-    ChangePasswordAPIView,
-)
 
 auth_patterns = [
     path("signin/", SignInApiView.as_view(), name="signin"),
     path("token/", TokenObtainPairView.as_view(), name="token_obtain_pair"),
     path("token/refresh/", TokenRefreshView.as_view(), name="token_refresh"),
     path("signup/", SignUpApiView.as_view(), name="signup"),
+    path('admin/', admin.site.urls),
+    path('accounts/', include('allauth.urls')),
 ]
 
 users_patterns = [
