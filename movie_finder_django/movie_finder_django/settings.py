@@ -3,6 +3,7 @@ import sys
 from datetime import timedelta
 from pathlib import Path
 
+from django.conf.global_settings import LOGIN_REDIRECT_URL
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -134,9 +135,16 @@ SOCIALACCOUNT_PROVIDERS = {
 SITE_ID = 1
 ACCOUNT_EMAIL_VERIFICATION = "mandatory"
 ACCOUNT_EMAIL_REQUIRED = True
-ACCOUNT_AUTHENTICATION_METHOD = "email"
 ACCOUNT_USERNAME_REQUIRED = False
 ACCOUNT_USER_MODEL_USERNAME_FIELD = None
+ACCOUNT_AUTHENTICATION_METHOD = "email"
+
+EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+EMAIL_HOST = "smtp.gmail.com"
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER")
+EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD")
 
 LANGUAGE_CODE = "en-us"
 
@@ -152,8 +160,8 @@ STATIC_URL = "/static/"
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
-LOGIN_PAGE_URL = "/login/"
-LOGIN_REDIRECT_URL = "/"
+LOGIN_PAGE_URL = "/accounts/"
+LOGIN_REDIRECT_URL = "/accounts/"
 LOGOUT_REDIRECT_URL = LOGIN_PAGE_URL
 
 SIMPLE_JWT = {
