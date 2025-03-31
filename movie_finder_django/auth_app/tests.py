@@ -1,9 +1,12 @@
 from django.contrib.auth import get_user_model
+from django.contrib.sites.models import Site
 from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APITestCase
 from rest_framework_simplejwt.tokens import RefreshToken
 
+from movie_finder_django import settings
+from movie_finder_django.settings import SITE_ID, LOGIN_REDIRECT_URL
 from .errors import ChangePasswordError
 
 
@@ -19,7 +22,7 @@ class AuthTests(APITestCase):
 
     def setUp(self) -> None:
         self.user = get_user_model().objects.create_user(
-            username="neo", email="neo@neo.neo", password="neoneoneo"
+            email="neo@neo.neo", password="neoneoneo"
         )
         refresh = RefreshToken.for_user(self.user)
         self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {refresh.access_token}")
@@ -77,3 +80,72 @@ class AuthTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertEqual(default_code, ChangePasswordError.default_code)
         self.assertEqual(default_detail, ChangePasswordError.default_detail)
+
+
+from django.test import TestCase, Client
+from django.contrib.auth import get_user_model
+from django.urls import reverse
+from unittest.mock import patch
+from allauth.socialaccount.models import SocialAccount, SocialApp
+from allauth.socialaccount.providers.google.views import GoogleOAuth2Adapter
+
+User = get_user_model()
+
+
+class GoogleOAuthTests(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        """Ensure Google OAuth SocialApp is set up for tests."""
+        site = Site.objects.get_current()
+        app, created = SocialApp.objects.get_or_create(
+            provider="google",
+            name="Google",
+            client_id="test-client-id",
+            secret="test-client-secret",
+        )
+        app.sites.add(site)
+
+    def setUp(self):
+        """Create a test client."""
+        self.client = Client()
+        self.callback_url = "/accounts/google/login/callback/"
+
+    @patch("allauth.socialaccount.providers.google.views.requests.post")
+    def test_google_login_success(self, mock_post):
+        """Simulates a Google login that redirects to email confirmation."""
+        mock_post.return_value.json.return_value = {
+            "access_token": "test_access_token",
+            "id_token": "test_id_token"
+        }
+
+        with patch.object(GoogleOAuth2Adapter, 'complete_login') as mock_complete_login:
+            mock_complete_login.return_value.get_user.return_value = {
+                'id': '123456789',
+                'email': 'testuser@gmail.com',
+                'verified_email': True,
+                'name': 'Test User'
+            }
+
+            response = self.client.get(self.callback_url)
+
+            self.assertEqual(response.status_code, 302)
+            self.assertEqual(response.url, LOGIN_REDIRECT_URL)
+
+            user_exists = User.objects.filter(email='testuser@gmail.com').exists()
+            self.assertTrue(user_exists)
+
+            social_account_exists = SocialAccount.objects.filter(uid='123456789').exists()
+            self.assertTrue(social_account_exists)
+
+    @patch("allauth.socialaccount.providers.google.views.requests.post")
+    def test_google_login_invalid_token(self, mock_post):
+        """Simulates a login failure due to invalid token."""
+        mock_post.return_value.json.return_value = {"error": "invalid_grant"}
+        response = self.client.get(self.callback_url)
+        self.assertEqual(response.status_code, 400)
+
+    def test_google_login_redirect(self):
+        """Tests if visiting the Google login URL redirects properly."""
+        response = self.client.get(reverse("socialaccount_connections") + "?process=login&provider=google")
+        self.assertEqual(response.status_code, 302)
+        self.assertIn("https://accounts.google.com/o/oauth2/auth", response.url)

@@ -24,7 +24,6 @@ auth_patterns = [
     path("token/", TokenObtainPairView.as_view(), name="token_obtain_pair"),
     path("token/refresh/", TokenRefreshView.as_view(), name="token_refresh"),
     path("signup/", SignUpApiView.as_view(), name="signup"),
-    path('admin/', admin.site.urls),
     path('accounts/', include('allauth.urls')),
 ]
 

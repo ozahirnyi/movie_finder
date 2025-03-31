@@ -3,7 +3,6 @@ import sys
 from datetime import timedelta
 from pathlib import Path
 
-from django.conf.global_settings import LOGIN_REDIRECT_URL
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -31,6 +30,7 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    "django.contrib.sites",
     "corsheaders",
     "rest_framework.authtoken",
     "movie",
@@ -127,9 +127,9 @@ AUTHENTICATION_BACKENDS = [
 SOCIALACCOUNT_PROVIDERS = {
     "google": {
         "SCOPE": ["profile", "email"],
-        "AUTH_PARAMS": {"access_type": "offline", "prompt": "consent"},
+        "AUTH_PARAMS": {"access_type": "online"},
         "OAUTH_PKCE_ENABLED": True,
-    },
+    }
 }
 
 SITE_ID = 1
@@ -163,6 +163,8 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 LOGIN_PAGE_URL = "/accounts/"
 LOGIN_REDIRECT_URL = "/accounts/"
 LOGOUT_REDIRECT_URL = LOGIN_PAGE_URL
+ACCOUNT_ADAPTER = "allauth.account.adapter.DefaultAccountAdapter"
+
 
 SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(hours=1),
