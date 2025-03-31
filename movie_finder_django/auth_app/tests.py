@@ -10,6 +10,8 @@ from rest_framework import status
 from rest_framework.test import APITestCase
 from rest_framework_simplejwt.tokens import RefreshToken
 
+from movie_finder_django import settings
+from movie_finder_django.settings import SITE_ID, LOGIN_REDIRECT_URL
 from .errors import ChangePasswordError
 
 
@@ -110,7 +112,7 @@ class GoogleOAuthTests(TestCase):
 
     @patch("allauth.socialaccount.providers.google.views.requests.post")
     def test_google_login_success(self, mock_post):
-        """Tests Google login, user creation, authentication, and redirection."""
+        """Tests Google login, user creation, authentication and redirection."""
         mock_post.return_value.json.return_value = {
             "access_token": "test_access_token",
             "id_token": "test_id_token"
