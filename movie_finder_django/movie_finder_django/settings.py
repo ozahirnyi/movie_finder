@@ -138,9 +138,8 @@ SITE_ID = 1
 ACCOUNT_EMAIL_VERIFICATION = "mandatory"
 ACCOUNT_EMAIL_REQUIRED = True
 ACCOUNT_USERNAME_REQUIRED = False
+ACCOUNT_LOGIN_METHODS = {'email'}
 ACCOUNT_USER_MODEL_USERNAME_FIELD = None
-ACCOUNT_AUTHENTICATION_METHOD = "email"
-
 
 EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
 EMAIL_HOST = "smtp.gmail.com"
@@ -167,7 +166,6 @@ LOGIN_PAGE_URL = "/"
 LOGIN_REDIRECT_URL = "/"
 LOGOUT_REDIRECT_URL = LOGIN_PAGE_URL
 ACCOUNT_ADAPTER = "allauth.account.adapter.DefaultAccountAdapter"
-
 
 SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(hours=1),
