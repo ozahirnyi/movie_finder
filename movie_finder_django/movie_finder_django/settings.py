@@ -5,9 +5,8 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 
-load_dotenv()
-
 BASE_DIR = Path(__file__).resolve().parent.parent
+load_dotenv(dotenv_path=BASE_DIR / ".env")
 
 AUTH_USER_MODEL = "auth_app.User"
 
@@ -17,9 +16,9 @@ IMDB_API_KEY = os.getenv("IMDB_API_KEY")
 ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY")
 MAX_PROMPT_TOKENS_LENGTH = 1000
 
-SECRET_KEY = os.getenv("DJANGO_KEY")
+SECRET_KEY = os.getenv("DJANGO_KEY", "fallback_secret")
 
-DEBUG = True
+DEBUG = os.getenv("DEBUG", "False") == "True"
 
 ALLOWED_HOSTS = ["0.0.0.0", "127.0.0.1", "localhost"]
 

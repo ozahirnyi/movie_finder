@@ -6,20 +6,16 @@ services:
       - .:/app
     ports:
       - "8000:8000"
-    environment:
-      - DEBUG=True
-      - DJANGO_SETTINGS_MODULE=movie_finder_django.settings
+    env_file:
+      - .env
     depends_on:
       - db
 
   db:
     image: postgres:14
     restart: always
-    environment:
-      POSTGRES_DB: postgres
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      DB_HOST: db
+    env_file:
+      - .env
     volumes:
       - pgdata:/var/lib/postgresql/data
     ports:
