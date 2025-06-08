@@ -63,13 +63,12 @@ class FinderTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
     def test_find_movie(self):
-        # TODO: uncomment when start use postgresql. > movie_finder_django/movie/models.py
-        # with self.assertNumQueries(3):
-        response = self.client.get(
-            reverse("find_movie", kwargs={"expression": "Shrek"}) + "?test=1",
-            HTTP_USER_AGENT="test-agent",
-            HTTP_X_FORWARDED_FOR="127.0.0.1"
-        )
+        with self.assertNumQueries(3):
+            response = self.client.get(
+                reverse("find_movie", kwargs={"expression": "Shrek"}) + "?test=1",
+                HTTP_USER_AGENT="test-agent",
+                HTTP_X_FORWARDED_FOR="127.0.0.1"
+            )
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
     def test_create_watch_later(self):
