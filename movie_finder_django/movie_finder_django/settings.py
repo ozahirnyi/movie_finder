@@ -3,22 +3,23 @@ import sys
 from datetime import timedelta
 from pathlib import Path
 
-from dotenv import load_dotenv
+import environ
 
 BASE_DIR = Path(__file__).resolve().parent.parent
-load_dotenv(dotenv_path=BASE_DIR / ".env")
+env = environ.Env()
+environ.Env.read_env(os.path.join(BASE_DIR, ".env"))
 
 AUTH_USER_MODEL = "auth_app.User"
 
 IMDB_API_URL = "https://api.collectapi.com/imdb/imdbSearchByName"
-IMDB_API_KEY = os.getenv("IMDB_API_KEY")
+IMDB_API_KEY = env("IMDB_API_KEY")
 
-ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY")
+ANTHROPIC_API_KEY = env("ANTHROPIC_API_KEY")
 MAX_PROMPT_TOKENS_LENGTH = 1000
 
-SECRET_KEY = os.getenv("DJANGO_KEY", "fallback_secret")
+SECRET_KEY = env("DJANGO_KEY", "fallback_secret")
 
-DEBUG = os.getenv("DEBUG", "False") == "True"
+DEBUG = env.bool("DEBUG", False)
 
 ALLOWED_HOSTS = ["0.0.0.0", "127.0.0.1", "localhost"]
 
@@ -80,11 +81,11 @@ WSGI_APPLICATION = "movie_finder_django.wsgi.application"
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.postgresql",
-        "NAME": os.getenv("DB_NAME", 'postgres'),
-        "USER": os.getenv("DB_USER", 'postgres'),
-        "PASSWORD": os.getenv("DB_PASSWORD", 'postgres'),
-        "HOST": os.getenv("DB_HOST", 'localhost'),
-        "PORT": os.getenv("DB_PORT", '5432'),
+        "NAME": env("DB_NAME", 'postgres'),
+        "USER": env("DB_USER", 'postgres'),
+        "PASSWORD": env("DB_PASSWORD", 'postgres'),
+        "HOST": env("DB_HOST", 'localhost'),
+        "PORT": env.int("DB_PORT", 5432),
     },
     "test": {
         "ENGINE": "django.db.backends.sqlite3",
@@ -148,15 +149,8 @@ EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
 EMAIL_HOST = "smtp.gmail.com"
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
-EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER")
-EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD")
-
-EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
-EMAIL_HOST = "smtp.gmail.com"
-EMAIL_PORT = 587
-EMAIL_USE_TLS = True
-EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER")
-EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD")
+EMAIL_HOST_USER = env("EMAIL_HOST_USER")
+EMAIL_HOST_PASSWORD = env("EMAIL_HOST_PASSWORD")
 
 LANGUAGE_CODE = "en-us"
 
