@@ -17,7 +17,7 @@ IMDB_API_KEY = env("IMDB_API_KEY")
 ANTHROPIC_API_KEY = env("ANTHROPIC_API_KEY")
 MAX_PROMPT_TOKENS_LENGTH = 1000
 
-SECRET_KEY = env("DJANGO_KEY", "fallback_secret")
+SECRET_KEY = env("DJANGO_KEY", default="fallback_secret")
 
 DEBUG = env.bool("DEBUG", False)
 
@@ -81,11 +81,11 @@ WSGI_APPLICATION = "movie_finder_django.wsgi.application"
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.postgresql",
-        "NAME": env("DB_NAME", 'postgres'),
-        "USER": env("DB_USER", 'postgres'),
-        "PASSWORD": env("DB_PASSWORD", 'postgres'),
-        "HOST": env("DB_HOST", 'localhost'),
-        "PORT": env.int("DB_PORT", 5432),
+        "NAME": env("DB_NAME", default='postgres'),
+        "USER": env("DB_USER", default='postgres'),
+        "PASSWORD": env("DB_PASSWORD", default='postgres'),
+        "HOST": env("DB_HOST", default='db'),
+        "PORT": env.int("DB_PORT", default=5432),
     },
     "test": {
         "ENGINE": "django.db.backends.sqlite3",
