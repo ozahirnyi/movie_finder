@@ -63,7 +63,7 @@ class FinderTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
     def test_find_movie(self):
-        with self.assertNumQueries(3):
+        with self.assertNumQueries(2):
             response = self.client.get(
                 reverse("find_movie", kwargs={"expression": "Shrek"}) + "?test=1",
                 HTTP_USER_AGENT="test-agent",
