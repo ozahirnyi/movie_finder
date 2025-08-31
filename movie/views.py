@@ -87,13 +87,12 @@ class FindMovieView(ListAPIView):
     filter_backends = [DjangoFilterBackend, OrderingFilter]
     filterset_class = MovieFilter
     search_fields = ["title"]
-    ordering_fields = ["imdb_id", "title", "genre", "year"]
+    ordering_fields = ["imdb_id", "title", "genre", "year", "likes_count"]
     ordering = ["imdb_id"]
 
     def get_queryset(self):
         queryset = Movie.objects.all()
-        expression = self.kwargs.get("expression")
-        if expression:
+        if expression := self.request.query_params.get("expression"):
             queryset = queryset.filter(title__icontains=expression)
         return (
             queryset.with_is_liked(self.request.user.id)
@@ -103,13 +102,13 @@ class FindMovieView(ListAPIView):
         )
 
     def get(self, *args, **kwargs):
-        if not self.request.query_params.get("test"):
-            movies = MovieService.get_movies_from_imdb(kwargs.get("expression"))
+        if expression := self.request.query_params.get("expression"):
+            movies = MovieService.get_movies_from_imdb(expression)
             Movie.objects.bulk_create(
                 [Movie(**asdict(movie)) for movie in movies],
                 update_conflicts=True,
                 unique_fields=["title"],
-                update_fields=["imdb_id", "poster", "year", "type", "poster"],
+                update_fields=["imdb_id", "poster", "year", "type"],
             )
         return super().get(*args, **kwargs)
 
@@ -157,7 +156,6 @@ class FindMovieAiView(APIView):
                 "poster",
                 "year",
                 "type",
-                "poster",
                 "genre",
                 "plot",
             ],

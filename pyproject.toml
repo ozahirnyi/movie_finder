@@ -57,6 +57,7 @@ urllib3 = "==2.2.2"
 user-agents = "==2.2.0"
 wheel = "==0.45.1"
 pytest = "==8.3.5"
+drf-spectacular = "^0.28.0"
 
 [tool.poetry.dev-dependencies]
 pytest-django = "==4.10.0"

@@ -12,9 +12,9 @@ environ.Env.read_env(os.path.join(BASE_DIR, ".env"))
 AUTH_USER_MODEL = "auth_app.User"
 
 IMDB_API_URL = "https://api.collectapi.com/imdb/imdbSearchByName"
-IMDB_API_KEY = env("IMDB_API_KEY")
+IMDB_API_KEY = env("IMDB_API_KEY", default="imdb_api_key")
 
-ANTHROPIC_API_KEY = env("ANTHROPIC_API_KEY")
+ANTHROPIC_API_KEY = env("ANTHROPIC_API_KEY", default="anthropic_api_key")
 MAX_PROMPT_TOKENS_LENGTH = 1000
 
 SECRET_KEY = env("DJANGO_KEY", default="fallback_secret")
@@ -33,6 +33,7 @@ INSTALLED_APPS = [
     "django.contrib.sites",
     "corsheaders",
     "rest_framework.authtoken",
+    "drf_spectacular",
     "movie",
     "auth_app",
     "django_filters",
@@ -81,22 +82,16 @@ WSGI_APPLICATION = "movie_finder_django.wsgi.application"
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.postgresql",
-        "NAME": env("DB_NAME", default='postgres'),
-        "USER": env("DB_USER", default='postgres'),
-        "PASSWORD": env("DB_PASSWORD", default='postgres'),
-        "HOST": env("DB_HOST", default='db'),
-        "PORT": env.int("DB_PORT", default=5432),
-    },
-    "test": {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "test_db.sqlite3"
-    },
+        "NAME": env("DB_NAME", default="postgres"),
+        "USER": env("DB_USER", default="postgres"),
+        "PASSWORD": env("DB_PASSWORD", default="postgres"),
+        "HOST": env("DB_HOST", default="localhost"),
+        "PORT": env.int("DB_PORT", default=5433),
+        "TEST": {
+            "NAME": env("DB_TEST_NAME", default="test_postgres"),
+        },
+    }
 }
-
-if (
-        "test" in sys.argv or "test_coverage" in sys.argv
-):  # перевіряємо, що ми запускаємо тести
-    DATABASES["default"] = DATABASES["test"]
 
 AUTH_PASSWORD_VALIDATORS = [
     {
@@ -121,6 +116,7 @@ REST_FRAMEWORK = {
     "DEFAULT_RENDERER_CLASSES": [
         "rest_framework.renderers.JSONRenderer",
     ],
+    "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
 }
 
 AUTHENTICATION_BACKENDS = [
@@ -149,8 +145,8 @@ EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
 EMAIL_HOST = "smtp.gmail.com"
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
-EMAIL_HOST_USER = env("EMAIL_HOST_USER")
-EMAIL_HOST_PASSWORD = env("EMAIL_HOST_PASSWORD")
+EMAIL_HOST_USER = env("EMAIL_HOST_USER", default="email_host_user")
+EMAIL_HOST_PASSWORD = env("EMAIL_HOST_PASSWORD", default="email_host_password")
 
 LANGUAGE_CODE = "en-us"
 
