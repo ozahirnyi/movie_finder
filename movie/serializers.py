@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Movie, WatchLaterMovie
+from .models import Movie, WatchLaterMovie, Genre, Actor
 
 
 class LikesWatchLaterSerializer(serializers.Serializer):
@@ -9,7 +9,22 @@ class LikesWatchLaterSerializer(serializers.Serializer):
     is_watch_later = serializers.BooleanField(read_only=True, default=False)
 
 
+class GenreSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Genre
+        fields = ("name",)
+
+
+class ActorSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Actor
+        fields = ("full_name",)
+
+
 class MovieSerializer(serializers.ModelSerializer, LikesWatchLaterSerializer):
+    genres = GenreSerializer(many=True, read_only=True)
+    actors = ActorSerializer(many=True, read_only=True)
+
     class Meta:
         model = Movie
         fields = (
@@ -19,8 +34,9 @@ class MovieSerializer(serializers.ModelSerializer, LikesWatchLaterSerializer):
             "year",
             "type",
             "poster",
-            "genre",
             "plot",
+            "genres",
+            "actors",
             "is_liked",
             "likes_count",
             "is_watch_later",
@@ -64,4 +80,4 @@ class WatchLaterCreateSerializer(serializers.ModelSerializer):
 
 
 class FindMovieAiViewRequestSerializer(serializers.Serializer):
-    prompt = serializers.CharField(max_length=255, required=True, allow_blank=False)
+    expression = serializers.CharField(max_length=255, required=True, allow_blank=False)

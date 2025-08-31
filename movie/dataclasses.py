@@ -13,5 +13,12 @@ class ImdbMovie:
 @dataclass
 class AiMovie:
     title: str
-    genre: str
+    imdb_id: str
+    poster: str
+    year: str
+    type: str
     plot: str
+    actors: list[str]
+    director: str
+    genre: list[str]
+    rating: str

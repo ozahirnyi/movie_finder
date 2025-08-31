@@ -7,6 +7,24 @@ from django.db import models
 from .managers import MovieManager
 
 
+class Actor(models.Model):
+    full_name = models.CharField(max_length=128, unique=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
+
+class Director(models.Model):
+    full_name = models.CharField(max_length=128, unique=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
+
+class Genre(models.Model):
+    name = models.CharField(max_length=128, unique=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
+
 class Movie(models.Model):
     title = models.CharField(max_length=128, unique=True)
     imdb_id = models.CharField(max_length=128)
@@ -14,8 +32,11 @@ class Movie(models.Model):
     year = models.CharField(max_length=16, null=True)
     type = models.CharField(max_length=128, null=True)
     poster = models.CharField(max_length=255, null=True)
-    genre = models.CharField(max_length=255, null=True)
     plot = models.TextField(null=True)
+
+    genres = models.ManyToManyField(Genre, related_name='movies_genres')
+    actors = models.ManyToManyField(Actor, related_name='movies_actors')
+    director = models.ForeignKey(Director, on_delete=models.CASCADE, null=True)
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
