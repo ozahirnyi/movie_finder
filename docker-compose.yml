@@ -2,7 +2,7 @@ services:
   web:
     build:
       context: .
-    command: poetry run python manage.py runserver 0.0.0.0:8000
+    command: /bin/sh -c "poetry run python manage.py migrate && poetry run python manage.py runserver 0.0.0.0:8000"
     volumes:
       - .:/app
     ports:

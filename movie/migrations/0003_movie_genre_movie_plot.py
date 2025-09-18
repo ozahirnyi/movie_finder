@@ -4,20 +4,19 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ("movie", "0002_alter_movie_title"),
+        ('movie', '0002_alter_movie_title'),
     ]
 
     operations = [
         migrations.AddField(
-            model_name="movie",
-            name="genre",
+            model_name='movie',
+            name='genre',
             field=models.CharField(max_length=255, null=True),
         ),
         migrations.AddField(
-            model_name="movie",
-            name="plot",
+            model_name='movie',
+            name='plot',
             field=models.TextField(null=True),
         ),
     ]

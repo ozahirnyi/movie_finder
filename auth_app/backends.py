@@ -1,14 +1,12 @@
 import jwt
-
 from django.conf import settings
-
 from rest_framework import authentication, exceptions
 
 from .models import User
 
 
 class JWTAuthentication(authentication.BaseAuthentication):
-    authentication_header_prefix = "Token"
+    authentication_header_prefix = 'Token'
 
     def authenticate(self, request):
         request.user = None
@@ -25,8 +23,8 @@ class JWTAuthentication(authentication.BaseAuthentication):
         elif len(auth_header) > 2:
             return None
 
-        prefix = auth_header[0].decode("utf-8")
-        token = auth_header[1].decode("utf-8")
+        prefix = auth_header[0].decode('utf-8')
+        token = auth_header[1].decode('utf-8')
 
         if prefix.lower() != auth_header_prefix:
             return None
@@ -37,17 +35,17 @@ class JWTAuthentication(authentication.BaseAuthentication):
         try:
             payload = jwt.decode(token, settings.SECRET_KEY)
         except Exception:
-            msg = "Can not decode token"
+            msg = 'Can not decode token'
             raise exceptions.AuthenticationFailed(msg)
 
         try:
-            user = User.objects.get(pk=payload["id"])
+            user = User.objects.get(pk=payload['id'])
         except User.DoesNotExist:
-            msg = "User assigned to token already exist"
+            msg = 'User assigned to token already exist'
             raise exceptions.AuthenticationFailed(msg)
 
         if not user.is_active:
-            msg = "User is deactivated"
+            msg = 'User is deactivated'
             raise exceptions.AuthenticationFailed(msg)
 
         return user, token

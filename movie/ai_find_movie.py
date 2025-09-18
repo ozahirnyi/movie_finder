@@ -4,17 +4,17 @@ from anthropic import Anthropic, Client
 from django.conf import settings
 
 from .dataclasses import AiMovie
-from .prompts import find_movies_prompt
+from .system_prompts import find_movie_system_prompt
 
 
 class FindMovieAiClient:
-
     def __init__(self, expression: str):
         self.expression = expression
         self._client = None
         self.base_parameters = {
-            "model": "claude-3-5-sonnet-20240620",
-            "max_tokens": 2048,
+            'model': 'claude-sonnet-4-20250514',
+            'max_tokens': 2048,
+            'system': find_movie_system_prompt,
         }
 
     def find_movies(self) -> list[AiMovie]:
@@ -25,36 +25,32 @@ class FindMovieAiClient:
                 **self.base_parameters,
                 messages=[
                     {
-                        "role": "user",
-                        "content": [
+                        'role': 'user',
+                        'content': [
                             {
-                                "type": "text",
-                                "text": find_movies_prompt.format(
-                                    REQUIREMENTS=self.expression
-                                ),
+                                'type': 'text',
+                                'text': self.expression,
                             },
                         ],
                     },
                 ],
             )
         except Exception as e:
-            raise Exception(f"Error while finding movies: {e}")
+            raise Exception(f'Error while finding movies: {e}')
         return self._parse_response(response)
 
     def count_tokens(self) -> int:
-        return Client().count_tokens(
-            find_movies_prompt.format(REQUIREMENTS=self.expression)
-        )
+        return Client().count_tokens(self.expression)
 
     @staticmethod
     def _parse_response(response) -> list[AiMovie]:
         try:
             ai_movies = []
             for data in json.loads(response.content[0].text):
-                ai_movies.append(AiMovie(**data))
+                ai_movies.append(AiMovie(data))
             return ai_movies
         except Exception as e:
-            raise Exception(f"Error while parsing response: {e} | content: {response.content[0].text}")
+            raise Exception(f'Error while parsing response: {e} | content: {response.content[0].text}')
 
     @property
     def client(self):

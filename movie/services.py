@@ -1,38 +1,20 @@
-import json
-
-import requests
-from django.conf import settings
-
 from .ai_find_movie import FindMovieAiClient
-from .dataclasses import ImdbMovie, AiMovie
+from .dataclasses import AiMovie, ImdbMovie, OmdbMovie
+from .repositories import MovieRepository
 
 
 class MovieService:
-    @staticmethod
-    def get_movies_from_imdb(expression: str) -> list[ImdbMovie]:
-        try:
-            response = requests.get(
-                settings.IMDB_API_URL + "?limit=1&query=" + expression,
-                headers={
-                    "authorization": settings.IMDB_API_KEY,
-                    "content-type": "application/json",
-                },
-                timeout=30,
-            )
-            imdb_movies = []
-            for data in json.loads(response.text)["result"]:
-                imdb_movies.append(
-                    ImdbMovie(
-                        title=data["Title"],
-                        imdb_id=data["imdbID"],
-                        poster=data["Poster"],
-                        year=data["Year"],
-                        type=data["Type"],
-                    )
-                )
-            return imdb_movies
-        except Exception as e:
-            raise Exception(f"Error while getting movies from IMDB: {e}")
+    def __init__(self):
+        self.movie_repository = MovieRepository()
+
+    def get_movies_from_imdb(self, expression: str) -> list[ImdbMovie]:
+        return self.movie_repository.get_movies_from_imdb(expression)
+
+    def get_movie_from_omdb_by_expression(self, title: str) -> OmdbMovie:
+        return self.movie_repository.get_movie_from_omdb_by_expression(title)
+
+    def search_movies_in_omdb(self, movie_titles: list[str], initiator_id: int) -> list[OmdbMovie]:
+        return self.movie_repository.search_movies_in_omdb(movie_titles, initiator_id)
 
     @staticmethod
     def get_movies_from_ai(expression: str) -> list[AiMovie]:
