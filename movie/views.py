@@ -1,7 +1,7 @@
 from django.db import IntegrityError
-from django.db.models import Count, Exists, OuterRef
+from django.db.models import Case, Count, Value, When
 from django_filters.rest_framework import DjangoFilterBackend
-from drf_spectacular.utils import extend_schema
+from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework import permissions, status
 from rest_framework.filters import OrderingFilter
 from rest_framework.generics import (
@@ -31,6 +31,9 @@ from .serializers import (
     MovieSerializer,
     WatchLaterCreateSerializer,
     WatchLaterListSerializer,
+    WatchLaterStatisticsGenreSerializer,
+    WatchLaterStatisticsRatingSerializer,
+    WatchLaterStatisticsSerializer,
 )
 from .services import MovieService
 
@@ -66,6 +69,17 @@ class MovieUnlikeView(GenericAPIView):
         return Response(status=status.HTTP_200_OK)
 
 
+@extend_schema(
+    parameters=[
+        OpenApiParameter(
+            name='ordering',
+            description='Comma-separated list of ordering fields. Prefix with `-` for descending order.',
+            required=False,
+            type=str,
+            enum=['-imdb_id', 'imdb_id', '-title', 'title', '-genre', 'genre', '-year', 'year', '-likes_count', 'likes_count'],
+        ),
+    ]
+)
 class MoviesListView(ListAPIView):
     permission_classes = [permissions.AllowAny]
     serializer_class = MovieModelSerializer
@@ -145,31 +159,69 @@ class WatchLaterCreateView(CreateAPIView):
         return context
 
 
+@extend_schema(
+    parameters=[
+        OpenApiParameter(
+            name='ordering',
+            description='Comma-separated list of ordering fields. Prefix with `-` for descending order.',
+            required=False,
+            type=str,
+            enum=['-imdb_id', 'imdb_id', '-title', 'title', '-genre', 'genre', '-year', 'year', '-likes_count', 'likes_count'],
+        ),
+    ]
+)
 class WatchLaterListView(ListAPIView):
     permission_classes = [permissions.IsAuthenticated]
     serializer_class = WatchLaterListSerializer
     pagination_class = MoviesPagination
     filter_backends = [DjangoFilterBackend, OrderingFilter]
     filterset_class = WatchLaterFilter
-    search_fields = ['movie__title']
-    ordering_fields = ['movie__imdb_id', 'movie__title', 'movie__genre', 'movie__year']
-    ordering = ['movie__imdb_id']
+    search_fields = ['title']
+    ordering_fields = ['imdb_id', 'title', 'genre', 'year']
+    ordering = ['imdb_id']
 
     def get_queryset(self):
         return (
-            WatchLaterMovie.objects.filter(user_id=self.request.user.id)
-            .select_related('movie')
-            .annotate(
-                likes_count=Count('movie__likemovie'),
-                is_liked=Exists(
-                    LikeMovie.objects.filter(user_id=self.request.user.id, movie_id=OuterRef('movie__pk')),
-                ),
-                watch_later_count=Count('movie__watchlatermovie'),
-                is_watch_later=Exists(
-                    WatchLaterMovie.objects.filter(user_id=self.request.user.id, movie_id=OuterRef('movie__pk')),
-                ),
-            )
+            Movie.objects.filter(watchlatermovie__user_id=self.request.user.id)
+            .with_is_liked(self.request.user.id)
+            .with_is_watch_later(self.request.user.id)
+            .with_likes_count()
+            .with_watch_later_count()
         )
+
+
+class WatchLaterStatisticsView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request, *args, **kwargs):
+        rating_stats = WatchLaterMovie.objects.filter(user=self.request.user).aggregate(
+            ratings_9_plus=Count(Case(When(movie__movie_ratings__value__gte='9.0', then=Value(1)))),
+            ratings_8_to_9=Count(Case(When(movie__movie_ratings__value__gte='8.0', movie__movie_ratings__value__lt='9.0', then=Value(1)))),
+            ratings_7_to_8=Count(Case(When(movie__movie_ratings__value__gte='7.0', movie__movie_ratings__value__lt='8.0', then=Value(1)))),
+            ratings_6_to_7=Count(Case(When(movie__movie_ratings__value__gte='6.0', movie__movie_ratings__value__lt='7.0', then=Value(1)))),
+            ratings_5_to_6=Count(Case(When(movie__movie_ratings__value__gte='5.0', movie__movie_ratings__value__lt='6.0', then=Value(1)))),
+            ratings_below_5=Count(Case(When(movie__movie_ratings__value__lt='5.0', then=Value(1)))),
+        )
+        ratings_serializer = WatchLaterStatisticsRatingSerializer(data=rating_stats)
+        ratings_serializer.is_valid(raise_exception=True)
+        genres_stats = (
+            WatchLaterMovie.objects.filter(user=self.request.user)
+            .values('movie__genres__name')
+            .annotate(count=Count('movie__genres'))
+            .order_by('-count')
+        )
+        genres_data = [{'genre': g['movie__genres__name'], 'count': g['count']} for g in genres_stats]
+        genres_serializer = WatchLaterStatisticsGenreSerializer(data=genres_data, many=True)
+        genres_serializer.is_valid(raise_exception=True)
+        serializer = WatchLaterStatisticsSerializer(
+            data={
+                'ratings': ratings_serializer.validated_data,
+                'genres': genres_serializer.validated_data,
+            }
+        )
+        serializer.is_valid(raise_exception=True)
+
+        return Response(serializer.data)
 
 
 class WatchLaterDestroyView(DestroyAPIView):

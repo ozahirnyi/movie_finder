@@ -1,6 +1,6 @@
 import django_filters
 
-from .models import Movie, WatchLaterMovie
+from .models import Movie
 
 
 class MovieFilter(django_filters.FilterSet):
@@ -16,10 +16,10 @@ class MovieFilter(django_filters.FilterSet):
 
 class WatchLaterFilter(MovieFilter):
     class Meta:
-        model = WatchLaterMovie
+        model = Movie
         fields = {
-            'movie__title': ['icontains'],
-            'movie__genres__name': ['icontains'],
-            'movie__year': ['icontains'],
-            'movie__imdb_id': ['exact'],
+            'title': ['icontains'],
+            'genres__name': ['icontains'],
+            'year': ['icontains'],
+            'imdb_id': ['exact'],
         }

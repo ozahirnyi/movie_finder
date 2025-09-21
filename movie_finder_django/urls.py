@@ -17,6 +17,7 @@ from movie.views import (
     WatchLaterCreateView,
     WatchLaterDestroyView,
     WatchLaterListView,
+    WatchLaterStatisticsView,
 )
 
 auth_patterns = [
@@ -38,6 +39,19 @@ admin_patterns = [
     path('admin/', admin.site.urls),
 ]
 
+
+watch_later_patterns = [
+    path('watch_later/list/', WatchLaterListView.as_view(), name='watch_later_list'),
+    path('watch_later/create/', WatchLaterCreateView.as_view(), name='watch_later_create'),
+    path('watch_later/statistics/', WatchLaterStatisticsView.as_view(), name='watch_later_statistics'),
+    path(
+        'watch_later/<int:pk>/destroy/',
+        WatchLaterDestroyView.as_view(),
+        name='watch_later_destroy',
+    ),
+]
+
+
 movies_patterns = [
     path('movies/', MoviesListView.as_view(), name='movies_list'),
     path('movies/<int:id>/', MovieView.as_view(), name='movie'),
@@ -45,14 +59,9 @@ movies_patterns = [
     path('movies/<int:id>/unlike/', MovieUnlikeView.as_view(), name='movie_unlike'),
     path('movies/search/', MoviesSearchView.as_view(), name='movies_search'),
     path('movies/ai/search/', MoviesAiSearchView.as_view(), name='movies_ai_search'),
-    path('watch_later/list/', WatchLaterListView.as_view(), name='watch_later_list'),
-    path('watch_later/create/', WatchLaterCreateView.as_view(), name='watch_later_create'),
-    path(
-        'watch_later/<int:pk>/destroy/',
-        WatchLaterDestroyView.as_view(),
-        name='watch_later_destroy',
-    ),
+    path('watch_later/', include(watch_later_patterns)),
 ]
+
 
 swagger_patterns = [
     path('api/schema/', SpectacularAPIView.as_view(), name='schema'),

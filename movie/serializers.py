@@ -99,6 +99,7 @@ class MovieModelSerializer(serializers.ModelSerializer, LikesWatchLaterSerialize
             'likes_count',
             'is_watch_later',
             'watch_later_count',
+            'created_at',
         )
 
 
@@ -155,25 +156,8 @@ class MovieSerializer(LikesWatchLaterSerializer):
     writers = WriterSerializer(many=True, read_only=True)
 
 
-class WatchLaterSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = WatchLaterMovie
-        fields = '__all__'
-
-
-class WatchLaterListSerializer(serializers.ModelSerializer, LikesWatchLaterSerializer):
-    movie = MovieSerializer()
-
-    class Meta:
-        model = WatchLaterMovie
-        fields = (
-            'movie',
-            'is_liked',
-            'likes_count',
-            'is_watch_later',
-            'watch_later_count',
-        )
-        read_only_fields = fields
+class WatchLaterListSerializer(MovieModelSerializer):
+    pass
 
 
 class WatchLaterCreateSerializer(serializers.ModelSerializer):
@@ -188,6 +172,25 @@ class WatchLaterCreateSerializer(serializers.ModelSerializer):
         validated_data['user'] = self.context['user']
 
         return super().create(validated_data)
+
+
+class WatchLaterStatisticsRatingSerializer(serializers.Serializer):
+    ratings_9_plus = serializers.IntegerField()
+    ratings_8_to_9 = serializers.IntegerField()
+    ratings_7_to_8 = serializers.IntegerField()
+    ratings_6_to_7 = serializers.IntegerField()
+    ratings_5_to_6 = serializers.IntegerField()
+    ratings_below_5 = serializers.IntegerField()
+
+
+class WatchLaterStatisticsGenreSerializer(serializers.Serializer):
+    genre = serializers.CharField(max_length=255)
+    count = serializers.IntegerField()
+
+
+class WatchLaterStatisticsSerializer(serializers.Serializer):
+    ratings = WatchLaterStatisticsRatingSerializer()
+    genres = WatchLaterStatisticsGenreSerializer(many=True)
 
 
 class FindMovieAiSearchViewRequestSerializer(serializers.Serializer):
