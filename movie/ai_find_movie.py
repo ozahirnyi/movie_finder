@@ -1,6 +1,6 @@
 import json
 
-from anthropic import Anthropic, Client
+from anthropic import Anthropic
 from django.conf import settings
 
 from .dataclasses import AiMovie
@@ -40,7 +40,21 @@ class FindMovieAiClient:
         return self._parse_response(response)
 
     def count_tokens(self) -> int:
-        return Client().count_tokens(self.expression)
+        response = self.client.messages.count_tokens(
+            model=self.base_parameters['model'],
+            messages=[
+                {
+                    'role': 'user',
+                    'content': [
+                        {
+                            'type': 'text',
+                            'text': self.expression,
+                        }
+                    ],
+                }
+            ],
+        )
+        return response.input_tokens
 
     @staticmethod
     def _parse_response(response) -> list[AiMovie]:
