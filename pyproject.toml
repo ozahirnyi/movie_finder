@@ -65,6 +65,7 @@ pytest-django = "==4.10.0"
 [tool.poetry.group.dev.dependencies]
 pre-commit = "^4.3.0"
 ruff = "^0.13.0"
+coverage = "^7.10.7"
 
 [tool.ruff]
 line-length = 150
@@ -77,6 +78,12 @@ ignore = ["DJ008"]
 [tool.ruff.format]
 quote-style = "single"
 indent-style = "space"
+
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "movie_finder_django.settings"
+pythonpath = ["."]
+python_files = ["test_*.py", "*_tests.py", "tests.py"]
+testpaths = ["auth_app", "movie", "throttling"]
 
 [build-system]
 requires = ["poetry-core>=1.0.0,<2.0.0"]

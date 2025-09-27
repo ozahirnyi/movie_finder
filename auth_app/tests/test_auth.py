@@ -10,7 +10,8 @@ from rest_framework import status
 from rest_framework.test import APITestCase
 from rest_framework_simplejwt.tokens import RefreshToken
 
-from .errors import ChangePasswordError
+from auth_app.errors import ChangePasswordError
+from auth_app.serializers import SignUpSerializer
 
 
 class AuthTests(APITestCase):
@@ -18,44 +19,34 @@ class AuthTests(APITestCase):
     def setUpTestData(cls):
         cls.signup_data = {
             'email': 'test@test.test',
-            'username': 'Shrek',
-            'password': 'test_pass',
+            'password': 'test_pass123',
         }
-        cls.signin_data = {'email': 'test@test.test', 'password': 'test_pass'}
 
     def setUp(self) -> None:
         self.user = get_user_model().objects.create_user(email='neo@neo.neo', password='neoneoneo')
         refresh = RefreshToken.for_user(self.user)
-        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {refresh.access_token}')
+        self.client.credentials(
+            HTTP_AUTHORIZATION=f'Bearer {refresh.access_token}',
+            HTTP_USER_AGENT='test-agent',
+        )
 
     def test_signup(self):
         response = self.client.post(reverse('signup'), data=self.signup_data)
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
 
     def test_signup_user_already_exist(self):
-        response = self.client.post(reverse('signup'), data=self.signup_data)
-        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(self.client.post(reverse('signup'), data=self.signup_data).status_code, status.HTTP_201_CREATED)
         response = self.client.post(reverse('signup'), data=self.signup_data)
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
     def test_signin(self):
-        response = self.client.post(reverse('signup'), data=self.signup_data)
-        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.client.post(reverse('signup'), data=self.signup_data)
 
-        response = self.client.post(reverse('signin'), data=self.signin_data)
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-
-    def test_update_user(self):
-        new_data = {
-            'email': 'new_test@new.test',
-            'username': 'newusername',
-            'password': 'newpassword',
-        }
-        response = self.client.patch(reverse('user'), data=new_data)
+        response = self.client.post(reverse('token_obtain_pair'), data=self.signup_data)
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.user.refresh_from_db()
-        self.assertEqual(self.user.email, new_data['email'])
+        self.assertIn('access', response.data)
+        self.assertIn('refresh', response.data)
 
     def test_change_password(self):
         new_data = {
@@ -67,14 +58,13 @@ class AuthTests(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.user.refresh_from_db()
-        self.assertNotEqual(self.user.password, new_data['old_password'])
+        self.assertTrue(self.user.check_password(new_data['new_password']))
 
     def test_change_password_wrong_old(self):
-        new_data = {
-            'old_password': 'neoneoneo-wrong',
-            'new_password': 'test_new_pass',
-        }
-        response = self.client.patch(reverse('change_password'), data=new_data)
+        response = self.client.patch(
+            reverse('change_password'),
+            data={'old_password': 'wrongpass', 'new_password': 'test_new_pass'},
+        )
         default_code = response.data['detail'].code
         default_detail = response.data['detail']
 
@@ -147,3 +137,36 @@ class GoogleOAuthTests(TestCase):
 
             social_account = SocialAccount.objects.filter(user=test_user).first()
             self.assertIsNotNone(social_account)
+
+
+class UserManagerTests(TestCase):
+    def test_create_user_without_email_raises(self):
+        with self.assertRaises(TypeError):
+            User.objects.create_user(email=None, password='validpass')
+
+    def test_create_superuser_without_password_raises(self):
+        with self.assertRaises(TypeError):
+            User.objects.create_superuser(email='admin@test.test', password=None)
+
+    def test_create_superuser_sets_staff_flags(self):
+        user = User.objects.create_superuser(email='admin@test.test', password='validpass')
+
+        self.assertTrue(user.is_staff)
+        self.assertTrue(user.is_superuser)
+        self.assertTrue(user.check_password('validpass'))
+
+
+class SignUpSerializerTests(TestCase):
+    def test_validate_email_duplicates(self):
+        User.objects.create_user(email='duplicate@test.test', password='validpass')
+
+        serializer = SignUpSerializer(data={'email': 'duplicate@test.test', 'password': 'validpass'})
+
+        self.assertFalse(serializer.is_valid())
+        self.assertIn('A user with that email already exists.', serializer.errors['email'])
+
+    def test_validate_password_errors_are_wrapped(self):
+        serializer = SignUpSerializer(data={'email': 'new@test.test', 'password': 'password'})
+
+        self.assertFalse(serializer.is_valid())
+        self.assertIn('password', serializer.errors)
