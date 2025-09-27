@@ -1,4 +1,4 @@
-.PHONY: help start restart stop ps logs install test lint format check migrate makemigrations collectstatic createsuperuser shell shell_plus build clean
+.PHONY: help start restart stop ps logs install test lint format check coverage migrate makemigrations collectstatic createsuperuser shell shell_plus build clean
 
 .DEFAULT_GOAL := help
 
@@ -39,6 +39,10 @@ install: ## Install python dependencies with poetry
 
 test: ## Run test suite with pytest
 	$(RUN) pytest
+
+coverage: ## Run tests with coverage and show report
+	$(RUN) coverage run -m pytest
+	$(RUN) coverage report -m
 
 lint: ## Run static analysis via ruff
 	$(RUN) ruff check

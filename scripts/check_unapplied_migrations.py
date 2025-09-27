@@ -31,7 +31,8 @@ def main() -> int:
         call_command('migrate', check=True, interactive=False, verbosity=0)
     except OperationalError as exc:
         message = str(exc)
-        if any(token in message for token in TRANSIENT_ERRORS):
+        lowered = message.lower()
+        if any(token in lowered for token in TRANSIENT_ERRORS):
             print(f'[check-unapplied-migrations] Skipping check (database unavailable): {message}')
             return 0
         print(f'[check-unapplied-migrations] OperationalError: {message}', file=sys.stderr)
