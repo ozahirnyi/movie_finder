@@ -4,6 +4,7 @@ from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
 from django.urls import reverse
+from django.utils import timezone
 from rest_framework import status
 from rest_framework.test import APITestCase
 from rest_framework_simplejwt.tokens import RefreshToken
@@ -11,7 +12,7 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from movie.dataclasses import AiMovie, ImdbMovie, OmdbMovie
 from movie.dataclasses import Genre as GenreDTO
 from movie.errors import AddLikeError
-from movie.models import Genre, LikeMovie, Movie, Rating, WatchLaterMovie
+from movie.models import Genre, LikeMovie, Movie, Rating, RecommendedMovie, WatchLaterMovie
 
 
 def _issue_jwt(client, user):
@@ -263,3 +264,84 @@ class MovieModelRepresentationTests(APITestCase):
         like = LikeMovie.objects.create(user=user, movie=movie)
 
         self.assertEqual(str(like), f'{user} | {movie}')
+
+    def test_recommended_movie_str(self):
+        user = get_user_model().objects.create_user(email='rec@test.test', password='thereisnospoon')
+        movie = Movie.objects.create(title='Suggested Movie', imdb_id='tt777777')
+        recommendation = RecommendedMovie.objects.create(
+            user=user,
+            movie=movie,
+            recommendation_date=timezone.now().date(),
+        )
+
+        self.assertEqual(str(recommendation), f'{user} | {movie} | {recommendation.recommendation_date}')
+
+
+class RecommendedMoviesTests(APITestCase):
+    def setUp(self):
+        self.user = get_user_model().objects.create_user(email='recommend@test.com', password='strongpass')
+        _issue_jwt(self.client, self.user)
+
+        self.genre_action = Genre.objects.create(name='Action')
+        self.genre_drama = Genre.objects.create(name='Drama')
+
+        self.liked_movie = Movie.objects.create(title='Old Favorite', imdb_id='tt9000001', year='2000')
+        self.liked_movie.genres.add(self.genre_action)
+        LikeMovie.objects.create(user=self.user, movie=self.liked_movie)
+
+        self.watch_later_movie = Movie.objects.create(title='Pending Watch', imdb_id='tt9000002', year='2005')
+        self.watch_later_movie.genres.add(self.genre_drama)
+        WatchLaterMovie.objects.create(user=self.user, movie=self.watch_later_movie)
+
+    @patch('movie.services.MovieRepository.search_movies_in_omdb')
+    @patch('movie.services.FindMovieAiClient.find_movies')
+    def test_recommendations_cached_per_day(self, mock_find_movies, mock_search):
+        mock_find_movies.return_value = [AiMovie(title='Recommended One'), AiMovie(title='Recommended Two')]
+
+        def fake_search(titles: List[str], initiator_id: int):
+            results = []
+            for idx, title in enumerate(titles, start=1):
+                movie, _ = Movie.objects.get_or_create(title=title, imdb_id=f'ttrec{idx:07d}')
+                results.append(OmdbMovie(title=movie.title, imdb_id=movie.imdb_id, genres=[GenreDTO(name='Action')]))
+            return results
+
+        mock_search.side_effect = fake_search
+
+        first_response = self.client.get(reverse('movies_recommendations'))
+
+        self.assertEqual(first_response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(first_response.data), 2)
+        mock_find_movies.assert_called_once()
+        self.assertEqual(RecommendedMovie.objects.filter(user=self.user, recommendation_date=timezone.now().date()).count(), 2)
+
+        mock_find_movies.reset_mock()
+        mock_search.reset_mock()
+
+        second_response = self.client.get(reverse('movies_recommendations'))
+
+        self.assertEqual(second_response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(second_response.data), 2)
+        mock_find_movies.assert_not_called()
+        mock_search.assert_not_called()
+
+    @patch('movie.services.FindMovieAiClient.find_movies')
+    def test_recommendations_fallback_to_popular(self, mock_find_movies):
+        mock_find_movies.return_value = []
+
+        other_user = get_user_model().objects.create_user(email='other@test.com', password='strongpass')
+        second_user = get_user_model().objects.create_user(email='second@test.com', password='strongpass')
+        fallback_user = get_user_model().objects.create_user(email='fallback@test.com', password='strongpass')
+        _issue_jwt(self.client, fallback_user)
+        popular_one = Movie.objects.create(title='Popular One', imdb_id='tt8000001', year='2010')
+        popular_two = Movie.objects.create(title='Popular Two', imdb_id='tt8000002', year='2011')
+        LikeMovie.objects.create(user=other_user, movie=popular_one)
+        LikeMovie.objects.create(user=second_user, movie=popular_one)
+        LikeMovie.objects.create(user=other_user, movie=popular_two)
+
+        response = self.client.get(reverse('movies_recommendations'))
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertGreaterEqual(len(response.data), 2)
+        self.assertEqual(response.data[0]['title'], 'Popular One')
+        mock_find_movies.assert_not_called()
+        self.assertEqual(RecommendedMovie.objects.filter(user=fallback_user, recommendation_date=timezone.now().date()).count(), len(response.data))

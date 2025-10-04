@@ -11,6 +11,7 @@ from movie.views import (
     MovieLikeView,
     MoviesAiSearchView,
     MoviesListView,
+    MoviesRecommendationsView,
     MoviesSearchView,
     MovieUnlikeView,
     MovieView,
@@ -59,6 +60,7 @@ movies_patterns = [
     path('movies/<int:id>/unlike/', MovieUnlikeView.as_view(), name='movie_unlike'),
     path('movies/search/', MoviesSearchView.as_view(), name='movies_search'),
     path('movies/ai/search/', MoviesAiSearchView.as_view(), name='movies_ai_search'),
+    path('movies/recommendations/', MoviesRecommendationsView.as_view(), name='movies_recommendations'),
     path('watch_later/', include(watch_later_patterns)),
 ]
 

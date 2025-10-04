@@ -102,3 +102,21 @@ class WatchLaterMovie(UserMovie):
 class LikeMovie(UserMovie):
     class Meta(UserMovie.Meta):
         constraints = [models.UniqueConstraint(fields=['user', 'movie'], name='like-user-movie-unique')]
+
+
+class RecommendedMovie(models.Model):
+    user = models.ForeignKey(get_user_model(), on_delete=models.CASCADE, related_name='recommended_movies')
+    movie = models.ForeignKey(Movie, on_delete=models.CASCADE, related_name='recommended_entries')
+    recommendation_date = models.DateField()
+    is_active = models.BooleanField(default=True)
+    deactivated_at = models.DateTimeField(null=True, blank=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=['user', 'recommendation_date', 'movie'], name='recommended-user-movie-unique'),
+        ]
+
+    def __str__(self):
+        return f'{self.user} | {self.movie} | {self.recommendation_date}'

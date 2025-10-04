@@ -29,8 +29,8 @@ from movie.dataclasses import (
 from movie.dataclasses import (
     Writer as WriterDTO,
 )
-from movie.models import Actor, Country, Director, Genre, Language, Movie, Rating, Writer
-from movie.repositories import MovieRepository
+from movie.models import Actor, Country, Director, Genre, Language, Movie, Rating, RecommendedMovie, Writer
+from movie.repositories import MovieRepository, RecommendationRepository
 from movie.services import MovieService
 
 
@@ -192,3 +192,79 @@ class MovieServiceTests(TestCase):
 
         with patch('movie.ai_find_movie.FindMovieAiClient.find_movies', return_value=['ai_movie']):
             self.assertEqual(service.get_movies_from_ai('prompt'), ['ai_movie'])
+
+
+class RecommendationRepositoryTests(TestCase):
+    def setUp(self):
+        self.repository = RecommendationRepository()
+        self.user = get_user_model().objects.create_user(email='recommend@test.test', password='pw123456789')
+        self.today = date.today()
+
+        self.movie_one = Movie.objects.create(title='One', imdb_id='tt001')
+        self.movie_two = Movie.objects.create(title='Two', imdb_id='tt002')
+        self.movie_three = Movie.objects.create(title='Three', imdb_id='tt003')
+
+    def test_replace_cached_recommendations_marks_inactive_instead_of_delete(self):
+        RecommendedMovie.objects.create(
+            user=self.user,
+            movie=self.movie_one,
+            recommendation_date=self.today,
+        )
+        RecommendedMovie.objects.create(
+            user=self.user,
+            movie=self.movie_two,
+            recommendation_date=self.today,
+        )
+
+        self.repository.replace_cached_recommendations(
+            self.user.id,
+            self.today,
+            [self.movie_two.id, self.movie_three.id],
+        )
+
+        entries = RecommendedMovie.objects.filter(user=self.user, recommendation_date=self.today)
+        self.assertEqual(entries.count(), 3)
+
+        movie_one_entry = entries.get(movie=self.movie_one)
+        movie_two_entry = entries.get(movie=self.movie_two)
+        movie_three_entry = entries.get(movie=self.movie_three)
+
+        self.assertFalse(movie_one_entry.is_active)
+        self.assertIsNotNone(movie_one_entry.deactivated_at)
+
+        self.assertTrue(movie_two_entry.is_active)
+        self.assertIsNone(movie_two_entry.deactivated_at)
+
+        self.assertTrue(movie_three_entry.is_active)
+
+        cached_ids = self.repository.get_cached_movie_ids(self.user.id, self.today)
+        self.assertCountEqual(cached_ids, [self.movie_two.id, self.movie_three.id])
+
+        self.repository.replace_cached_recommendations(
+            self.user.id,
+            self.today,
+            [self.movie_one.id],
+        )
+
+        movie_one_entry.refresh_from_db()
+        movie_two_entry.refresh_from_db()
+        movie_three_entry.refresh_from_db()
+
+        self.assertTrue(movie_one_entry.is_active)
+        self.assertIsNone(movie_one_entry.deactivated_at)
+
+        self.assertFalse(movie_two_entry.is_active)
+        self.assertFalse(movie_three_entry.is_active)
+
+        cached_ids = self.repository.get_cached_movie_ids(self.user.id, self.today)
+        self.assertEqual(set(cached_ids), {self.movie_one.id})
+
+    def test_get_movies_by_ids_returns_empty_for_missing_ids(self):
+        movies = self.repository.get_movies_by_ids([], self.user.id)
+
+        self.assertEqual(movies, [])
+
+    def test_get_movies_by_titles_returns_empty_for_missing_titles(self):
+        movies = self.repository.get_movies_by_titles([], self.user.id)
+
+        self.assertEqual(movies, [])

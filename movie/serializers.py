@@ -160,6 +160,11 @@ class WatchLaterListSerializer(MovieModelSerializer):
     pass
 
 
+class MovieRecommendationSerializer(MovieSerializer):
+    id = serializers.IntegerField()
+    created_at = serializers.DateTimeField(allow_null=True)
+
+
 class WatchLaterCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = WatchLaterMovie
