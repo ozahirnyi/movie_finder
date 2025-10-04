@@ -4,22 +4,27 @@ from unittest.mock import MagicMock, patch
 from django.conf import settings
 from django.test import SimpleTestCase
 
-from movie.ai_find_movie import FindMovieAiClient
+from movie.ai_find_movie import (
+    FindMovieAiClient,
+    RecommendationFindMovieAiClient,
+    SearchFindMovieAiClient,
+)
+from movie.system_prompts import find_movie_system_prompt, recommendations_system_prompt
 
 
 class FindMovieAiClientTests(SimpleTestCase):
     def test_returns_empty_list_when_prompt_too_long(self):
         with patch.object(
-            FindMovieAiClient,
+            SearchFindMovieAiClient,
             'count_tokens',
             return_value=settings.MAX_PROMPT_TOKENS_LENGTH + 1,
         ):
-            client = FindMovieAiClient('an extremely long prompt')
-            result = client.find_movies()
+            client = SearchFindMovieAiClient()
+            result = client.find_movies('an extremely long prompt')
 
         self.assertEqual(result, [])
 
-    @patch.object(FindMovieAiClient, 'count_tokens', return_value=10)
+    @patch.object(SearchFindMovieAiClient, 'count_tokens', return_value=10)
     @patch('movie.ai_find_movie.Anthropic')
     def test_parse_response_into_ai_movies(self, mock_anthropic, _):
         fake_response = SimpleNamespace(content=[SimpleNamespace(text='["Shrek", "Shrek 2"]')])
@@ -27,23 +32,23 @@ class FindMovieAiClientTests(SimpleTestCase):
         fake_client.messages.create.return_value = fake_response
         mock_anthropic.return_value = fake_client
 
-        client = FindMovieAiClient('family animation')
-        result = client.find_movies()
+        client = SearchFindMovieAiClient()
+        result = client.find_movies('family animation')
 
         self.assertEqual([movie.title for movie in result], ['Shrek', 'Shrek 2'])
         fake_client.messages.create.assert_called_once()
 
-    @patch.object(FindMovieAiClient, 'count_tokens', return_value=10)
+    @patch.object(SearchFindMovieAiClient, 'count_tokens', return_value=10)
     @patch('movie.ai_find_movie.Anthropic')
     def test_find_movies_raises_wrapped_exception(self, mock_anthropic, _):
         fake_client = MagicMock()
         fake_client.messages.create.side_effect = RuntimeError('boom')
         mock_anthropic.return_value = fake_client
 
-        client = FindMovieAiClient('prompt')
+        client = SearchFindMovieAiClient()
 
         with self.assertRaises(Exception) as exc:
-            client.find_movies()
+            client.find_movies('prompt')
 
         self.assertIn('Error while finding movies', str(exc.exception))
 
@@ -62,8 +67,15 @@ class FindMovieAiClientTests(SimpleTestCase):
         mock_client = MagicMock(messages=mock_messages)
         mock_anthropic.return_value = mock_client
 
-        client = FindMovieAiClient('prompt')
-        tokens = client.count_tokens()
+        client = SearchFindMovieAiClient()
+        tokens = client.count_tokens('prompt')
 
         mock_messages.count_tokens.assert_called_once()
         self.assertEqual(tokens, 42)
+
+    def test_subclasses_define_prompts(self):
+        self.assertEqual(SearchFindMovieAiClient().system_prompt, find_movie_system_prompt)
+        self.assertEqual(
+            RecommendationFindMovieAiClient().system_prompt,
+            recommendations_system_prompt,
+        )

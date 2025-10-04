@@ -15,11 +15,15 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from throttling.throttling import (
+    AiSearchForwardedThrottle,
+    AiSearchIpThrottle,
+    AiSearchUaThrottle,
     RegularSearchForwardedThrottle,
     RegularSearchIpThrottle,
     RegularSearchUaThrottle,
 )
 
+from .dataclasses import UserContext
 from .errors import AddLikeError
 from .filters import MovieFilter, WatchLaterFilter
 from .models import LikeMovie, Movie, WatchLaterMovie
@@ -28,6 +32,7 @@ from .serializers import (
     FindMovieAiSearchViewRequestSerializer,
     FindMovieSearchViewRequestSerializer,
     MovieModelSerializer,
+    MovieRecommendationSerializer,
     MovieSerializer,
     WatchLaterCreateSerializer,
     WatchLaterListSerializer,
@@ -35,7 +40,7 @@ from .serializers import (
     WatchLaterStatisticsRatingSerializer,
     WatchLaterStatisticsSerializer,
 )
-from .services import MovieService
+from .services import MovieRecommendationService, MovieService
 
 
 class MovieView(RetrieveAPIView):
@@ -129,11 +134,11 @@ class MoviesSearchView(APIView):
 
 class MoviesAiSearchView(APIView):
     permission_classes = [permissions.IsAuthenticated]
-    # throttle_classes = [
-    #     AiSearchUaThrottle,
-    #     AiSearchIpThrottle,
-    #     AiSearchForwardedThrottle,
-    # ]
+    throttle_classes = [
+        AiSearchUaThrottle,
+        AiSearchIpThrottle,
+        AiSearchForwardedThrottle,
+    ]
 
     @extend_schema(
         request=FindMovieAiSearchViewRequestSerializer,
@@ -231,3 +236,14 @@ class WatchLaterDestroyView(DestroyAPIView):
         WatchLaterMovie.objects.filter(user_id=self.request.user.id, movie_id=kwargs.get('pk')).delete()
 
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class MoviesRecommendationsView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request, *args, **kwargs):
+        recommendation_service = MovieRecommendationService()
+        user_context = UserContext(id=request.user.id)
+        recommended_movies = recommendation_service.get_recommended_movies(user_context)
+        serializer = MovieRecommendationSerializer(recommended_movies, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
