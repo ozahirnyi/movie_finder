@@ -49,7 +49,8 @@ class MovieView(RetrieveAPIView):
     lookup_field = 'id'
 
     def get_queryset(self):
-        return Movie.objects.with_is_liked(self.request.user.id).with_is_watch_later(self.request.user.id).with_likes_count().with_watch_later_count()
+        return Movie.objects.with_is_liked(self.request.user.id).with_is_watch_later(
+            self.request.user.id).with_likes_count().with_watch_later_count()
 
 
 class MovieLikeView(CreateAPIView):
@@ -81,7 +82,8 @@ class MovieUnlikeView(GenericAPIView):
             description='Comma-separated list of ordering fields. Prefix with `-` for descending order.',
             required=False,
             type=str,
-            enum=['-imdb_id', 'imdb_id', '-title', 'title', '-genre', 'genre', '-year', 'year', '-likes_count', 'likes_count'],
+            enum=['-imdb_id', 'imdb_id', '-title', 'title', '-genre', 'genre', '-year', 'year', '-likes_count',
+                  'likes_count'],
         ),
     ]
 )
@@ -134,6 +136,7 @@ class MoviesSearchView(APIView):
 
 class MoviesAiSearchView(APIView):
     permission_classes = [permissions.IsAuthenticated]
+
     # throttle_classes = [
     #     AiSearchUaThrottle,
     #     AiSearchIpThrottle,
@@ -171,7 +174,8 @@ class WatchLaterCreateView(CreateAPIView):
             description='Comma-separated list of ordering fields. Prefix with `-` for descending order.',
             required=False,
             type=str,
-            enum=['-imdb_id', 'imdb_id', '-title', 'title', '-genre', 'genre', '-year', 'year', '-likes_count', 'likes_count'],
+            enum=['-imdb_id', 'imdb_id', '-title', 'title', '-genre', 'genre', '-year', 'year', '-likes_count',
+                  'likes_count'],
         ),
     ]
 )
@@ -238,6 +242,16 @@ class WatchLaterDestroyView(DestroyAPIView):
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
+class GenreListView(ListAPIView):
+    permission_classes = [permissions.AllowAny]
+    serializer_class = GenreModelSerializer
+    queryset = Genre.objects.all()
+
+    def get(self, request, *args, **kwargs):
+        queryset = Genre.objects.get_queryset().values_list('name', flat=True).distinct()
+        return Response({'genres': list(queryset)})
+
+
 class MoviesRecommendationsView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
@@ -247,13 +261,3 @@ class MoviesRecommendationsView(APIView):
         recommended_movies = recommendation_service.get_recommended_movies(user_context)
         serializer = MovieRecommendationSerializer(recommended_movies, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
-
-
-class GenreListView(ListAPIView):
-    permission_classes = [permissions.AllowAny]
-    serializer_class = GenreModelSerializer
-    queryset = Genre.objects.all()
-
-    def get(self, request, *args, **kwargs):
-        queryset = Genre.objects.get_queryset().values_list("name", flat=True).distinct()
-        return Response({"genres": list(queryset)})
