@@ -4,7 +4,6 @@ from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
 from django.urls import reverse
-from django.utils import timezone
 from rest_framework import status
 from rest_framework.test import APITestCase
 from rest_framework_simplejwt.tokens import RefreshToken
@@ -12,7 +11,7 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from movie.dataclasses import AiMovie, ImdbMovie, OmdbMovie
 from movie.dataclasses import Genre as GenreDTO
 from movie.errors import AddLikeError
-from movie.models import Genre, LikeMovie, Movie, Rating, RecommendedMovie, WatchLaterMovie
+from movie.models import Genre, LikeMovie, Movie, Rating, WatchLaterMovie
 
 
 def _issue_jwt(client, user):
@@ -264,6 +263,22 @@ class MovieModelRepresentationTests(APITestCase):
         like = LikeMovie.objects.create(user=user, movie=movie)
 
         self.assertEqual(str(like), f'{user} | {movie}')
+
+
+class GenreListViewTests(APITestCase):
+    @classmethod
+    def setUpTestData(cls):
+        cls.genre_comedy = Genre.objects.create(name='Comedy')
+        cls.genre_animation = Genre.objects.create(name='Animation')
+        cls.genre_fantasy = Genre.objects.create(name='Fantasy')
+        cls.genre_horror = Genre.objects.create(name='Horror')
+
+    def test_get_genres(self):
+        url = reverse('genre-list')
+        response = self.client.get(url)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertCountEqual(response.data['genres'], ['Comedy', 'Animation', 'Fantasy', 'Horror'])
 
     def test_recommended_movie_str(self):
         user = get_user_model().objects.create_user(email='rec@test.test', password='thereisnospoon')
