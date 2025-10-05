@@ -19,6 +19,7 @@ from movie.views import (
     WatchLaterDestroyView,
     WatchLaterListView,
     WatchLaterStatisticsView,
+    GenreListView,
 )
 
 auth_patterns = [
@@ -40,7 +41,6 @@ admin_patterns = [
     path('admin/', admin.site.urls),
 ]
 
-
 watch_later_patterns = [
     path('watch_later/list/', WatchLaterListView.as_view(), name='watch_later_list'),
     path('watch_later/create/', WatchLaterCreateView.as_view(), name='watch_later_create'),
@@ -52,7 +52,6 @@ watch_later_patterns = [
     ),
 ]
 
-
 movies_patterns = [
     path('movies/', MoviesListView.as_view(), name='movies_list'),
     path('movies/<int:id>/', MovieView.as_view(), name='movie'),
@@ -62,14 +61,13 @@ movies_patterns = [
     path('movies/ai/search/', MoviesAiSearchView.as_view(), name='movies_ai_search'),
     path('movies/recommendations/', MoviesRecommendationsView.as_view(), name='movies_recommendations'),
     path('watch_later/', include(watch_later_patterns)),
+    path("structures/", GenreListView.as_view(), name="genre-list"),
 ]
-
 
 swagger_patterns = [
     path('api/schema/', SpectacularAPIView.as_view(), name='schema'),
     path('api/swagger/', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'),
     path('api/redoc/', SpectacularRedocView.as_view(url_name='schema'), name='redoc'),
 ]
-
 
 urlpatterns = auth_patterns + users_patterns + admin_patterns + movies_patterns + swagger_patterns

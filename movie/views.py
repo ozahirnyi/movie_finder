@@ -26,7 +26,7 @@ from throttling.throttling import (
 from .dataclasses import UserContext
 from .errors import AddLikeError
 from .filters import MovieFilter, WatchLaterFilter
-from .models import LikeMovie, Movie, WatchLaterMovie
+from .models import LikeMovie, Movie, WatchLaterMovie, Genre
 from .paginations import MoviesPagination
 from .serializers import (
     FindMovieAiSearchViewRequestSerializer,
@@ -38,7 +38,7 @@ from .serializers import (
     WatchLaterListSerializer,
     WatchLaterStatisticsGenreSerializer,
     WatchLaterStatisticsRatingSerializer,
-    WatchLaterStatisticsSerializer,
+    WatchLaterStatisticsSerializer, GenreModelSerializer,
 )
 from .services import MovieRecommendationService, MovieService
 
@@ -134,11 +134,11 @@ class MoviesSearchView(APIView):
 
 class MoviesAiSearchView(APIView):
     permission_classes = [permissions.IsAuthenticated]
-    throttle_classes = [
-        AiSearchUaThrottle,
-        AiSearchIpThrottle,
-        AiSearchForwardedThrottle,
-    ]
+    # throttle_classes = [
+    #     AiSearchUaThrottle,
+    #     AiSearchIpThrottle,
+    #     AiSearchForwardedThrottle,
+    # ]
 
     @extend_schema(
         request=FindMovieAiSearchViewRequestSerializer,
@@ -247,3 +247,13 @@ class MoviesRecommendationsView(APIView):
         recommended_movies = recommendation_service.get_recommended_movies(user_context)
         serializer = MovieRecommendationSerializer(recommended_movies, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class GenreListView(ListAPIView):
+    permission_classes = [permissions.AllowAny]
+    serializer_class = GenreModelSerializer
+    queryset = Genre.objects.all()
+
+    def get(self, request, *args, **kwargs):
+        queryset = Genre.objects.get_queryset().values_list("name", flat=True).distinct()
+        return Response({"genres": list(queryset)})
