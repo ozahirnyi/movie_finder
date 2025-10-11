@@ -8,7 +8,6 @@ from auth_app.views import (
     SignUpApiView,
 )
 from movie.views import (
-    GenreListView,
     MovieLikeView,
     MoviesAiSearchView,
     MoviesListView,
@@ -16,6 +15,7 @@ from movie.views import (
     MoviesSearchView,
     MovieUnlikeView,
     MovieView,
+    StructuresListView,
     WatchLaterCreateView,
     WatchLaterDestroyView,
     WatchLaterListView,
@@ -61,7 +61,7 @@ movies_patterns = [
     path('movies/ai/search/', MoviesAiSearchView.as_view(), name='movies_ai_search'),
     path('movies/recommendations/', MoviesRecommendationsView.as_view(), name='movies_recommendations'),
     path('watch_later/', include(watch_later_patterns)),
-    path('structures/', GenreListView.as_view(), name='genre-list'),
+    path('structures/', StructuresListView.as_view(), name='genre-list'),
 ]
 
 swagger_patterns = [

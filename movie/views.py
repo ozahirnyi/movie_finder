@@ -242,14 +242,15 @@ class WatchLaterDestroyView(DestroyAPIView):
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
-class GenreListView(ListAPIView):
+class StructuresListView(ListAPIView):
     permission_classes = [permissions.AllowAny]
     serializer_class = GenreModelSerializer
     queryset = Genre.objects.all()
 
     def get(self, request, *args, **kwargs):
-        queryset = Genre.objects.get_queryset().values_list('name', flat=True).distinct()
-        return Response({'genres': list(queryset)})
+        queryset = self.get_queryset()
+        serializer = self.get_serializer(queryset, many=True)
+        return Response({'genres': [item['name'] for item in serializer.data]})
 
 
 class MoviesRecommendationsView(APIView):
