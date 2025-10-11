@@ -1,4 +1,5 @@
 import random
+from datetime import timedelta
 from typing import List
 from unittest.mock import patch
 
@@ -106,6 +107,26 @@ class FinderTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data['results'][0]['id'], self.movie.id)
         self.assertTrue(response.data['results'][0]['is_watch_later'])
+
+    def test_watch_later_ordering_by_added_at(self):
+        older_movie = Movie.objects.create(title='Older Movie', imdb_id='tt000002')
+        newer_movie = Movie.objects.create(title='Newer Movie', imdb_id='tt000003')
+
+        older_entry = WatchLaterMovie.objects.create(user=self.user, movie=older_movie)
+        WatchLaterMovie.objects.create(user=self.user, movie=newer_movie)
+
+        earlier_time = timezone.now() - timedelta(days=1)
+        WatchLaterMovie.objects.filter(pk=older_entry.pk).update(created_at=earlier_time)
+
+        response = self.client.get(reverse('watch_later_list'), {'ordering': 'added_at'})
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        ascending_ids = [item['id'] for item in response.data['results']]
+        self.assertEqual(ascending_ids, [older_movie.id, newer_movie.id])
+
+        response_desc = self.client.get(reverse('watch_later_list'), {'ordering': '-added_at'})
+        self.assertEqual(response_desc.status_code, status.HTTP_200_OK)
+        descending_ids = [item['id'] for item in response_desc.data['results']]
+        self.assertEqual(descending_ids, [newer_movie.id, older_movie.id])
 
     def test_watch_later_statistics(self):
         genres = [Genre.objects.create(name=f'Genre {idx}') for idx in range(6)]

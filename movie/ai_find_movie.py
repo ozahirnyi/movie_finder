@@ -21,8 +21,6 @@ class FindMovieAiClient:
         max_tokens: int | None = None,
     ) -> None:
         resolved_prompt = system_prompt or self.SYSTEM_PROMPT
-        if resolved_prompt is None:
-            raise ValueError('FindMovieAiClient requires a system prompt.')
         self.system_prompt = resolved_prompt
         self.model = model or self.DEFAULT_MODEL
         self.max_tokens = max_tokens or self.DEFAULT_MAX_TOKENS

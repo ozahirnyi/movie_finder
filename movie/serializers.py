@@ -20,6 +20,10 @@ class LikesWatchLaterSerializer(serializers.Serializer):
     is_watch_later = serializers.BooleanField(read_only=True, default=False)
 
 
+class EmptySerializer(serializers.Serializer):
+    pass
+
+
 class GenreModelSerializer(serializers.ModelSerializer):
     class Meta:
         model = Genre

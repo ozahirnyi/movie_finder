@@ -1,5 +1,5 @@
 from django.db import IntegrityError
-from django.db.models import Case, Count, Value, When
+from django.db.models import Case, Count, Max, Value, When
 from django_filters.rest_framework import DjangoFilterBackend
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework import permissions, status
@@ -29,6 +29,7 @@ from .filters import MovieFilter, WatchLaterFilter
 from .models import LikeMovie, Movie, WatchLaterMovie
 from .paginations import MoviesPagination
 from .serializers import (
+    EmptySerializer,
     FindMovieAiSearchViewRequestSerializer,
     FindMovieSearchViewRequestSerializer,
     MovieModelSerializer,
@@ -36,8 +37,6 @@ from .serializers import (
     MovieSerializer,
     WatchLaterCreateSerializer,
     WatchLaterListSerializer,
-    WatchLaterStatisticsGenreSerializer,
-    WatchLaterStatisticsRatingSerializer,
     WatchLaterStatisticsSerializer,
 )
 from .services import MovieRecommendationService, MovieService
@@ -52,10 +51,14 @@ class MovieView(RetrieveAPIView):
         return Movie.objects.with_is_liked(self.request.user.id).with_is_watch_later(self.request.user.id).with_likes_count().with_watch_later_count()
 
 
-class MovieLikeView(CreateAPIView):
+class MovieLikeView(GenericAPIView):
     permission_classes = [permissions.IsAuthenticated]
+    serializer_class = EmptySerializer
+    queryset = LikeMovie.objects.all()
 
     def post(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data or {})
+        serializer.is_valid(raise_exception=True)
         try:
             LikeMovie.objects.create(user=self.request.user, movie_id=kwargs.get('id'))
         except IntegrityError:
@@ -67,8 +70,11 @@ class MovieLikeView(CreateAPIView):
 class MovieUnlikeView(GenericAPIView):
     permission_classes = [permissions.IsAuthenticated]
     queryset = LikeMovie.objects.all()
+    serializer_class = EmptySerializer
 
     def post(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data or {})
+        serializer.is_valid(raise_exception=True)
         LikeMovie.objects.filter(user=self.request.user, movie_id=kwargs.get('id')).delete()
 
         return Response(status=status.HTTP_200_OK)
@@ -81,7 +87,20 @@ class MovieUnlikeView(GenericAPIView):
             description='Comma-separated list of ordering fields. Prefix with `-` for descending order.',
             required=False,
             type=str,
-            enum=['-imdb_id', 'imdb_id', '-title', 'title', '-genre', 'genre', '-year', 'year', '-likes_count', 'likes_count'],
+            enum=[
+                '-imdb_id',
+                'imdb_id',
+                '-title',
+                'title',
+                '-genre',
+                'genre',
+                '-year',
+                'year',
+                '-likes_count',
+                'likes_count',
+                '-added_at',
+                'added_at',
+            ],
         ),
     ]
 )
@@ -182,12 +201,13 @@ class WatchLaterListView(ListAPIView):
     filter_backends = [DjangoFilterBackend, OrderingFilter]
     filterset_class = WatchLaterFilter
     search_fields = ['title']
-    ordering_fields = ['imdb_id', 'title', 'genre', 'year']
-    ordering = ['imdb_id']
+    ordering_fields = ['imdb_id', 'title', 'genre', 'year', 'added_at']
+    ordering = ['-added_at']
 
     def get_queryset(self):
         return (
             Movie.objects.filter(watchlatermovie__user_id=self.request.user.id)
+            .annotate(added_at=Max('watchlatermovie__created_at'))
             .with_is_liked(self.request.user.id)
             .with_is_watch_later(self.request.user.id)
             .with_likes_count()
@@ -195,8 +215,9 @@ class WatchLaterListView(ListAPIView):
         )
 
 
-class WatchLaterStatisticsView(APIView):
+class WatchLaterStatisticsView(GenericAPIView):
     permission_classes = [permissions.IsAuthenticated]
+    serializer_class = WatchLaterStatisticsSerializer
 
     def get(self, request, *args, **kwargs):
         rating_stats = WatchLaterMovie.objects.filter(user=self.request.user).aggregate(
@@ -207,8 +228,6 @@ class WatchLaterStatisticsView(APIView):
             ratings_5_to_6=Count(Case(When(movie__movie_ratings__value__gte='5.0', movie__movie_ratings__value__lt='6.0', then=Value(1)))),
             ratings_below_5=Count(Case(When(movie__movie_ratings__value__lt='5.0', then=Value(1)))),
         )
-        ratings_serializer = WatchLaterStatisticsRatingSerializer(data=rating_stats)
-        ratings_serializer.is_valid(raise_exception=True)
         genres_stats = (
             WatchLaterMovie.objects.filter(user=self.request.user)
             .values('movie__genres__name')
@@ -216,21 +235,21 @@ class WatchLaterStatisticsView(APIView):
             .order_by('-count')
         )
         genres_data = [{'genre': g['movie__genres__name'], 'count': g['count']} for g in genres_stats]
-        genres_serializer = WatchLaterStatisticsGenreSerializer(data=genres_data, many=True)
-        genres_serializer.is_valid(raise_exception=True)
-        serializer = WatchLaterStatisticsSerializer(
+        serializer = self.get_serializer(
             data={
-                'ratings': ratings_serializer.validated_data,
-                'genres': genres_serializer.validated_data,
+                'ratings': rating_stats,
+                'genres': genres_data,
             }
         )
         serializer.is_valid(raise_exception=True)
 
-        return Response(serializer.data)
+        return Response(serializer.validated_data)
 
 
 class WatchLaterDestroyView(DestroyAPIView):
     permission_classes = [permissions.IsAuthenticated]
+    serializer_class = EmptySerializer
+    queryset = WatchLaterMovie.objects.all()
 
     def delete(self, request, *args, **kwargs):
         WatchLaterMovie.objects.filter(user_id=self.request.user.id, movie_id=kwargs.get('pk')).delete()
@@ -238,12 +257,13 @@ class WatchLaterDestroyView(DestroyAPIView):
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
-class MoviesRecommendationsView(APIView):
+class MoviesRecommendationsView(GenericAPIView):
     permission_classes = [permissions.IsAuthenticated]
+    serializer_class = MovieRecommendationSerializer
 
     def get(self, request, *args, **kwargs):
         recommendation_service = MovieRecommendationService()
         user_context = UserContext(id=request.user.id)
         recommended_movies = recommendation_service.get_recommended_movies(user_context)
-        serializer = MovieRecommendationSerializer(recommended_movies, many=True)
+        serializer = self.get_serializer(recommended_movies, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
