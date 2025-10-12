@@ -137,6 +137,7 @@ class WriterSerializer(serializers.Serializer):
 
 
 class MovieSerializer(LikesWatchLaterSerializer):
+    id = serializers.IntegerField()
     title = serializers.CharField(max_length=255, required=True)
     year = serializers.CharField(max_length=255, required=False)
     released_date = serializers.DateField(required=False)

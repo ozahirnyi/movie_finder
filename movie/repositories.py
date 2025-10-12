@@ -168,9 +168,11 @@ class MovieRepository:
             )
             if not movie_instance:
                 omdb_movie = self.get_movie_from_omdb_by_expression(title)
-                self._create_movie_in_db(omdb_movie)
+                saved_movie = self._create_movie_in_db(omdb_movie)
+                omdb_movie.id = saved_movie.id
             else:
                 omdb_movie = OmdbMovie(
+                    id=movie_instance.id,
                     title=movie_instance.title,
                     year=movie_instance.year,
                     released_date=movie_instance.released_date,

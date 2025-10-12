@@ -174,6 +174,13 @@ class MovieRepositoryTests(TestCase):
         self.assertIn('Brand', returned_titles)
         self.assertTrue(Movie.objects.filter(imdb_id='tt000002').exists())
 
+        existing_entry = next(movie for movie in results if movie.title == 'Existing')
+        self.assertEqual(existing_entry.id, existing.id)
+
+        new_entry = next(movie for movie in results if movie.title == 'Brand')
+        created_movie = Movie.objects.get(imdb_id='tt000002')
+        self.assertEqual(new_entry.id, created_movie.id)
+
 
 class MovieServiceTests(TestCase):
     def test_service_delegates_to_repository(self):

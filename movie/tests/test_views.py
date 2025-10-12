@@ -72,7 +72,7 @@ class FinderTests(APITestCase):
             ),
         ]
         mock_search_omdb.return_value = [
-            OmdbMovie(title='Shrek', imdb_id='tt0126029', genres=[GenreDTO(name='Animation')]),
+            OmdbMovie(title='Shrek', imdb_id='tt0126029', genres=[GenreDTO(name='Animation')], id=self.movie.id),
         ]
 
         response = self.client.post(
@@ -83,6 +83,7 @@ class FinderTests(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data[0]['title'], 'Shrek')
+        self.assertEqual(response.data[0]['id'], self.movie.id)
         mock_imdb.assert_called_once_with('Shrek')
         mock_search_omdb.assert_called_once()
 
@@ -172,6 +173,7 @@ class FindMovieAiTests(APITestCase):
                         imdb_id=movie.imdb_id,
                         plot=f'Plot for {title}',
                         genres=[GenreDTO(name='Animation')],
+                        id=movie.id,
                     )
                 )
             return results
@@ -189,6 +191,7 @@ class FindMovieAiTests(APITestCase):
         self.assertTrue(Movie.objects.filter(title='Shrek').exists())
         self.assertEqual(response.data[0]['genres'][0]['name'], 'Animation')
         self.assertEqual(response.data[0]['plot'], 'Plot for Shrek')
+        self.assertIsNotNone(response.data[0]['id'])
 
     def test_prompt_max_length(self):
         max_length = 255
