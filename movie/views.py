@@ -15,9 +15,6 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from throttling.throttling import (
-    AiSearchForwardedThrottle,
-    AiSearchIpThrottle,
-    AiSearchUaThrottle,
     RegularSearchForwardedThrottle,
     RegularSearchIpThrottle,
     RegularSearchUaThrottle,
@@ -26,11 +23,12 @@ from throttling.throttling import (
 from .dataclasses import UserContext
 from .errors import AddLikeError
 from .filters import MovieFilter, WatchLaterFilter
-from .models import LikeMovie, Movie, WatchLaterMovie, Genre
+from .models import Genre, LikeMovie, Movie, WatchLaterMovie
 from .paginations import MoviesPagination
 from .serializers import (
     FindMovieAiSearchViewRequestSerializer,
     FindMovieSearchViewRequestSerializer,
+    GenreModelSerializer,
     MovieModelSerializer,
     MovieRecommendationSerializer,
     MovieSerializer,
@@ -38,7 +36,7 @@ from .serializers import (
     WatchLaterListSerializer,
     WatchLaterStatisticsGenreSerializer,
     WatchLaterStatisticsRatingSerializer,
-    WatchLaterStatisticsSerializer, GenreModelSerializer,
+    WatchLaterStatisticsSerializer,
 )
 from .services import MovieRecommendationService, MovieService
 
@@ -49,8 +47,7 @@ class MovieView(RetrieveAPIView):
     lookup_field = 'id'
 
     def get_queryset(self):
-        return Movie.objects.with_is_liked(self.request.user.id).with_is_watch_later(
-            self.request.user.id).with_likes_count().with_watch_later_count()
+        return Movie.objects.with_is_liked(self.request.user.id).with_is_watch_later(self.request.user.id).with_likes_count().with_watch_later_count()
 
 
 class MovieLikeView(CreateAPIView):
@@ -82,8 +79,7 @@ class MovieUnlikeView(GenericAPIView):
             description='Comma-separated list of ordering fields. Prefix with `-` for descending order.',
             required=False,
             type=str,
-            enum=['-imdb_id', 'imdb_id', '-title', 'title', '-genre', 'genre', '-year', 'year', '-likes_count',
-                  'likes_count'],
+            enum=['-imdb_id', 'imdb_id', '-title', 'title', '-genre', 'genre', '-year', 'year', '-likes_count', 'likes_count'],
         ),
     ]
 )
@@ -174,8 +170,7 @@ class WatchLaterCreateView(CreateAPIView):
             description='Comma-separated list of ordering fields. Prefix with `-` for descending order.',
             required=False,
             type=str,
-            enum=['-imdb_id', 'imdb_id', '-title', 'title', '-genre', 'genre', '-year', 'year', '-likes_count',
-                  'likes_count'],
+            enum=['-imdb_id', 'imdb_id', '-title', 'title', '-genre', 'genre', '-year', 'year', '-likes_count', 'likes_count'],
         ),
     ]
 )
