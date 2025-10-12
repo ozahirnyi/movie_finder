@@ -15,6 +15,9 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from throttling.throttling import (
+    AiSearchForwardedThrottle,
+    AiSearchIpThrottle,
+    AiSearchUaThrottle,
     RegularSearchForwardedThrottle,
     RegularSearchIpThrottle,
     RegularSearchUaThrottle,
@@ -133,11 +136,11 @@ class MoviesSearchView(APIView):
 class MoviesAiSearchView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
-    # throttle_classes = [
-    #     AiSearchUaThrottle,
-    #     AiSearchIpThrottle,
-    #     AiSearchForwardedThrottle,
-    # ]
+    throttle_classes = [
+        AiSearchUaThrottle,
+        AiSearchIpThrottle,
+        AiSearchForwardedThrottle,
+    ]
 
     @extend_schema(
         request=FindMovieAiSearchViewRequestSerializer,
