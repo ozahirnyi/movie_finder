@@ -17,7 +17,7 @@ cffi = "==2.0.0"
 charset-normalizer = "==3.3.2"
 cryptography = "==46.0.1"
 distro = "==1.9.0"
-django = "==5.2.6"
+django = "==5.2.7"
 django-allauth = "==65.11.2"
 django-cors-headers = "==4.9.0"
 django-environ = "==0.12.0"
@@ -66,6 +66,7 @@ pytest-django = "==4.11.1"
 pre-commit = "^4.3.0"
 ruff = "^0.13.0"
 coverage = "^7.10.7"
+pip = "^25.2"
 
 [tool.ruff]
 line-length = 150
