@@ -26,11 +26,12 @@ from throttling.throttling import (
 from .dataclasses import UserContext
 from .errors import AddLikeError
 from .filters import MovieFilter, WatchLaterFilter
-from .models import LikeMovie, Movie, WatchLaterMovie
+from .models import Genre, LikeMovie, Movie, WatchLaterMovie
 from .paginations import MoviesPagination
 from .serializers import (
     FindMovieAiSearchViewRequestSerializer,
     FindMovieSearchViewRequestSerializer,
+    GenreModelSerializer,
     MovieModelSerializer,
     MovieRecommendationSerializer,
     MovieSerializer,
@@ -134,6 +135,7 @@ class MoviesSearchView(APIView):
 
 class MoviesAiSearchView(APIView):
     permission_classes = [permissions.IsAuthenticated]
+
     throttle_classes = [
         AiSearchUaThrottle,
         AiSearchIpThrottle,
@@ -236,6 +238,17 @@ class WatchLaterDestroyView(DestroyAPIView):
         WatchLaterMovie.objects.filter(user_id=self.request.user.id, movie_id=kwargs.get('pk')).delete()
 
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class StructuresListView(ListAPIView):
+    permission_classes = [permissions.AllowAny]
+    serializer_class = GenreModelSerializer
+    queryset = Genre.objects.all()
+
+    def get(self, request, *args, **kwargs):
+        queryset = self.get_queryset()
+        serializer = self.get_serializer(queryset, many=True)
+        return Response({'genres': [item['name'] for item in serializer.data]})
 
 
 class MoviesRecommendationsView(APIView):

@@ -277,6 +277,22 @@ class MovieModelRepresentationTests(APITestCase):
         self.assertEqual(str(recommendation), f'{user} | {movie} | {recommendation.recommendation_date}')
 
 
+class GenreListViewTests(APITestCase):
+    @classmethod
+    def setUpTestData(cls):
+        cls.genre_comedy = Genre.objects.create(name='Comedy')
+        cls.genre_animation = Genre.objects.create(name='Animation')
+        cls.genre_fantasy = Genre.objects.create(name='Fantasy')
+        cls.genre_horror = Genre.objects.create(name='Horror')
+
+    def test_get_genres(self):
+        url = reverse('genre-list')
+        response = self.client.get(url)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertCountEqual(response.data['genres'], ['Comedy', 'Animation', 'Fantasy', 'Horror'])
+
+
 class RecommendedMoviesTests(APITestCase):
     def setUp(self):
         self.user = get_user_model().objects.create_user(email='recommend@test.com', password='strongpass')
