@@ -28,7 +28,7 @@ def _issue_jwt(client, user):
 class FinderTests(APITestCase):
     @classmethod
     def setUpTestData(cls):
-        cls.movie = Movie.objects.create(title='Test Movie', imdb_id='tt000001')
+        cls.movie = Movie.objects.create(title='Test Movie', imdb_id='tt000001', imdb_rating='7.5')
 
     def setUp(self) -> None:
         self.user = get_user_model().objects.create_user(email='neo@matrix.test', password='thereisnospoon')
@@ -151,6 +151,30 @@ class FinderTests(APITestCase):
         self.assertEqual(ratings['ratings_below_5'], 1)
         self.assertEqual(response.data['genres'][0]['count'], 1)
 
+    def test_watch_later_filter_by_rating(self):
+        high_rated = Movie.objects.create(title='Highly Rated', imdb_id='tt010001', imdb_rating='9.0')
+        low_rated = Movie.objects.create(title='Low Rated', imdb_id='tt010002', imdb_rating='5.0')
+        WatchLaterMovie.objects.create(user=self.user, movie=high_rated)
+        WatchLaterMovie.objects.create(user=self.user, movie=low_rated)
+
+        response = self.client.get(reverse('watch_later_list'), {'rating_min': 8})
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        titles = [movie['title'] for movie in response.data['results']]
+        self.assertEqual(titles, ['Highly Rated'])
+
+    def test_watch_later_search(self):
+        mystery_movie = Movie.objects.create(title='Mystery Story', imdb_id='tt020001', imdb_rating='7.0')
+        action_movie = Movie.objects.create(title='Action Blast', imdb_id='tt020002', imdb_rating='8.0')
+        WatchLaterMovie.objects.create(user=self.user, movie=mystery_movie)
+        WatchLaterMovie.objects.create(user=self.user, movie=action_movie)
+
+        response = self.client.get(reverse('watch_later_list'), {'search': 'Mystery'})
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        titles = [movie['title'] for movie in response.data['results']]
+        self.assertEqual(titles, ['Mystery Story'])
+
 
 class FindMovieAiTests(APITestCase):
     def setUp(self):
@@ -210,10 +234,10 @@ class FindMovieFiltersTests(APITestCase):
         cls.genre_comedy = Genre.objects.create(name='Comedy')
         cls.genre_animation = Genre.objects.create(name='Animation')
 
-        cls.shrek = Movie.objects.create(title='Shrek', imdb_id='tt000010', year='2001')
+        cls.shrek = Movie.objects.create(title='Shrek', imdb_id='tt000010', year='2001', imdb_rating='7.2')
         cls.shrek.genres.add(cls.genre_comedy)
 
-        cls.shrek_2 = Movie.objects.create(title='Shrek 2', imdb_id='tt000020', year='2004')
+        cls.shrek_2 = Movie.objects.create(title='Shrek 2', imdb_id='tt000020', year='2004', imdb_rating='8.6')
         cls.shrek_2.genres.add(cls.genre_animation)
 
         cls.user = get_user_model().objects.create_user(email='morpheus@matrix.test', password='redpillbluepill')
@@ -249,6 +273,20 @@ class FindMovieFiltersTests(APITestCase):
 
     def test_filter_by_imdb_id(self):
         response = self._get_movies({'imdb_id': 'tt000010'})
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        titles = [movie['title'] for movie in response.data['results']]
+        self.assertEqual(titles, ['Shrek'])
+
+    def test_filter_by_rating_min(self):
+        response = self._get_movies({'rating_min': 8})
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        titles = [movie['title'] for movie in response.data['results']]
+        self.assertEqual(titles, ['Shrek 2'])
+
+    def test_filter_by_rating_max(self):
+        response = self._get_movies({'rating_max': 7.5})
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         titles = [movie['title'] for movie in response.data['results']]

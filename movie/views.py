@@ -3,7 +3,7 @@ from django.db.models import Case, Count, Max, Value, When
 from django_filters.rest_framework import DjangoFilterBackend
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework import permissions, status
-from rest_framework.filters import OrderingFilter
+from rest_framework.filters import OrderingFilter, SearchFilter
 from rest_framework.generics import (
     CreateAPIView,
     DestroyAPIView,
@@ -113,7 +113,7 @@ class MoviesListView(ListAPIView):
         RegularSearchIpThrottle,
         RegularSearchForwardedThrottle,
     ]
-    filter_backends = [DjangoFilterBackend, OrderingFilter]
+    filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
     filterset_class = MovieFilter
     search_fields = ['title']
     ordering_fields = ['imdb_id', 'title', 'genre', 'year', 'likes_count']
@@ -198,7 +198,7 @@ class WatchLaterListView(ListAPIView):
     permission_classes = [permissions.IsAuthenticated]
     serializer_class = WatchLaterListSerializer
     pagination_class = MoviesPagination
-    filter_backends = [DjangoFilterBackend, OrderingFilter]
+    filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
     filterset_class = WatchLaterFilter
     search_fields = ['title']
     ordering_fields = ['imdb_id', 'title', 'genre', 'year', 'added_at']

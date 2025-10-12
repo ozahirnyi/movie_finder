@@ -29,9 +29,19 @@ from movie.dataclasses import (
 from movie.dataclasses import (
     Writer as WriterDTO,
 )
+from movie.filters import MovieFilter
 from movie.models import Actor, Country, Director, Genre, Language, Movie, Rating, RecommendedMovie, Writer
 from movie.repositories import MovieRepository, RecommendationRepository
 from movie.services import MovieService
+
+
+class MovieFilterTests(TestCase):
+    def test_rating_filters_ignore_none(self):
+        queryset = Movie.objects.all()
+        filterset = MovieFilter(data={}, queryset=queryset)
+
+        self.assertIs(filterset.filter_rating_min(queryset, 'rating_min', None), queryset)
+        self.assertIs(filterset.filter_rating_max(queryset, 'rating_max', None), queryset)
 
 
 class MovieRepositoryTests(TestCase):
