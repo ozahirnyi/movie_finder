@@ -73,6 +73,19 @@ class FindMovieAiClientTests(SimpleTestCase):
         mock_messages.count_tokens.assert_called_once()
         self.assertEqual(tokens, 42)
 
+    @patch('movie.ai_find_movie.Anthropic')
+    def test_client_property_caches_instance(self, mock_anthropic):
+        mock_client = MagicMock()
+        mock_anthropic.return_value = mock_client
+
+        client = SearchFindMovieAiClient()
+
+        first = client.client
+        second = client.client
+
+        self.assertIs(first, second)
+        mock_anthropic.assert_called_once_with(api_key=settings.ANTHROPIC_API_KEY)
+
     def test_subclasses_define_prompts(self):
         self.assertEqual(SearchFindMovieAiClient().system_prompt, find_movie_system_prompt)
         self.assertEqual(

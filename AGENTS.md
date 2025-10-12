@@ -48,9 +48,11 @@ Authoritative playbook for coding agents collaborating on the Movie Finder API. 
   - `make test` (pytest via Poetry) is the default; `pytest-django` is preconfigured with `DJANGO_SETTINGS_MODULE=movie_finder_django.settings`.
   - Add or update tests in `auth_app/tests.py`, `movie/tests/`, `throttling/tests/` when behaviors change.
   - For coverage checks use `make coverage`.
+  - After every code change, run `make coverage`; it now enforces a 100% threshold and will fail if coverage regresses.
   - When running tests or applying migrations locally, prefer the Makefile targets over raw Poetry/Django commands.
 - **Static analysis:**
   - `make lint` runs Ruff (`select = [E, F, I, DJ]`, ignore `DJ008`). Fix findings before handing work back.
+  - Always run `make lint` yourself before requesting review or a handoff.
   - `make format` enforces Ruff formatting (single quotes, 4-space indentation, max line length 150).
 - **Type hints:** Where practical, maintain existing typing; new services/helpers should include return type annotations.
 - **Pre-commit:** Run `pre-commit install` if you need local hooks (optional but encouraged).
@@ -68,6 +70,7 @@ Authoritative playbook for coding agents collaborating on the Movie Finder API. 
 - Keep every DTO/dataclass definition consolidated in `movie/dataclasses.py`; don't scatter DTOs across repositories or services.
 - Persisted data access belongs in the repository layer (`movie/repositories.py`); strive to minimise query counts (use batching, `select_related`, `prefetch_related`, in-memory aggregation when viable).
 - Document noteworthy behaviour changes in `CHANGELOG.md` if it exists; otherwise provide context in the pull request description.
+- Before declaring a task done, ensure `make lint` and `make coverage` both pass and explicitly ask the user for approval to create a commit.
 
 ---
 
