@@ -42,11 +42,11 @@ admin_patterns = [
 
 
 watch_later_patterns = [
-    path('watch_later/list/', WatchLaterListView.as_view(), name='watch_later_list'),
-    path('watch_later/create/', WatchLaterCreateView.as_view(), name='watch_later_create'),
-    path('watch_later/statistics/', WatchLaterStatisticsView.as_view(), name='watch_later_statistics'),
+    path('list/', WatchLaterListView.as_view(), name='watch_later_list'),
+    path('create/', WatchLaterCreateView.as_view(), name='watch_later_create'),
+    path('statistics/', WatchLaterStatisticsView.as_view(), name='watch_later_statistics'),
     path(
-        'watch_later/<int:pk>/destroy/',
+        '<int:pk>/destroy/',
         WatchLaterDestroyView.as_view(),
         name='watch_later_destroy',
     ),

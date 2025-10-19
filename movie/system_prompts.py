@@ -6,7 +6,7 @@ ANALYSIS:
 - Prioritize exact matches over similar content
 - Verify actor filmography accuracy before inclusion
 SELECTION:
-- Return up to 10 movies, fewer if requirements cannot be met accurately
+- Return up to 15 movies, fewer if requirements cannot be met accurately
 - When searching by actor: include only confirmed films with that actor
 - Prefer well-known, verifiable films over obscure ones
 - No duplicates, no fictional films

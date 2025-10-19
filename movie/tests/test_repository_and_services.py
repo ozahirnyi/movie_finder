@@ -29,9 +29,19 @@ from movie.dataclasses import (
 from movie.dataclasses import (
     Writer as WriterDTO,
 )
+from movie.filters import MovieFilter
 from movie.models import Actor, Country, Director, Genre, Language, Movie, Rating, RecommendedMovie, Writer
 from movie.repositories import MovieRepository, RecommendationRepository
 from movie.services import MovieService
+
+
+class MovieFilterTests(TestCase):
+    def test_rating_filters_ignore_none(self):
+        queryset = Movie.objects.all()
+        filterset = MovieFilter(data={}, queryset=queryset)
+
+        self.assertIs(filterset.filter_rating_min(queryset, 'rating_min', None), queryset)
+        self.assertIs(filterset.filter_rating_max(queryset, 'rating_max', None), queryset)
 
 
 class MovieRepositoryTests(TestCase):
@@ -84,6 +94,39 @@ class MovieRepositoryTests(TestCase):
         self.assertEqual(movie.title, 'Shrek')
         self.assertEqual(movie.directors[0].full_name, 'Andrew Adamson')
         self.assertEqual(movie.ratings[0].value, '9/10')
+
+    @patch('movie.repositories.requests.get')
+    def test_get_movie_from_omdb_by_expression_converts_not_available_to_none(self, mock_get):
+        mock_get.return_value.json.return_value = {
+            'Title': 'Mystery',
+            'Year': 'N/A',
+            'Released': 'N/A',
+            'Runtime': 'N/A',
+            'Genre': 'N/A',
+            'Director': 'N/A',
+            'Writer': 'N/A',
+            'Actors': 'N/A',
+            'Plot': 'N/A',
+            'Language': 'N/A',
+            'Country': 'N/A',
+            'Awards': 'N/A',
+            'Poster': 'N/A',
+            'Ratings': [{'Source': 'Internet', 'Value': 'N/A'}],
+            'Metascore': 'N/A',
+            'imdbRating': 'N/A',
+            'imdbVotes': 'N/A',
+            'imdbID': 'tt0000001',
+            'Type': 'N/A',
+            'totalSeasons': 'N/A',
+        }
+
+        movie = self.repository.get_movie_from_omdb_by_expression('Mystery')
+
+        self.assertIsNone(movie.poster)
+        self.assertIsNone(movie.runtime)
+        self.assertIsNone(movie.imdb_rating)
+        self.assertEqual(movie.genres, [])
+        self.assertIsNone(movie.ratings[0].value)
 
     @patch('movie.repositories.requests.get', side_effect=RuntimeError('boom'))
     def test_get_movie_from_omdb_by_expression_wraps_errors(self, _):
@@ -173,6 +216,13 @@ class MovieRepositoryTests(TestCase):
         self.assertIn('Existing', returned_titles)
         self.assertIn('Brand', returned_titles)
         self.assertTrue(Movie.objects.filter(imdb_id='tt000002').exists())
+
+        existing_entry = next(movie for movie in results if movie.title == 'Existing')
+        self.assertEqual(existing_entry.id, existing.id)
+
+        new_entry = next(movie for movie in results if movie.title == 'Brand')
+        created_movie = Movie.objects.get(imdb_id='tt000002')
+        self.assertEqual(new_entry.id, created_movie.id)
 
 
 class MovieServiceTests(TestCase):

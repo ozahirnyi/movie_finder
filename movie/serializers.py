@@ -20,6 +20,10 @@ class LikesWatchLaterSerializer(serializers.Serializer):
     is_watch_later = serializers.BooleanField(read_only=True, default=False)
 
 
+class EmptySerializer(serializers.Serializer):
+    pass
+
+
 class GenreModelSerializer(serializers.ModelSerializer):
     class Meta:
         model = Genre
@@ -133,6 +137,7 @@ class WriterSerializer(serializers.Serializer):
 
 
 class MovieSerializer(LikesWatchLaterSerializer):
+    id = serializers.IntegerField()
     title = serializers.CharField(max_length=255, required=True)
     year = serializers.CharField(max_length=255, required=False)
     released_date = serializers.DateField(required=False)

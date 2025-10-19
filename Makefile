@@ -42,7 +42,7 @@ test: ## Run test suite with pytest
 
 coverage: ## Run tests with coverage and show report
 	$(RUN) coverage run -m pytest
-	$(RUN) coverage report -m
+	$(RUN) coverage report -m --fail-under=100
 
 lint: ## Run static analysis via ruff
 	$(RUN) ruff check
