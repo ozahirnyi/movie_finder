@@ -76,28 +76,37 @@ class MovieRepository:
 
     @staticmethod
     def get_movie_from_omdb_by_expression(title: str) -> OmdbMovie:
+        def _replace_not_available(value):
+            if isinstance(value, dict):
+                return {key: _replace_not_available(val) for key, val in value.items()}
+            if isinstance(value, list):
+                return [_replace_not_available(item) for item in value]
+            if isinstance(value, str) and value.strip().upper() == 'N/A':
+                return None
+            return value
+
         try:
             response = requests.get(
                 f'{settings.OMDB_API_URL}?t={title}&apikey={settings.OMDB_API_KEY}',
                 headers={'content-type': 'application/json'},
                 timeout=30,
             )
-            data = response.json()
+            data = _replace_not_available(response.json())
             omdb_movie = OmdbMovie(
                 title=data.get('Title'),
                 year=data.get('Year'),
                 released_date=datetime.strptime(data['Released'], '%d %b %Y').date() if data.get('Released') else None,
                 runtime=data.get('Runtime'),
-                genres=[Genre(name=name.strip()) for name in data.get('Genre', '').split(',') if name.strip()],
-                directors=[Director(full_name=name.strip()) for name in data.get('Director', '').split(',') if name.strip()],
-                writers=[Writer(full_name=name.strip()) for name in data.get('Writer', '').split(',') if name.strip()],
-                actors=[Actor(full_name=name.strip()) for name in data.get('Actors', '').split(',') if name.strip()],
+                genres=[Genre(name=name.strip()) for name in (data.get('Genre') or '').split(',') if name.strip()],
+                directors=[Director(full_name=name.strip()) for name in (data.get('Director') or '').split(',') if name.strip()],
+                writers=[Writer(full_name=name.strip()) for name in (data.get('Writer') or '').split(',') if name.strip()],
+                actors=[Actor(full_name=name.strip()) for name in (data.get('Actors') or '').split(',') if name.strip()],
                 plot=data.get('Plot'),
-                languages=[Language(name=name.strip()) for name in data.get('Language', '').split(',') if name.strip()],
-                countries=[Country(name=name.strip()) for name in data.get('Country', '').split(',') if name.strip()],
+                languages=[Language(name=name.strip()) for name in (data.get('Language') or '').split(',') if name.strip()],
+                countries=[Country(name=name.strip()) for name in (data.get('Country') or '').split(',') if name.strip()],
                 awards=data.get('Awards'),
                 poster=data.get('Poster'),
-                ratings=[Rating(source=rating['Source'], value=rating['Value']) for rating in data.get('Ratings', [])],
+                ratings=[Rating(source=rating.get('Source'), value=rating.get('Value')) for rating in (data.get('Ratings') or []) if rating],
                 metascore=data.get('Metascore'),
                 imdb_rating=data.get('imdbRating'),
                 imdb_votes=data.get('imdbVotes'),

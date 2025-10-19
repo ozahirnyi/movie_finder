@@ -95,6 +95,39 @@ class MovieRepositoryTests(TestCase):
         self.assertEqual(movie.directors[0].full_name, 'Andrew Adamson')
         self.assertEqual(movie.ratings[0].value, '9/10')
 
+    @patch('movie.repositories.requests.get')
+    def test_get_movie_from_omdb_by_expression_converts_not_available_to_none(self, mock_get):
+        mock_get.return_value.json.return_value = {
+            'Title': 'Mystery',
+            'Year': 'N/A',
+            'Released': 'N/A',
+            'Runtime': 'N/A',
+            'Genre': 'N/A',
+            'Director': 'N/A',
+            'Writer': 'N/A',
+            'Actors': 'N/A',
+            'Plot': 'N/A',
+            'Language': 'N/A',
+            'Country': 'N/A',
+            'Awards': 'N/A',
+            'Poster': 'N/A',
+            'Ratings': [{'Source': 'Internet', 'Value': 'N/A'}],
+            'Metascore': 'N/A',
+            'imdbRating': 'N/A',
+            'imdbVotes': 'N/A',
+            'imdbID': 'tt0000001',
+            'Type': 'N/A',
+            'totalSeasons': 'N/A',
+        }
+
+        movie = self.repository.get_movie_from_omdb_by_expression('Mystery')
+
+        self.assertIsNone(movie.poster)
+        self.assertIsNone(movie.runtime)
+        self.assertIsNone(movie.imdb_rating)
+        self.assertEqual(movie.genres, [])
+        self.assertIsNone(movie.ratings[0].value)
+
     @patch('movie.repositories.requests.get', side_effect=RuntimeError('boom'))
     def test_get_movie_from_omdb_by_expression_wraps_errors(self, _):
         with self.assertRaises(Exception) as exc:
