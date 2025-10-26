@@ -1,5 +1,5 @@
 from rest_framework import serializers
-
+from movie.dataclasses import Genre as GenreDTO
 from .models import (
     Actor,
     Country,
@@ -20,10 +20,18 @@ class LikesWatchLaterSerializer(serializers.Serializer):
     is_watch_later = serializers.BooleanField(read_only=True, default=False)
 
 
-class GenreModelSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Genre
-        fields = ('name',)
+class GenreModelSerializer(serializers.Serializer):
+    name = serializers.CharField()
+
+    def to_representation(self, instance: GenreDTO):
+        return instance.name
+
+
+class GenreListSerializer(serializers.Serializer):
+    genres = serializers.ListField(child=serializers.CharField(), source='*')
+
+    def to_representation(self, instance):
+        list(Genre.objects.values_list('name', flat=True).distinct())
 
 
 class ActorModelSerializer(serializers.ModelSerializer):
@@ -63,7 +71,7 @@ class WriterModelSerializer(serializers.ModelSerializer):
 
 
 class MovieModelSerializer(serializers.ModelSerializer, LikesWatchLaterSerializer):
-    genres = GenreModelSerializer(many=True, read_only=True)
+    genres = GenreModelSerializer(many=True, read_only=True)  #todo: check if GenreModelSerializer works now with MovieModelSerializer
     actors = ActorModelSerializer(many=True, read_only=True)
     directors = DirectorModelSerializer(many=True, read_only=True)
     ratings = RatingModelSerializer(many=True, read_only=True)

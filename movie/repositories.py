@@ -19,9 +19,6 @@ from movie.dataclasses import (
     Director as DirectorDTO,
 )
 from movie.dataclasses import (
-    Genre as GenreDTO,
-)
-from movie.dataclasses import (
     ImdbMovie,
     MovieRecommendation,
     OmdbMovie,
@@ -35,6 +32,9 @@ from movie.dataclasses import (
 )
 from movie.dataclasses import (
     Writer as WriterDTO,
+)
+from movie.dataclasses import (
+    Genre as GenreDTO,
 )
 from movie.models import (
     Actor,
@@ -89,7 +89,8 @@ class MovieRepository:
                 released_date=datetime.strptime(data['Released'], '%d %b %Y').date() if data.get('Released') else None,
                 runtime=data.get('Runtime'),
                 genres=[Genre(name=name.strip()) for name in data.get('Genre', '').split(',') if name.strip()],
-                directors=[Director(full_name=name.strip()) for name in data.get('Director', '').split(',') if name.strip()],
+                directors=[Director(full_name=name.strip()) for name in data.get('Director', '').split(',') if
+                           name.strip()],
                 writers=[Writer(full_name=name.strip()) for name in data.get('Writer', '').split(',') if name.strip()],
                 actors=[Actor(full_name=name.strip()) for name in data.get('Actors', '').split(',') if name.strip()],
                 plot=data.get('Plot'),
@@ -139,19 +140,24 @@ class MovieRepository:
                     actors = [Actor.objects.get_or_create(full_name=actor.full_name)[0] for actor in omdb_movie.actors]
                     movie_instance.actors.set(actors)
                 if omdb_movie.directors:
-                    directors_list = [Director.objects.get_or_create(full_name=director.full_name)[0] for director in omdb_movie.directors]
+                    directors_list = [Director.objects.get_or_create(full_name=director.full_name)[0] for director in
+                                      omdb_movie.directors]
                     movie_instance.directors.set(directors_list)
                 if omdb_movie.ratings:
-                    ratings = [Rating(source=rating.source, value=rating.value, movie_id=movie_instance.id) for rating in omdb_movie.ratings]
+                    ratings = [Rating(source=rating.source, value=rating.value, movie_id=movie_instance.id) for rating
+                               in omdb_movie.ratings]
                     Rating.objects.bulk_create(ratings)
                 if omdb_movie.languages:
-                    languages = [Language.objects.get_or_create(name=language.name)[0] for language in omdb_movie.languages]
+                    languages = [Language.objects.get_or_create(name=language.name)[0] for language in
+                                 omdb_movie.languages]
                     movie_instance.languages.set(languages)
                 if omdb_movie.countries:
-                    countries = [Country.objects.get_or_create(name=country.name)[0] for country in omdb_movie.countries]
+                    countries = [Country.objects.get_or_create(name=country.name)[0] for country in
+                                 omdb_movie.countries]
                     movie_instance.countries.set(countries)
                 if omdb_movie.writers:
-                    writers = [Writer.objects.get_or_create(full_name=writer.full_name)[0] for writer in omdb_movie.writers]
+                    writers = [Writer.objects.get_or_create(full_name=writer.full_name)[0] for writer in
+                               omdb_movie.writers]
                     movie_instance.writers.set(writers)
             return movie_instance
 
@@ -184,7 +190,8 @@ class MovieRepository:
                     countries=[CountryDTO(country.name) for country in movie_instance.countries.all()],
                     awards=movie_instance.awards,
                     poster=movie_instance.poster,
-                    ratings=[RatingDTO(source=rating.source, value=rating.value) for rating in movie_instance.movie_ratings.all()],
+                    ratings=[RatingDTO(source=rating.source, value=rating.value) for rating in
+                             movie_instance.movie_ratings.all()],
                     metascore=movie_instance.metascore,
                     imdb_rating=movie_instance.imdb_rating,
                     imdb_votes=movie_instance.imdb_votes,
@@ -277,10 +284,12 @@ class RecommendationRepository:
             RecommendedMovie.objects.bulk_create(entries_to_create)
 
     def get_user_activity_summary(self, user_id: int) -> UserActivitySummary:
-        user_movies = Movie.objects.filter(Q(likemovie__user_id=user_id) | Q(watchlatermovie__user_id=user_id)).distinct()
+        user_movies = Movie.objects.filter(
+            Q(likemovie__user_id=user_id) | Q(watchlatermovie__user_id=user_id)).distinct()
 
         top_genres = list(
-            user_movies.values('genres__name').exclude(genres__name__isnull=True).annotate(count=Count('genres__name')).order_by('-count')[:5]
+            user_movies.values('genres__name').exclude(genres__name__isnull=True).annotate(
+                count=Count('genres__name')).order_by('-count')[:5]
         )
         top_directors = list(
             user_movies.values('directors__full_name')
@@ -296,10 +305,12 @@ class RecommendationRepository:
         )
 
         liked_titles = list(
-            LikeMovie.objects.filter(user_id=user_id).select_related('movie').order_by('-created_at').values_list('movie__title', flat=True)[:5]
+            LikeMovie.objects.filter(user_id=user_id).select_related('movie').order_by('-created_at').values_list(
+                'movie__title', flat=True)[:5]
         )
         watch_later_titles = list(
-            WatchLaterMovie.objects.filter(user_id=user_id).select_related('movie').order_by('-created_at').values_list('movie__title', flat=True)[:5]
+            WatchLaterMovie.objects.filter(user_id=user_id).select_related('movie').order_by('-created_at').values_list(
+                'movie__title', flat=True)[:5]
         )
 
         return UserActivitySummary(
@@ -409,3 +420,9 @@ class RecommendationRepository:
             is_watch_later=bool(getattr(movie, 'is_watch_later', False)),
             watch_later_count=int(getattr(movie, 'watch_later_count', 0) or 0),
         )
+
+
+class GenreRepository:
+    def get_all(self) -> list[GenreDTO]:
+        genres = Genre.objects.values_list('name', flat=True).distinct()
+        return [GenreDTO(name=g) for g in genres]

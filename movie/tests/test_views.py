@@ -276,7 +276,6 @@ class MovieModelRepresentationTests(APITestCase):
 
         self.assertEqual(str(recommendation), f'{user} | {movie} | {recommendation.recommendation_date}')
 
-
 class GenreListViewTests(APITestCase):
     @classmethod
     def setUpTestData(cls):
@@ -290,6 +289,7 @@ class GenreListViewTests(APITestCase):
         response = self.client.get(url)
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
+        # self.assertEqual(response.data['genres'], {'genres': ['Comedy', 'Animation', 'Fantasy', 'Horror']})
         self.assertCountEqual(response.data['genres'], ['Comedy', 'Animation', 'Fantasy', 'Horror'])
 
 

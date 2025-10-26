@@ -11,14 +11,14 @@ from .dataclasses import (
     UserActivitySummary,
     UserContext,
 )
-from .repositories import MovieRepository, RecommendationRepository
+from .repositories import MovieRepository, RecommendationRepository, GenreRepository
 
 
 class MovieService:
     def __init__(
-        self,
-        movie_repository: MovieRepository | None = None,
-        ai_client: FindMovieAiClient | None = None,
+            self,
+            movie_repository: MovieRepository | None = None,
+            ai_client: FindMovieAiClient | None = None,
     ):
         self.movie_repository = movie_repository or MovieRepository()
         self.ai_client = ai_client or SearchFindMovieAiClient()
@@ -42,7 +42,8 @@ class RecommendationPromptService:
         director_list = ', '.join(activity_summary.top_directors) or 'mixed directors'
         actor_list = ', '.join(activity_summary.top_actors) or 'mixed casts'
         liked_list = ', '.join(activity_summary.liked_titles) if activity_summary.liked_titles else 'None'
-        watch_later_list = ', '.join(activity_summary.watch_later_titles) if activity_summary.watch_later_titles else 'None'
+        watch_later_list = ', '.join(
+            activity_summary.watch_later_titles) if activity_summary.watch_later_titles else 'None'
 
         prompt = textwrap.dedent(
             f"""
@@ -61,11 +62,11 @@ class RecommendationPromptService:
 
 class MovieRecommendationService:
     def __init__(
-        self,
-        recommendation_repository: RecommendationRepository | None = None,
-        movie_repository: MovieRepository | None = None,
-        prompt_service: RecommendationPromptService | None = None,
-        ai_client: FindMovieAiClient | None = None,
+            self,
+            recommendation_repository: RecommendationRepository | None = None,
+            movie_repository: MovieRepository | None = None,
+            prompt_service: RecommendationPromptService | None = None,
+            ai_client: FindMovieAiClient | None = None,
     ):
         self.recommendation_repository = recommendation_repository or RecommendationRepository()
         self.movie_repository = movie_repository or MovieRepository()
@@ -89,10 +90,20 @@ class MovieRecommendationService:
                 omdb_movies = self.movie_repository.search_movies_in_omdb(list(requested_titles), user_context.id)
                 omdb_titles = {movie.title for movie in omdb_movies if movie.title}
                 if omdb_titles:
-                    recommended_movies = self.recommendation_repository.get_movies_by_titles(list(omdb_titles), user_context.id)
+                    recommended_movies = self.recommendation_repository.get_movies_by_titles(list(omdb_titles),
+                                                                                             user_context.id)
 
         if not recommended_movies:
             recommended_movies = self.recommendation_repository.get_popular_movies(user_context.id)
 
-        self.recommendation_repository.replace_cached_recommendations(user_context.id, today, [movie.id for movie in recommended_movies])
+        self.recommendation_repository.replace_cached_recommendations(user_context.id, today,
+                                                                      [movie.id for movie in recommended_movies])
         return recommended_movies
+
+
+class GenreService:
+    def __init__(self, genre_repository: GenreRepository | None = None):
+        self.genre_repository = genre_repository or GenreRepository()
+
+    def get_all_genres(self):
+        return self.genre_repository.get_all()
