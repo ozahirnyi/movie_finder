@@ -3,7 +3,7 @@ from django.db.models import Case, Count, Max, Value, When
 from django_filters.rest_framework import DjangoFilterBackend
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework import generics, permissions, status
-from rest_framework.filters import OrderingFilter
+from rest_framework.filters import OrderingFilter, SearchFilter
 from rest_framework.generics import (
     CreateAPIView,
     DestroyAPIView,
@@ -15,6 +15,9 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from throttling.throttling import (
+    AiSearchForwardedThrottle,
+    AiSearchIpThrottle,
+    AiSearchUaThrottle,
     RegularSearchForwardedThrottle,
     RegularSearchIpThrottle,
     RegularSearchUaThrottle,
@@ -129,11 +132,11 @@ class MoviesListView(ListAPIView):
 
 class MoviesSearchView(APIView):
     permission_classes = [permissions.AllowAny]
-    # throttle_classes = [
-    #     RegularSearchUaThrottle,
-    #     RegularSearchIpThrottle,
-    #     RegularSearchForwardedThrottle,
-    # ]
+    throttle_classes = [
+        RegularSearchUaThrottle,
+        RegularSearchIpThrottle,
+        RegularSearchForwardedThrottle,
+    ]
 
     @extend_schema(
         request=FindMovieSearchViewRequestSerializer,
