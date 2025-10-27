@@ -1,8 +1,8 @@
 from django.db import IntegrityError
-from django.db.models import Case, Count, Value, When, F
+from django.db.models import Case, Count, Value, When
 from django_filters.rest_framework import DjangoFilterBackend
 from drf_spectacular.utils import OpenApiParameter, extend_schema
-from rest_framework import permissions, status, generics
+from rest_framework import generics, permissions, status
 from rest_framework.filters import OrderingFilter
 from rest_framework.generics import (
     CreateAPIView,
@@ -26,7 +26,7 @@ from throttling.throttling import (
 from .dataclasses import UserContext
 from .errors import AddLikeError
 from .filters import MovieFilter, WatchLaterFilter
-from .models import Genre, LikeMovie, Movie, WatchLaterMovie
+from .models import LikeMovie, Movie, WatchLaterMovie
 from .paginations import MoviesPagination
 from .serializers import (
     FindMovieAiSearchViewRequestSerializer,
@@ -39,9 +39,9 @@ from .serializers import (
     WatchLaterListSerializer,
     WatchLaterStatisticsGenreSerializer,
     WatchLaterStatisticsRatingSerializer,
-    WatchLaterStatisticsSerializer, GenreListSerializer, GenreModelSerializer,
+    WatchLaterStatisticsSerializer,
 )
-from .services import MovieRecommendationService, MovieService, GenreService
+from .services import GenreService, MovieRecommendationService, MovieService
 
 
 class MovieView(RetrieveAPIView):
@@ -50,8 +50,7 @@ class MovieView(RetrieveAPIView):
     lookup_field = 'id'
 
     def get_queryset(self):
-        return Movie.objects.with_is_liked(self.request.user.id).with_is_watch_later(
-            self.request.user.id).with_likes_count().with_watch_later_count()
+        return Movie.objects.with_is_liked(self.request.user.id).with_is_watch_later(self.request.user.id).with_likes_count().with_watch_later_count()
 
 
 class MovieLikeView(CreateAPIView):
@@ -83,8 +82,7 @@ class MovieUnlikeView(GenericAPIView):
             description='Comma-separated list of ordering fields. Prefix with `-` for descending order.',
             required=False,
             type=str,
-            enum=['-imdb_id', 'imdb_id', '-title', 'title', '-genre', 'genre', '-year', 'year', '-likes_count',
-                  'likes_count'],
+            enum=['-imdb_id', 'imdb_id', '-title', 'title', '-genre', 'genre', '-year', 'year', '-likes_count', 'likes_count'],
         ),
     ]
 )
@@ -175,8 +173,7 @@ class WatchLaterCreateView(CreateAPIView):
             description='Comma-separated list of ordering fields. Prefix with `-` for descending order.',
             required=False,
             type=str,
-            enum=['-imdb_id', 'imdb_id', '-title', 'title', '-genre', 'genre', '-year', 'year', '-likes_count',
-                  'likes_count'],
+            enum=['-imdb_id', 'imdb_id', '-title', 'title', '-genre', 'genre', '-year', 'year', '-likes_count', 'likes_count'],
         ),
     ]
 )
@@ -206,14 +203,10 @@ class WatchLaterStatisticsView(APIView):
     def get(self, request, *args, **kwargs):
         rating_stats = WatchLaterMovie.objects.filter(user=self.request.user).aggregate(
             ratings_9_plus=Count(Case(When(movie__movie_ratings__value__gte='9.0', then=Value(1)))),
-            ratings_8_to_9=Count(Case(
-                When(movie__movie_ratings__value__gte='8.0', movie__movie_ratings__value__lt='9.0', then=Value(1)))),
-            ratings_7_to_8=Count(Case(
-                When(movie__movie_ratings__value__gte='7.0', movie__movie_ratings__value__lt='8.0', then=Value(1)))),
-            ratings_6_to_7=Count(Case(
-                When(movie__movie_ratings__value__gte='6.0', movie__movie_ratings__value__lt='7.0', then=Value(1)))),
-            ratings_5_to_6=Count(Case(
-                When(movie__movie_ratings__value__gte='5.0', movie__movie_ratings__value__lt='6.0', then=Value(1)))),
+            ratings_8_to_9=Count(Case(When(movie__movie_ratings__value__gte='8.0', movie__movie_ratings__value__lt='9.0', then=Value(1)))),
+            ratings_7_to_8=Count(Case(When(movie__movie_ratings__value__gte='7.0', movie__movie_ratings__value__lt='8.0', then=Value(1)))),
+            ratings_6_to_7=Count(Case(When(movie__movie_ratings__value__gte='6.0', movie__movie_ratings__value__lt='7.0', then=Value(1)))),
+            ratings_5_to_6=Count(Case(When(movie__movie_ratings__value__gte='5.0', movie__movie_ratings__value__lt='6.0', then=Value(1)))),
             ratings_below_5=Count(Case(When(movie__movie_ratings__value__lt='5.0', then=Value(1)))),
         )
         ratings_serializer = WatchLaterStatisticsRatingSerializer(data=rating_stats)
