@@ -61,6 +61,7 @@ class OmdbMovie:
     imdb_id: str | None = None
     type: str | None = None
     total_seasons: str | None = None
+    id: int | None = None
 
 
 @dataclass

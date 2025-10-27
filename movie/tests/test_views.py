@@ -1,4 +1,5 @@
 import random
+from datetime import timedelta
 from typing import List
 from unittest.mock import patch
 
@@ -27,7 +28,7 @@ def _issue_jwt(client, user):
 class FinderTests(APITestCase):
     @classmethod
     def setUpTestData(cls):
-        cls.movie = Movie.objects.create(title='Test Movie', imdb_id='tt000001')
+        cls.movie = Movie.objects.create(title='Test Movie', imdb_id='tt000001', imdb_rating='7.5')
 
     def setUp(self) -> None:
         self.user = get_user_model().objects.create_user(email='neo@matrix.test', password='thereisnospoon')
@@ -71,7 +72,7 @@ class FinderTests(APITestCase):
             ),
         ]
         mock_search_omdb.return_value = [
-            OmdbMovie(title='Shrek', imdb_id='tt0126029', genres=[GenreDTO(name='Animation')]),
+            OmdbMovie(title='Shrek', imdb_id='tt0126029', genres=[GenreDTO(name='Animation')], id=self.movie.id),
         ]
 
         response = self.client.post(
@@ -82,6 +83,7 @@ class FinderTests(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data[0]['title'], 'Shrek')
+        self.assertEqual(response.data[0]['id'], self.movie.id)
         mock_imdb.assert_called_once_with('Shrek')
         mock_search_omdb.assert_called_once()
 
@@ -107,6 +109,26 @@ class FinderTests(APITestCase):
         self.assertEqual(response.data['results'][0]['id'], self.movie.id)
         self.assertTrue(response.data['results'][0]['is_watch_later'])
 
+    def test_watch_later_ordering_by_added_at(self):
+        older_movie = Movie.objects.create(title='Older Movie', imdb_id='tt000002')
+        newer_movie = Movie.objects.create(title='Newer Movie', imdb_id='tt000003')
+
+        older_entry = WatchLaterMovie.objects.create(user=self.user, movie=older_movie)
+        WatchLaterMovie.objects.create(user=self.user, movie=newer_movie)
+
+        earlier_time = timezone.now() - timedelta(days=1)
+        WatchLaterMovie.objects.filter(pk=older_entry.pk).update(created_at=earlier_time)
+
+        response = self.client.get(reverse('watch_later_list'), {'ordering': 'added_at'})
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        ascending_ids = [item['id'] for item in response.data['results']]
+        self.assertEqual(ascending_ids, [older_movie.id, newer_movie.id])
+
+        response_desc = self.client.get(reverse('watch_later_list'), {'ordering': '-added_at'})
+        self.assertEqual(response_desc.status_code, status.HTTP_200_OK)
+        descending_ids = [item['id'] for item in response_desc.data['results']]
+        self.assertEqual(descending_ids, [newer_movie.id, older_movie.id])
+
     def test_watch_later_statistics(self):
         genres = [Genre.objects.create(name=f'Genre {idx}') for idx in range(6)]
         rating_values = ['9.1', '8.5', '7.5', '6.5', '5.5', '4.5']
@@ -128,6 +150,30 @@ class FinderTests(APITestCase):
         self.assertEqual(ratings['ratings_5_to_6'], 1)
         self.assertEqual(ratings['ratings_below_5'], 1)
         self.assertEqual(response.data['genres'][0]['count'], 1)
+
+    def test_watch_later_filter_by_rating(self):
+        high_rated = Movie.objects.create(title='Highly Rated', imdb_id='tt010001', imdb_rating='9.0')
+        low_rated = Movie.objects.create(title='Low Rated', imdb_id='tt010002', imdb_rating='5.0')
+        WatchLaterMovie.objects.create(user=self.user, movie=high_rated)
+        WatchLaterMovie.objects.create(user=self.user, movie=low_rated)
+
+        response = self.client.get(reverse('watch_later_list'), {'rating_min': 8})
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        titles = [movie['title'] for movie in response.data['results']]
+        self.assertEqual(titles, ['Highly Rated'])
+
+    def test_watch_later_search(self):
+        mystery_movie = Movie.objects.create(title='Mystery Story', imdb_id='tt020001', imdb_rating='7.0')
+        action_movie = Movie.objects.create(title='Action Blast', imdb_id='tt020002', imdb_rating='8.0')
+        WatchLaterMovie.objects.create(user=self.user, movie=mystery_movie)
+        WatchLaterMovie.objects.create(user=self.user, movie=action_movie)
+
+        response = self.client.get(reverse('watch_later_list'), {'search': 'Mystery'})
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        titles = [movie['title'] for movie in response.data['results']]
+        self.assertEqual(titles, ['Mystery Story'])
 
 
 class FindMovieAiTests(APITestCase):
@@ -151,6 +197,7 @@ class FindMovieAiTests(APITestCase):
                         imdb_id=movie.imdb_id,
                         plot=f'Plot for {title}',
                         genres=[GenreDTO(name='Animation')],
+                        id=movie.id,
                     )
                 )
             return results
@@ -168,6 +215,7 @@ class FindMovieAiTests(APITestCase):
         self.assertTrue(Movie.objects.filter(title='Shrek').exists())
         self.assertEqual(response.data[0]['genres'][0]['name'], 'Animation')
         self.assertEqual(response.data[0]['plot'], 'Plot for Shrek')
+        self.assertIsNotNone(response.data[0]['id'])
 
     def test_prompt_max_length(self):
         max_length = 255
@@ -186,10 +234,10 @@ class FindMovieFiltersTests(APITestCase):
         cls.genre_comedy = Genre.objects.create(name='Comedy')
         cls.genre_animation = Genre.objects.create(name='Animation')
 
-        cls.shrek = Movie.objects.create(title='Shrek', imdb_id='tt000010', year='2001')
+        cls.shrek = Movie.objects.create(title='Shrek', imdb_id='tt000010', year='2001', imdb_rating='7.2')
         cls.shrek.genres.add(cls.genre_comedy)
 
-        cls.shrek_2 = Movie.objects.create(title='Shrek 2', imdb_id='tt000020', year='2004')
+        cls.shrek_2 = Movie.objects.create(title='Shrek 2', imdb_id='tt000020', year='2004', imdb_rating='8.6')
         cls.shrek_2.genres.add(cls.genre_animation)
 
         cls.user = get_user_model().objects.create_user(email='morpheus@matrix.test', password='redpillbluepill')
@@ -225,6 +273,20 @@ class FindMovieFiltersTests(APITestCase):
 
     def test_filter_by_imdb_id(self):
         response = self._get_movies({'imdb_id': 'tt000010'})
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        titles = [movie['title'] for movie in response.data['results']]
+        self.assertEqual(titles, ['Shrek'])
+
+    def test_filter_by_rating_min(self):
+        response = self._get_movies({'rating_min': 8})
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        titles = [movie['title'] for movie in response.data['results']]
+        self.assertEqual(titles, ['Shrek 2'])
+
+    def test_filter_by_rating_max(self):
+        response = self._get_movies({'rating_max': 7.5})
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         titles = [movie['title'] for movie in response.data['results']]
