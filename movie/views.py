@@ -32,10 +32,10 @@ from .serializers import (
     EmptySerializer,
     FindMovieAiSearchViewRequestSerializer,
     FindMovieSearchViewRequestSerializer,
-    GenreModelSerializer,
     MovieModelSerializer,
     MovieRecommendationSerializer,
     MovieSerializer,
+    StructuresSerializer,
     WatchLaterCreateSerializer,
     WatchLaterListSerializer,
     WatchLaterStatisticsSerializer,
@@ -260,13 +260,14 @@ class WatchLaterDestroyView(DestroyAPIView):
 
 
 class StructuresListView(generics.GenericAPIView):
-    serializer_class = GenreModelSerializer
+    serializer_class = StructuresSerializer
 
     def get(self, request, *args, **kwargs):
         service = GenreService()
         genres = service.get_all_genres()
-        serializer = self.get_serializer(genres, many=True)
-        return Response({'genres': serializer.data}, status=status.HTTP_200_OK)
+        data = {'genres': genres}
+        serializer = self.get_serializer(data)
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
 
 class MoviesRecommendationsView(GenericAPIView):

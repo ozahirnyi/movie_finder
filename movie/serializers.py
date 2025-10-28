@@ -21,11 +21,15 @@ class LikesWatchLaterSerializer(serializers.Serializer):
     is_watch_later = serializers.BooleanField(read_only=True, default=False)
 
 
-class GenreModelSerializer(serializers.Serializer):
+class GenreDTOSerializer(serializers.Serializer):
     name = serializers.CharField()
 
     def to_representation(self, instance: GenreDTO):
         return instance.name
+
+
+class StructuresSerializer(serializers.Serializer):
+    genres = GenreDTOSerializer(many=True)
 
 
 class EmptySerializer(serializers.Serializer):
@@ -69,7 +73,7 @@ class WriterModelSerializer(serializers.ModelSerializer):
 
 
 class MovieModelSerializer(serializers.ModelSerializer, LikesWatchLaterSerializer):
-    genres = GenreModelSerializer(many=True, read_only=True)
+    genres = GenreDTOSerializer(many=True, read_only=True)
     actors = ActorModelSerializer(many=True, read_only=True)
     directors = DirectorModelSerializer(many=True, read_only=True)
     ratings = RatingModelSerializer(many=True, read_only=True)
