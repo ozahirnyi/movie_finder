@@ -2,7 +2,7 @@ from django.db import IntegrityError
 from django.db.models import Case, Count, Max, Value, When
 from django_filters.rest_framework import DjangoFilterBackend
 from drf_spectacular.utils import OpenApiParameter, extend_schema
-from rest_framework import permissions, status
+from rest_framework import generics, permissions, status
 from rest_framework.filters import OrderingFilter, SearchFilter
 from rest_framework.generics import (
     CreateAPIView,
@@ -15,6 +15,9 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from throttling.throttling import (
+    AiSearchForwardedThrottle,
+    AiSearchIpThrottle,
+    AiSearchUaThrottle,
     RegularSearchForwardedThrottle,
     RegularSearchIpThrottle,
     RegularSearchUaThrottle,
@@ -32,11 +35,12 @@ from .serializers import (
     MovieModelSerializer,
     MovieRecommendationSerializer,
     MovieSerializer,
+    StructuresSerializer,
     WatchLaterCreateSerializer,
     WatchLaterListSerializer,
     WatchLaterStatisticsSerializer,
 )
-from .services import MovieRecommendationService, MovieService
+from .services import GenreService, MovieRecommendationService, MovieService
 
 
 class MovieView(RetrieveAPIView):
@@ -128,11 +132,11 @@ class MoviesListView(ListAPIView):
 
 class MoviesSearchView(APIView):
     permission_classes = [permissions.AllowAny]
-    # throttle_classes = [
-    #     RegularSearchUaThrottle,
-    #     RegularSearchIpThrottle,
-    #     RegularSearchForwardedThrottle,
-    # ]
+    throttle_classes = [
+        RegularSearchUaThrottle,
+        RegularSearchIpThrottle,
+        RegularSearchForwardedThrottle,
+    ]
 
     @extend_schema(
         request=FindMovieSearchViewRequestSerializer,
@@ -150,11 +154,12 @@ class MoviesSearchView(APIView):
 
 class MoviesAiSearchView(APIView):
     permission_classes = [permissions.IsAuthenticated]
-    # throttle_classes = [
-    #     AiSearchUaThrottle,
-    #     AiSearchIpThrottle,
-    #     AiSearchForwardedThrottle,
-    # ]
+
+    throttle_classes = [
+        AiSearchUaThrottle,
+        AiSearchIpThrottle,
+        AiSearchForwardedThrottle,
+    ]
 
     @extend_schema(
         request=FindMovieAiSearchViewRequestSerializer,
@@ -252,6 +257,17 @@ class WatchLaterDestroyView(DestroyAPIView):
         WatchLaterMovie.objects.filter(user_id=self.request.user.id, movie_id=kwargs.get('pk')).delete()
 
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class StructuresListView(generics.GenericAPIView):
+    serializer_class = StructuresSerializer
+
+    def get(self, request, *args, **kwargs):
+        service = GenreService()
+        genres = service.get_all_genres()
+        data = {'genres': genres}
+        serializer = self.get_serializer(data)
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
 
 class MoviesRecommendationsView(GenericAPIView):
