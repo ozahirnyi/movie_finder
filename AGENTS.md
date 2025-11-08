@@ -62,6 +62,7 @@ Authoritative playbook for coding agents collaborating on the Movie Finder API. 
 ## Coding Guidelines for Agents
 - Operate within ASCII unless the target file already uses Unicode.
 - Mirror existing module boundaries: domain code in `movie/`, authentication in `auth_app/`, shared utilities in `utils/`.
+- Service layer code must stay framework-agnostic: do not import Django or touch ORM/querysets from services. Repositories handle persistence while services consume/return DTOs defined in `movie/dataclasses.py` (or the respective app’s dataclasses) for all cross-layer data transfer.
 - When integrating new external APIs, surface configuration keys in `.env`, update `movie_finder_django/settings.py`, and document them in `README.md`.
 - Persist secrets and tokens only through environment variables; never commit credentials or real keys.
 - Ensure new endpoints are covered by DRF serializers, URLs, and permission classes; update throttling rules if rates change.

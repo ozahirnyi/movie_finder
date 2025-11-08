@@ -84,10 +84,10 @@ indent-style = "space"
 DJANGO_SETTINGS_MODULE = "movie_finder_django.settings"
 pythonpath = ["."]
 python_files = ["test_*.py", "*_tests.py", "tests.py"]
-testpaths = ["auth_app", "movie", "throttling"]
+testpaths = ["auth_app", "movie", "collection", "throttling"]
 
 [tool.coverage.run]
-source = ["auth_app", "movie", "throttling", "movie_finder_django"]
+source = ["auth_app", "movie", "collection", "throttling", "movie_finder_django"]
 
 [tool.coverage.report]
 fail_under = 100
