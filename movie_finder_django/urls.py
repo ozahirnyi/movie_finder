@@ -72,4 +72,8 @@ swagger_patterns = [
 ]
 
 
-urlpatterns = auth_patterns + users_patterns + admin_patterns + movies_patterns + swagger_patterns
+collections_patterns = [
+    path('', include('collection.urls')),
+]
+
+urlpatterns = auth_patterns + users_patterns + admin_patterns + movies_patterns + collections_patterns + swagger_patterns

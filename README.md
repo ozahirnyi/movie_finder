@@ -6,6 +6,7 @@ A Django REST API for discovering and organising movies. The service integrates 
 - **Movie catalogue** – PostgreSQL-backed catalogue enriched on-demand from IMDB (CollectAPI) and OMDB.
 - **AI-assisted discovery** – Anthropic Claude Sonnet generates contextual movie suggestions which are then resolved against OMDB.
 - **Personal lists** – Users can like titles or queue them for later, with aggregate statistics across their watch-later list.
+- **Collections** – Curated groups of movies that can be private or public, created by users or admins, with full CRUD support.
 - **Search & filtering** – Rich filtering, ordering, and pagination for stored titles plus on-demand external searches.
 - **Authentication** – Email-based accounts using a custom user model, JWT token issuance (`/token/`, `/token/refresh/`), Google OAuth sign-in via Allauth.
 - **Throttling & safety** – Per-user-agent/IP throttles guard public search endpoints; requests must include a `User-Agent` header.
@@ -16,6 +17,7 @@ A Django REST API for discovering and organising movies. The service integrates 
 | ------ | -------------- |
 | `auth_app` | Custom `User` model, signup and password change APIs, Google OAuth wiring.
 | `movie` | Domain models, serializers, filters, services integrating external data sources, AI search client, watch-later and like flows.
+| `collection` | Collection models with repository/service layers and CRUD API for public/private movie groupings.
 | `throttling` | Custom DRF throttles tied to IP, forwarded IP and user-agent fingerprints.
 | `utils` | Development helpers (e.g. SQL query logging decorator).
 | `movie_finder_django` | Project settings, URL routing, DRF/Allauth/SimpleJWT configuration.
@@ -114,6 +116,11 @@ Base URL defaults to the server root (no `/api/` prefix). Selected endpoints:
 | `POST` | `/watch_later/create/` | JWT | Add a movie to the watch-later list (expects `movie` id).
 | `DELETE` | `/watch_later/<pk>/destroy/` | JWT | Remove a movie from watch-later.
 | `GET` | `/watch_later/statistics/` | JWT | Aggregated ratings buckets and genre breakdown for the user’s queue.
+| `GET` | `/collections/` | Optional | List public collections plus any owned by the requester; supports `is_public` and `owner_id` filters.
+| `POST` | `/collections/` | JWT | Create a collection with `name`, optional `description`, `is_public`, and `movie_ids`.
+| `GET` | `/collections/<collection_id>/` | Optional | Retrieve collection details (private collections require owner/admin access).
+| `PATCH` | `/collections/<collection_id>/` | JWT | Update collection metadata or replace `movie_ids` (owner/admin only).
+| `DELETE` | `/collections/<collection_id>/` | JWT | Delete a collection (owner/admin only).
 | `GET` | `/api/swagger/` | Public | Interactive Swagger UI (schema at `/api/schema/`).
 | `GET` | `/api/redoc/` | Public | Redoc documentation UI.
 
