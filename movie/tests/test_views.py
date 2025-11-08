@@ -352,7 +352,10 @@ class GenreListViewTests(APITestCase):
         response = self.client.get(url)
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertCountEqual(response.data['genres'], ['Comedy', 'Animation', 'Fantasy', 'Horror'])
+        expected_genres = sorted(['Comedy', 'Animation', 'Fantasy', 'Horror'])
+        actual_genres = sorted(response.data['genres'])
+
+        self.assertEqual(actual_genres, expected_genres)
 
 
 class RecommendedMoviesTests(APITestCase):

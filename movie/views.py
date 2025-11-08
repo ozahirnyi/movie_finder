@@ -265,7 +265,8 @@ class StructuresListView(generics.GenericAPIView):
     def get(self, request, *args, **kwargs):
         service = GenreService()
         genres = service.get_all_genres()
-        data = {'genres': genres}
+        genre_names = [genre.name for genre in genres]
+        data = {'genres': genre_names}
         serializer = self.get_serializer(data)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
