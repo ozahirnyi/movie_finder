@@ -122,6 +122,11 @@ Base URL defaults to the server root (no `/api/` prefix). Selected endpoints:
 ## Throttling
 Rate limits are enforced on search endpoints (`MoviesListView`, `MoviesSearchView`). Daily limits apply per user agent/IP: regular search allows 10 (UA) / 20 (IP) requests per day; AI search is stricter (2 per UA, 6 per IP). Missing `User-Agent` headers trigger a validation error.
 
+## AI usage tiers
+- Django admin exposes `Account tiers` to configure per-day AI search quotas; defaults: `free` (3), `premium` (30), `admin` (100).
+- Users inherit the default tier on creation and can be reassigned via the admin `Users` page.
+- Each AI movie search consumes one quota unit; limits reset daily per user.
+
 ## Testing & Quality
 ```bash
 make test          # or: poetry run pytest

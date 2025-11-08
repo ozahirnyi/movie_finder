@@ -1,16 +1,23 @@
+from importlib import import_module
 from unittest.mock import patch
 
 from allauth.socialaccount.models import SocialAccount, SocialApp, SocialLogin
 from allauth.socialaccount.providers.google.views import GoogleOAuth2Adapter
+from django.apps import apps as django_apps
+from django.contrib.admin.sites import AdminSite
 from django.contrib.auth import get_user_model
 from django.contrib.sites.models import Site
-from django.test import Client, TestCase
+from django.test import Client, RequestFactory, TestCase
 from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APITestCase
 from rest_framework_simplejwt.tokens import RefreshToken
 
+from auth_app.admin import AccountTierAdmin
 from auth_app.errors import ChangePasswordError
+from auth_app.forms import UserChangeForm, UserCreationForm
+from auth_app.models import AccountTier
+from auth_app.repositories import AccountTierRepository
 from auth_app.serializers import SignUpSerializer
 
 
@@ -170,3 +177,185 @@ class SignUpSerializerTests(TestCase):
 
         self.assertFalse(serializer.is_valid())
         self.assertIn('password', serializer.errors)
+
+
+class UserFormTests(TestCase):
+    def setUp(self):
+        self.account_tier = AccountTier.objects.create(
+            code='forms-tier',
+            name='Forms Tier',
+            daily_ai_search_limit=1,
+            is_default=False,
+        )
+
+    def test_user_creation_form_requires_matching_passwords(self):
+        form = UserCreationForm(
+            data={
+                'email': 'forms@example.com',
+                'account_tier': self.account_tier.pk,
+                'is_staff': False,
+                'is_superuser': False,
+                'password1': 'StrongPass123',
+                'password2': 'MismatchPass123',
+            }
+        )
+
+        self.assertFalse(form.is_valid())
+        self.assertIn('Passwords do not match.', form.errors['password2'])
+
+    def test_user_creation_form_saves_hashed_password(self):
+        form = UserCreationForm(
+            data={
+                'email': 'created@example.com',
+                'account_tier': self.account_tier.pk,
+                'is_staff': True,
+                'is_superuser': False,
+                'password1': 'MatchingPass123!',
+                'password2': 'MatchingPass123!',
+            }
+        )
+
+        self.assertTrue(form.is_valid())
+        user = form.save()
+
+        self.assertNotEqual(user.password, 'MatchingPass123!')
+        self.assertTrue(user.check_password('MatchingPass123!'))
+
+    def test_user_change_form_returns_initial_password(self):
+        user = User.objects.create_user(email='change@example.com', password='ChangePass123!')
+        form = UserChangeForm(
+            instance=user,
+            data={
+                'email': user.email,
+                'password': user.password,
+                'account_tier': user.account_tier.pk,
+                'is_active': user.is_active,
+                'is_staff': user.is_staff,
+                'is_superuser': user.is_superuser,
+            },
+        )
+
+        self.assertTrue(form.is_valid())
+        self.assertEqual(form.cleaned_data['password'], user.password)
+
+
+class AccountTierAdminTests(TestCase):
+    def setUp(self):
+        self.factory = RequestFactory()
+        self.admin_site = AdminSite()
+        self.account_tier = AccountTier.objects.create(
+            code='admin-tier',
+            name='Admin Tier',
+            daily_ai_search_limit=5,
+            is_default=True,
+        )
+        self.admin = AccountTierAdmin(AccountTier, self.admin_site)
+
+    def test_save_model_enforces_single_default(self):
+        request = self.factory.post('/admin/auth_app/accounttier/')
+        with patch('auth_app.admin.AccountTierRepository') as repo_cls:
+            repo_instance = repo_cls.return_value
+            self.admin.save_model(request, self.account_tier, form=None, change=True)
+
+        repo_instance.enforce_single_default.assert_called_once_with(self.account_tier)
+
+
+class AccountTierModelTests(TestCase):
+    def test_str_includes_quota(self):
+        tier = AccountTier.objects.create(
+            code='string-tier',
+            name='String Tier',
+            daily_ai_search_limit=7,
+            is_default=False,
+        )
+
+        self.assertEqual(str(tier), 'String Tier (7/day)')
+
+
+class AccountTierRepositoryTests(TestCase):
+    def setUp(self):
+        AccountTier.objects.all().delete()
+        self.repo = AccountTierRepository()
+
+    def test_resolve_returns_explicit_tier(self):
+        tier = AccountTier.objects.create(code='explicit', name='Explicit', daily_ai_search_limit=1, is_default=False)
+
+        self.assertEqual(self.repo.resolve(tier), tier)
+
+    def test_resolve_prefers_default_tier(self):
+        default_tier = AccountTier.objects.create(code='default', name='Default', daily_ai_search_limit=2, is_default=True)
+        AccountTier.objects.create(code='other', name='Other', daily_ai_search_limit=3, is_default=False)
+
+        self.assertEqual(self.repo.resolve(None), default_tier)
+
+    def test_resolve_falls_back_to_first_when_no_default(self):
+        fallback = AccountTier.objects.create(code='fallback', name='Fallback', daily_ai_search_limit=4, is_default=False)
+        AccountTier.objects.create(code='secondary', name='Secondary', daily_ai_search_limit=5, is_default=False)
+
+        self.assertEqual(self.repo.resolve(None), fallback)
+
+    def test_resolve_raises_when_no_tiers_exist(self):
+        AccountTier.objects.all().delete()
+
+        with self.assertRaises(ValueError):
+            self.repo.resolve(None)
+
+    def test_enforce_single_default_disables_other_defaults(self):
+        primary = AccountTier.objects.create(code='primary', name='Primary', daily_ai_search_limit=5, is_default=True)
+        secondary = AccountTier.objects.create(code='secondary-default', name='Secondary', daily_ai_search_limit=6, is_default=True)
+
+        self.repo.enforce_single_default(primary)
+        secondary.refresh_from_db()
+
+        self.assertFalse(secondary.is_default)
+
+
+class AccountTierMigrationTests(TestCase):
+    def setUp(self):
+        self.migration_module = import_module('auth_app.migrations.0002_account_tiers')
+        self.AccountTierModel = django_apps.get_model('auth_app', 'AccountTier')
+
+    def test_create_account_tiers_updates_existing_records(self):
+        AccountTier = self.AccountTierModel
+        AccountTier.objects.all().delete()
+        tier = AccountTier.objects.create(code='premium', name='Old Premium', daily_ai_search_limit=1, is_default=True)
+
+        self.migration_module.create_account_tiers(django_apps, None)
+        tier.refresh_from_db()
+
+        self.assertEqual(tier.daily_ai_search_limit, 30)
+        self.assertFalse(tier.is_default)
+        self.assertTrue(AccountTier.objects.filter(code='free').exists())
+
+    def test_create_account_tiers_falls_back_when_default_missing(self):
+        AccountTier = self.AccountTierModel
+        AccountTier.objects.all().delete()
+        fallback = AccountTier.objects.create(code='free', name='Fallback Free', daily_ai_search_limit=9, is_default=False)
+
+        original_get_or_create = AccountTier.objects.get_or_create
+        original_filter = AccountTier.objects.filter
+        filter_called = {'free': False}
+
+        def fake_get_or_create(*args, **kwargs):
+            if kwargs.get('code') == 'free':
+                return None, True
+            return original_get_or_create(*args, **kwargs)
+
+        def instrumented_filter(*args, **kwargs):
+            if kwargs.get('code') == 'free':
+                filter_called['free'] = True
+            return original_filter(*args, **kwargs)
+
+        with (
+            patch.object(AccountTier.objects, 'get_or_create', side_effect=fake_get_or_create),
+            patch.object(
+                AccountTier.objects,
+                'filter',
+                side_effect=instrumented_filter,
+            ),
+        ):
+            self.migration_module.create_account_tiers(django_apps, None)
+
+        self.assertTrue(filter_called['free'])
+        fallback.refresh_from_db()
+        self.assertFalse(AccountTier.objects.exclude(pk=fallback.pk).filter(is_default=True).exists())
