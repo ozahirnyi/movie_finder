@@ -14,8 +14,11 @@ from rest_framework.generics import (
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from auth_app.exceptions import AiSearchLimitExceeded
+from auth_app.repositories import UserRepository
+
 from .dataclasses import UserContext
-from .errors import AddLikeError
+from .errors import AddLikeError, AiSearchLimitError
 from .filters import MovieFilter, WatchLaterFilter
 from .models import LikeMovie, Movie, WatchLaterMovie
 from .paginations import MoviesPagination
@@ -152,6 +155,11 @@ class MoviesAiSearchView(APIView):
     def post(self, request, *args, **kwargs):
         input_serializer = FindMovieAiSearchViewRequestSerializer(data=request.data)
         input_serializer.is_valid(raise_exception=True)
+        user_repository = UserRepository()
+        try:
+            user_repository.consume_ai_search_quota(request.user)
+        except AiSearchLimitExceeded:
+            raise AiSearchLimitError
         movie_service = MovieService()
         ai_movies = movie_service.get_movies_from_ai(input_serializer.data.get('expression'))
         omdb_movies = movie_service.search_movies_in_omdb([movie.title for movie in ai_movies], self.request.user.id)
