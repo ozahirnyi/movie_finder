@@ -14,12 +14,6 @@ from rest_framework.generics import (
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from throttling.throttling import (
-    RegularSearchForwardedThrottle,
-    RegularSearchIpThrottle,
-    RegularSearchUaThrottle,
-)
-
 from .dataclasses import UserContext
 from .errors import AddLikeError
 from .filters import MovieFilter, WatchLaterFilter
@@ -105,11 +99,6 @@ class MoviesListView(ListAPIView):
     permission_classes = [permissions.AllowAny]
     serializer_class = MovieModelSerializer
     pagination_class = MoviesPagination
-    throttle_classes = [
-        RegularSearchUaThrottle,
-        RegularSearchIpThrottle,
-        RegularSearchForwardedThrottle,
-    ]
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
     filterset_class = MovieFilter
     search_fields = ['title']

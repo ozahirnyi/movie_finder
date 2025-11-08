@@ -72,6 +72,16 @@ make format            # Ruff formatter
 USE_DOCKER=1 make migrate   # Run manage.py command inside the running web container
 ```
 
+### Sample data
+A minimal PostgreSQL snapshot captured from the shared development database lives at `data/minimal_seed.sql`. Load it after running migrations so the API has a handful of users, movies, and related entities:
+```bash
+make load-minimal-data
+```
+The command connects to the database using `DB_*` values from your environment (falling back to the Docker defaults). To refresh the snapshot from your local Dockerised Postgres instance run:
+```bash
+mkdir -p data && docker compose exec db pg_dump -U postgres -d postgres --schema=public --data-only --column-inserts --no-owner --no-privileges > data/minimal_seed.sql
+```
+
 ### Database migrations
 Run migrations anytime models change:
 ```bash
