@@ -70,4 +70,9 @@ swagger_patterns = [
     path('api/redoc/', SpectacularRedocView.as_view(url_name='schema'), name='redoc'),
 ]
 
-urlpatterns = auth_patterns + users_patterns + admin_patterns + movies_patterns + swagger_patterns
+
+collections_patterns = [
+    path('', include('collection.urls')),
+]
+
+urlpatterns = auth_patterns + users_patterns + admin_patterns + movies_patterns + collections_patterns + swagger_patterns

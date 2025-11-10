@@ -227,6 +227,47 @@ class FindMovieAiTests(APITestCase):
         self.assertIn('expression', response.data)
         self.assertIn('Ensure this field has no more than', response.data['expression'][0])
 
+    @patch('movie.views.MovieService.search_movies_in_omdb')
+    @patch('movie.views.MovieService.get_movies_from_ai')
+    def test_ai_search_limit_enforced(self, mock_ai, mock_search):
+        mock_ai.return_value = []
+        mock_search.return_value = []
+        tier_limit = self.user.account_tier.daily_ai_search_limit
+        self.user.ai_search_count = tier_limit
+        self.user.ai_search_count_reset_at = timezone.now().date()
+        self.user.save(update_fields=['ai_search_count', 'ai_search_count_reset_at'])
+
+        response = self.client.post(
+            reverse('movies_ai_search'),
+            data={'expression': 'limit test'},
+            format='json',
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_429_TOO_MANY_REQUESTS)
+        mock_ai.assert_not_called()
+        mock_search.assert_not_called()
+
+    @patch('movie.views.MovieService.search_movies_in_omdb')
+    @patch('movie.views.MovieService.get_movies_from_ai')
+    def test_ai_search_limit_resets_daily(self, mock_ai, mock_search):
+        mock_ai.return_value = []
+        mock_search.return_value = []
+        yesterday = timezone.now().date() - timedelta(days=1)
+        tier_limit = self.user.account_tier.daily_ai_search_limit
+        self.user.ai_search_count = tier_limit
+        self.user.ai_search_count_reset_at = yesterday
+        self.user.save(update_fields=['ai_search_count', 'ai_search_count_reset_at'])
+
+        response = self.client.post(
+            reverse('movies_ai_search'),
+            data={'expression': 'reset me'},
+            format='json',
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        mock_ai.assert_called_once()
+        mock_search.assert_called_once()
+
 
 class FindMovieFiltersTests(APITestCase):
     @classmethod

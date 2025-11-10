@@ -61,6 +61,15 @@ makemigrations: ## Create new migrations
 collectstatic: ## Collect static files
 	$(MANAGE) collectstatic --noinput
 
+load-minimal-data: ## Load the bundled minimal dataset into Postgres
+	@echo "Loading data/minimal_seed.sql into $${DB_NAME:-postgres}..."
+	PGPASSWORD=$${DB_PASSWORD:-postgres} psql \
+		-h $${DB_HOST:-localhost} \
+		-p $${DB_PORT:-5433} \
+		-U $${DB_USER:-postgres} \
+		-d $${DB_NAME:-postgres} \
+		-f data/minimal_seed.sql
+
 createsuperuser: ## Create django superuser
 	$(MANAGE) createsuperuser
 

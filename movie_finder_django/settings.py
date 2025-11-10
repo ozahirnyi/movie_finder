@@ -24,7 +24,7 @@ SECRET_KEY = env('DJANGO_KEY', default='fallback_secret')
 
 DEBUG = env.bool('DEBUG', False)
 
-ALLOWED_HOSTS = ['0.0.0.0', '127.0.0.1', 'localhost']
+ALLOWED_HOSTS = env.list('ALLOWED_HOSTS', default=['0.0.0.0', '127.0.0.1', 'localhost'])
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -38,6 +38,7 @@ INSTALLED_APPS = [
     'rest_framework.authtoken',
     'drf_spectacular',
     'movie',
+    'collection',
     'auth_app',
     'django_filters',
     'allauth',
@@ -60,8 +61,8 @@ MIDDLEWARE = [
 
 ROOT_URLCONF = 'movie_finder_django.urls'
 
-CORS_ORIGIN_ALLOW_ALL = True
-
+CORS_ALLOWED_ORIGINS = env.list('CORS_ALLOWED_ORIGINS', default=[])
+CORS_ALLOW_ALL_ORIGINS = env.bool('CORS_ALLOW_ALL_ORIGINS', default=True)
 CORS_ALLOW_CREDENTIALS = True
 
 TEMPLATES = [
