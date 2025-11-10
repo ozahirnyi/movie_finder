@@ -16,7 +16,6 @@ from rest_framework.views import APIView
 
 from auth_app.exceptions import AiSearchLimitExceeded
 from auth_app.repositories import UserRepository
-
 from throttling.throttling import (
     AiSearchForwardedThrottle,
     AiSearchIpThrottle,
