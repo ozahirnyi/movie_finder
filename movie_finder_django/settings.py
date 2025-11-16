@@ -24,7 +24,9 @@ SECRET_KEY = env('DJANGO_KEY', default='fallback_secret')
 
 DEBUG = env.bool('DEBUG', False)
 
-ALLOWED_HOSTS = env.list('ALLOWED_HOSTS', default=['0.0.0.0', '127.0.0.1', 'localhost'])
+DEFAULT_ALLOWED_HOSTS = ['0.0.0.0', '127.0.0.1', 'localhost', 'movie-finder-70zg.onrender.com']
+ALLOWED_HOSTS = env.list('ALLOWED_HOSTS', default=DEFAULT_ALLOWED_HOSTS)
+CSRF_TRUSTED_ORIGINS = env.list('CSRF_TRUSTED_ORIGINS', default=[])
 
 INSTALLED_APPS = [
     'django.contrib.admin',

@@ -44,6 +44,8 @@ Key variables (see `movie_finder_django/settings.py` for defaults):
 | `OMDB_API_KEY` | OMDB API key for movie details.
 | `ANTHROPIC_API_KEY` | Anthropic Claude key for AI search (also used to count prompt tokens).
 | `EMAIL_HOST_USER`, `EMAIL_HOST_PASSWORD` | Credentials for SMTP (default Gmail settings are configured).
+| `ALLOWED_HOSTS` | Comma-separated hosts the API should accept (defaults include localhost and `.onrender.com` for Render).
+| `CSRF_TRUSTED_ORIGINS` | Comma-separated HTTPS origins for browsers making CSRF-protected requests (set for custom domains).
 | `DJANGO_SETTINGS_MODULE`, `PYTHONUNBUFFERED` | Optional overrides typically left unset locally.
 
 > ⚠️ **Headers:** Endpoints protected by throttles require a `User-Agent` header. AI and regular search also inspect `X-Forwarded-For` when present.
