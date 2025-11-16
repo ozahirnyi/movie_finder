@@ -22,4 +22,4 @@ RUN poetry install --no-root
 
 COPY . /app
 
-CMD ["sh", "-c", "poetry run gunicorn movie_finder_django.asgi:application -k uvicorn.workers.UvicornWorker --bind 0.0.0.0:${PORT:-8000}"]
+CMD ["poetry", "run", "python", "manage.py", "runserver", "0.0.0.0:8000"]

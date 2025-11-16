@@ -62,6 +62,8 @@ docker compose up --build
 ```
 This builds the application container, applies migrations, and runs the development server on <http://localhost:8000> with PostgreSQL exposed on `localhost:5433`.
 
+> The Compose file targets `Dockerfile.dev`, which mirrors the development workflow (`runserver`). The base `Dockerfile` now boots the production-ready ASGI stack (Gunicorn + Uvicorn worker) and is suitable for Render or any other deployment target.
+
 ### Makefile shortcuts
 A `Makefile` is included for common workflows:
 ```bash
