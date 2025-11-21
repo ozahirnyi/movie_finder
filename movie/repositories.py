@@ -420,3 +420,9 @@ class RecommendationRepository:
             is_watch_later=bool(getattr(movie, 'is_watch_later', False)),
             watch_later_count=int(getattr(movie, 'watch_later_count', 0) or 0),
         )
+
+
+class GenreRepository:
+    def get_all(self) -> list[GenreDTO]:
+        genres = Genre.objects.values_list('name', flat=True).distinct()
+        return [GenreDTO(name=g) for g in genres]

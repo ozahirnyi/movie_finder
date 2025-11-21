@@ -15,6 +15,7 @@ from movie.views import (
     MoviesSearchView,
     MovieUnlikeView,
     MovieView,
+    StructuresListView,
     WatchLaterCreateView,
     WatchLaterDestroyView,
     WatchLaterListView,
@@ -40,7 +41,6 @@ admin_patterns = [
     path('admin/', admin.site.urls),
 ]
 
-
 watch_later_patterns = [
     path('list/', WatchLaterListView.as_view(), name='watch_later_list'),
     path('create/', WatchLaterCreateView.as_view(), name='watch_later_create'),
@@ -52,7 +52,6 @@ watch_later_patterns = [
     ),
 ]
 
-
 movies_patterns = [
     path('movies/', MoviesListView.as_view(), name='movies_list'),
     path('movies/<int:id>/', MovieView.as_view(), name='movie'),
@@ -62,8 +61,8 @@ movies_patterns = [
     path('movies/ai/search/', MoviesAiSearchView.as_view(), name='movies_ai_search'),
     path('movies/recommendations/', MoviesRecommendationsView.as_view(), name='movies_recommendations'),
     path('watch_later/', include(watch_later_patterns)),
+    path('structures/', StructuresListView.as_view(), name='genre-list'),
 ]
-
 
 swagger_patterns = [
     path('api/schema/', SpectacularAPIView.as_view(), name='schema'),
