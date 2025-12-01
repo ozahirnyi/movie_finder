@@ -22,4 +22,6 @@ RUN poetry install --no-root
 
 COPY . /app
 
-CMD ["sh", "-c", "poetry run gunicorn movie_finder_django.asgi:application -k uvicorn.workers.UvicornWorker --bind 0.0.0.0:${PORT:-8000}"]
+RUN chmod +x /app/scripts/entrypoint.sh
+
+CMD ["/app/scripts/entrypoint.sh"]
