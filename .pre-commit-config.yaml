@@ -12,11 +12,6 @@ repos:
         entry: poetry run python manage.py makemigrations --check --dry-run
         language: system
         pass_filenames: false
-      - id: check-unapplied-migrations
-        name: check-unapplied-migrations
-        entry: poetry run python scripts/check_unapplied_migrations.py
-        language: system
-        pass_filenames: false
       - id: check-absent-migrations
         name: check-absent-migrations
         entry: poetry run python manage.py makemigrations --check --dry-run

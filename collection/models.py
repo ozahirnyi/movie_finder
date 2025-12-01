@@ -36,3 +36,17 @@ class CollectionMovie(models.Model):
 
     def __str__(self) -> str:
         return f'{self.collection_id}:{self.movie_id}'
+
+
+class CollectionSubscription(models.Model):
+    collection = models.ForeignKey(Collection, on_delete=models.CASCADE, related_name='subscriptions')
+    user = models.ForeignKey(get_user_model(), on_delete=models.CASCADE, related_name='collection_subscriptions')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=['collection', 'user'], name='collection_subscription_unique'),
+        ]
+
+    def __str__(self) -> str:
+        return f'{self.collection_id}:{self.user_id}'

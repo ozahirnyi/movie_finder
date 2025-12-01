@@ -2,8 +2,6 @@ from __future__ import annotations
 
 from rest_framework import serializers
 
-from .dataclasses import CollectionDTO
-
 
 class CollectionMovieSerializer(serializers.Serializer):
     id = serializers.IntegerField()
@@ -20,13 +18,10 @@ class CollectionSerializer(serializers.Serializer):
     is_public = serializers.BooleanField()
     owner_id = serializers.IntegerField()
     owner_email = serializers.EmailField(allow_null=True)
-    movies = CollectionMovieSerializer(many=True)
-    movies_count = serializers.SerializerMethodField()
+    movies_count = serializers.IntegerField()
+    is_subscribed = serializers.BooleanField()
     created_at = serializers.DateTimeField()
     updated_at = serializers.DateTimeField()
-
-    def get_movies_count(self, obj: CollectionDTO) -> int:
-        return len(obj.movies)
 
 
 class CollectionCreateSerializer(serializers.Serializer):

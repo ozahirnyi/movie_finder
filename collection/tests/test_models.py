@@ -18,3 +18,8 @@ class CollectionModelTests(TestCase):
         collection = Collection.objects.create(owner=self.user, name='Has Relation', description='', is_public=False)
         relation = CollectionMovie.objects.create(collection=collection, movie=self.movie)
         self.assertEqual(str(relation), f'{collection.id}:{self.movie.id}')
+
+    def test_collection_subscription_str(self):
+        collection = Collection.objects.create(owner=self.user, name='Subscribable', description='', is_public=True)
+        subscription = collection.subscriptions.create(user=self.user)
+        self.assertEqual(str(subscription), f'{collection.id}:{self.user.id}')

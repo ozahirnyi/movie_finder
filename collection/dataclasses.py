@@ -36,7 +36,8 @@ class CollectionDTO:
     is_public: bool
     owner_id: int
     owner_email: str | None
-    movies: list[CollectionMovieDTO]
+    movies_count: int
+    is_subscribed: bool
     created_at: datetime
     updated_at: datetime
 
@@ -44,4 +45,10 @@ class CollectionDTO:
 @dataclass(slots=True)
 class CollectionListResult:
     items: list[CollectionDTO]
+    total_count: int
+
+
+@dataclass(slots=True)
+class CollectionMovieListResult:
+    items: list[CollectionMovieDTO]
     total_count: int

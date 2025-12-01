@@ -4,7 +4,7 @@ from typing import Iterable, Sequence
 
 from django.core.exceptions import ValidationError
 from django.db import transaction
-from django.db.models import Prefetch, QuerySet
+from django.db.models import Count, Exists, OuterRef, QuerySet
 
 from movie.models import Movie
 
@@ -12,10 +12,11 @@ from .dataclasses import (
     CollectionDTO,
     CollectionListResult,
     CollectionMovieDTO,
+    CollectionMovieListResult,
     CollectionPayload,
     CollectionUpdatePayload,
 )
-from .models import Collection, CollectionMovie
+from .models import Collection, CollectionMovie, CollectionSubscription
 
 
 class CollectionRepository:
@@ -26,12 +27,16 @@ class CollectionRepository:
         limit: int | None = None,
         offset: int | None = None,
         is_public: bool | None = None,
+        subscriber_id: int | None = None,
+        only_subscribed: bool = False,
     ) -> CollectionListResult:
-        queryset = self._base_queryset()
+        queryset = self._base_queryset(subscriber_id=subscriber_id)
         if owner_id is not None:
             queryset = queryset.filter(owner_id=owner_id)
         if is_public is not None:
             queryset = queryset.filter(is_public=is_public)
+        if only_subscribed:
+            queryset = queryset.filter(subscriptions__user_id=subscriber_id)
 
         total_count = queryset.count()
         if offset:
@@ -42,8 +47,8 @@ class CollectionRepository:
         collections = list(queryset)
         return CollectionListResult(items=self._to_dtos(collections), total_count=total_count)
 
-    def retrieve(self, collection_id: int) -> CollectionDTO:
-        collection = self._base_queryset().get(pk=collection_id)
+    def retrieve(self, collection_id: int, *, viewer_id: int | None = None) -> CollectionDTO:
+        collection = self._base_queryset(subscriber_id=viewer_id).get(pk=collection_id)
         return self._to_dto(collection)
 
     def create(self, payload: CollectionPayload) -> CollectionDTO:
@@ -56,7 +61,7 @@ class CollectionRepository:
             )
             if payload.movie_ids is not None:
                 self._replace_movies(collection, payload.movie_ids)
-            return self.retrieve(collection.id)
+            return self.retrieve(collection.id, viewer_id=payload.owner_id)
 
     def update(self, collection_id: int, payload: CollectionUpdatePayload) -> CollectionDTO:
         collection = Collection.objects.get(pk=collection_id)
@@ -77,10 +82,57 @@ class CollectionRepository:
         if payload.movie_ids is not None:
             self._replace_movies(collection, payload.movie_ids)
 
-        return self.retrieve(collection.id)
+        return self.retrieve(collection.id, viewer_id=collection.owner_id)
 
     def delete(self, collection_id: int) -> None:
         Collection.objects.filter(pk=collection_id).delete()
+
+    def list_movies(
+        self,
+        *,
+        collection_id: int,
+        limit: int | None = None,
+        offset: int | None = None,
+    ) -> CollectionMovieListResult:
+        base_qs = CollectionMovie.objects.filter(collection_id=collection_id).select_related('movie').order_by('position', 'added_at', 'id')
+        total_count = base_qs.count()
+        if offset:
+            base_qs = base_qs[offset:]
+        if limit is not None:
+            base_qs = base_qs[:limit]
+        items = [
+            CollectionMovieDTO(
+                id=relation.movie_id,
+                title=relation.movie.title,
+                imdb_id=relation.movie.imdb_id,
+                poster=relation.movie.poster,
+                year=relation.movie.year,
+            )
+            for relation in base_qs
+        ]
+        return CollectionMovieListResult(items=items, total_count=total_count)
+
+    def subscribe(self, *, collection_id: int, user_id: int) -> None:
+        CollectionSubscription.objects.get_or_create(collection_id=collection_id, user_id=user_id)
+
+    def unsubscribe(self, *, collection_id: int, user_id: int) -> None:
+        CollectionSubscription.objects.filter(collection_id=collection_id, user_id=user_id).delete()
+
+    def clone(self, *, source_id: int, owner_id: int) -> CollectionDTO:
+        source = Collection.objects.get(pk=source_id)
+        if Collection.objects.filter(owner_id=owner_id, name=source.name).exists():
+            raise ValidationError({'name': 'Collection with this name already exists.'})
+        movie_ids = list(
+            CollectionMovie.objects.filter(collection_id=source_id).order_by('position', 'added_at', 'id').values_list('movie_id', flat=True)
+        )
+        payload = CollectionPayload(
+            owner_id=owner_id,
+            name=source.name,
+            description=source.description,
+            is_public=source.is_public,
+            movie_ids=movie_ids,
+        )
+        return self.create(payload)
 
     def _replace_movies(self, collection: Collection, movie_ids: Iterable[int]) -> None:
         deduped_ids = list(dict.fromkeys(movie_ids))
@@ -109,33 +161,19 @@ class CollectionRepository:
             raise ValidationError({'movie_ids': f'Movies not found: {missing_ids}'})
         return movie_map
 
-    def _base_queryset(self) -> QuerySet[Collection]:
-        return (
-            Collection.objects.all()
-            .select_related('owner')
-            .prefetch_related(
-                Prefetch(
-                    'collection_movies',
-                    queryset=CollectionMovie.objects.select_related('movie').order_by('position', 'added_at', 'id'),
-                )
+    def _base_queryset(self, *, subscriber_id: int | None = None) -> QuerySet[Collection]:
+        queryset = Collection.objects.all().select_related('owner').annotate(movies_count=Count('collection_movies'))
+        if subscriber_id:
+            queryset = queryset.annotate(
+                is_subscribed=Exists(CollectionSubscription.objects.filter(collection_id=OuterRef('pk'), user_id=subscriber_id))
             )
-        )
+        return queryset
 
     def _to_dtos(self, collections: Sequence[Collection]) -> list[CollectionDTO]:
         return [self._to_dto(collection) for collection in collections]
 
     @staticmethod
     def _to_dto(collection: Collection) -> CollectionDTO:
-        movies = [
-            CollectionMovieDTO(
-                id=relation.movie_id,
-                title=relation.movie.title,
-                imdb_id=relation.movie.imdb_id,
-                poster=relation.movie.poster,
-                year=relation.movie.year,
-            )
-            for relation in collection.collection_movies.all()
-        ]
         return CollectionDTO(
             id=collection.id,
             name=collection.name,
@@ -143,7 +181,8 @@ class CollectionRepository:
             is_public=collection.is_public,
             owner_id=collection.owner_id,
             owner_email=getattr(collection.owner, 'email', None),
-            movies=movies,
+            movies_count=getattr(collection, 'movies_count', 0),
+            is_subscribed=getattr(collection, 'is_subscribed', False),
             created_at=collection.created_at,
             updated_at=collection.updated_at,
         )
