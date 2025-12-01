@@ -11,7 +11,7 @@ from .dataclasses import (
     UserActivitySummary,
     UserContext,
 )
-from .repositories import MovieRepository, RecommendationRepository
+from .repositories import GenreRepository, MovieRepository, RecommendationRepository
 
 
 class MovieService:
@@ -96,3 +96,11 @@ class MovieRecommendationService:
 
         self.recommendation_repository.replace_cached_recommendations(user_context.id, today, [movie.id for movie in recommended_movies])
         return recommended_movies
+
+
+class GenreService:
+    def __init__(self, genre_repository: GenreRepository | None = None):
+        self.genre_repository = genre_repository or GenreRepository()
+
+    def get_all_genres(self):
+        return self.genre_repository.get_all()

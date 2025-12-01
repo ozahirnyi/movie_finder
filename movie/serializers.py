@@ -20,6 +20,10 @@ class LikesWatchLaterSerializer(serializers.Serializer):
     is_watch_later = serializers.BooleanField(read_only=True, default=False)
 
 
+class StructuresSerializer(serializers.Serializer):
+    genres = serializers.ListField(child=serializers.CharField())
+
+
 class EmptySerializer(serializers.Serializer):
     pass
 
