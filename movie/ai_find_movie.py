@@ -5,7 +5,7 @@ from anthropic import Anthropic
 from django.conf import settings
 
 from .dataclasses import AiMovie
-from .system_prompts import find_movie_system_prompt, recommendations_system_prompt
+from .system_prompts import find_movie_system_prompt, recommendations_system_prompt, top_movies_system_prompt
 
 
 class FindMovieAiClient:
@@ -83,3 +83,7 @@ class SearchFindMovieAiClient(FindMovieAiClient):
 
 class RecommendationFindMovieAiClient(FindMovieAiClient):
     SYSTEM_PROMPT = recommendations_system_prompt
+
+
+class TopMoviesFindMovieAiClient(FindMovieAiClient):
+    SYSTEM_PROMPT = top_movies_system_prompt

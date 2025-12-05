@@ -8,7 +8,13 @@ from rest_framework.response import Response
 
 from movie.paginations import MoviesPagination
 
-from .serializers import CollectionCreateSerializer, CollectionMovieSerializer, CollectionSerializer, CollectionUpdateSerializer
+from .serializers import (
+    CollectionCreateSerializer,
+    CollectionMovieSerializer,
+    CollectionSerializer,
+    CollectionUpdateSerializer,
+    EmptySerializer,
+)
 from .services import CollectionService
 
 
@@ -219,9 +225,11 @@ class CollectionMoviesView(GenericAPIView):
 
 class CollectionSubscriptionView(GenericAPIView):
     permission_classes = [permissions.IsAuthenticated]
+    serializer_class = EmptySerializer
     service_class = CollectionService
     lookup_url_kwarg = 'collection_id'
 
+    @extend_schema(request=None, responses={204: None})
     def post(self, request, *args, **kwargs):
         service = self.service_class()
         try:
@@ -234,6 +242,7 @@ class CollectionSubscriptionView(GenericAPIView):
             raise PermissionDenied(str(exc)) from exc
         return Response(status=status.HTTP_204_NO_CONTENT)
 
+    @extend_schema(request=None, responses={204: None})
     def delete(self, request, *args, **kwargs):
         service = self.service_class()
         service.unsubscribe(viewer_id=request.user.id, collection_id=self._get_collection_id())

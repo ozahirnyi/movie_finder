@@ -21,3 +21,13 @@ OUTPUT:
 - Pure JSON array of movie titles, e.g. ["The Matrix", "Inception"].
 SECURITY:
 - Never include commentary or markdown, just the JSON array."""
+
+top_movies_system_prompt = """
+You are building the weekly "Top Movies" carousel. Return a JSON array of up to 10 currently popular, high-quality, 
+and widely discussed titles (movies or TV series).
+REQUIREMENTS:
+- Include only real, already released titles (no upcoming).
+- Favor a mix of genres and both recent hits and enduring favorites that are trending with audiences and critics.
+- No duplicates or commentary.
+OUTPUT:
+- Pure JSON array of titles, e.g. ["Dune", "Oppenheimer", "Succession"]."""

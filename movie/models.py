@@ -1,5 +1,6 @@
 from django.contrib.auth import get_user_model
 from django.db import models
+from django.utils import timezone
 
 from .managers import MovieManager
 
@@ -120,3 +121,21 @@ class RecommendedMovie(models.Model):
 
     def __str__(self):
         return f'{self.user} | {self.movie} | {self.recommendation_date}'
+
+
+class TopMovie(models.Model):
+    movie = models.ForeignKey(Movie, on_delete=models.CASCADE, related_name='top_entries')
+    generated_at = models.DateTimeField(default=timezone.now)
+    position = models.PositiveIntegerField()
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=['generated_at', 'position'], name='top_movie_unique_position_per_batch'),
+            models.UniqueConstraint(fields=['generated_at', 'movie'], name='top_movie_unique_movie_per_batch'),
+        ]
+        ordering = ['position']
+
+    def __str__(self):
+        return f'{self.movie} | {self.generated_at.date()} | {self.position}'

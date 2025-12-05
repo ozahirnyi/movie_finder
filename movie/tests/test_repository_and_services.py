@@ -1,12 +1,17 @@
 import json
-from datetime import date
+from datetime import date, timedelta
 from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
 from django.test import TestCase
+from django.utils import timezone
 
 from movie.dataclasses import (
     Actor as ActorDTO,
+)
+from movie.dataclasses import (
+    AiMovie,
+    OmdbMovie,
 )
 from movie.dataclasses import (
     Country as CountryDTO,
@@ -21,18 +26,15 @@ from movie.dataclasses import (
     Language as LanguageDTO,
 )
 from movie.dataclasses import (
-    OmdbMovie,
-)
-from movie.dataclasses import (
     Rating as RatingDTO,
 )
 from movie.dataclasses import (
     Writer as WriterDTO,
 )
 from movie.filters import MovieFilter
-from movie.models import Actor, Country, Director, Genre, Language, Movie, Rating, RecommendedMovie, Writer
-from movie.repositories import MovieRepository, RecommendationRepository
-from movie.services import MovieService
+from movie.models import Actor, Country, Director, Genre, Language, LikeMovie, Movie, Rating, RecommendedMovie, TopMovie, Writer
+from movie.repositories import MovieRepository, RecommendationRepository, TopMoviesRepository
+from movie.services import MovieService, TopMoviesService
 
 
 class MovieFilterTests(TestCase):
@@ -318,3 +320,109 @@ class RecommendationRepositoryTests(TestCase):
         movies = self.repository.get_movies_by_titles([], self.user.id)
 
         self.assertEqual(movies, [])
+
+
+class TopMoviesServiceTests(TestCase):
+    def setUp(self):
+        self.user = get_user_model().objects.create_user(email='top@test.test', password='validpass')
+        self.service = TopMoviesService()
+
+    @patch('movie.services.TopMoviesFindMovieAiClient.find_movies')
+    @patch('movie.services.MovieRepository.search_movies_in_omdb')
+    def test_top_movies_cached_weekly(self, mock_search, mock_find_movies):
+        mock_find_movies.return_value = [AiMovie('Hit One'), AiMovie('Hit Two')]
+
+        def fake_search(titles: list[str], initiator_id: int):
+            results = []
+            for idx, title in enumerate(titles, start=1):
+                movie, _ = Movie.objects.get_or_create(title=title, imdb_id=f'ttTop{idx:07d}')
+                results.append(OmdbMovie(title=movie.title, imdb_id=movie.imdb_id, id=movie.id))
+            return results
+
+        mock_search.side_effect = fake_search
+
+        first_batch = self.service.get_top_movies(user_id=self.user.id)
+
+        self.assertEqual(len(first_batch), 2)
+        mock_find_movies.assert_called_once()
+        self.assertEqual(TopMovie.objects.count(), 2)
+
+        mock_find_movies.reset_mock()
+
+        second_batch = self.service.get_top_movies(user_id=self.user.id)
+
+        self.assertEqual(len(second_batch), 2)
+        mock_find_movies.assert_not_called()
+
+        TopMovie.objects.update(generated_at=timezone.now() - timedelta(days=8))
+
+        refreshed_batch = self.service.get_top_movies(user_id=self.user.id)
+
+        self.assertEqual(len(refreshed_batch), 2)
+        mock_find_movies.assert_called_once()
+
+    @patch('movie.services.TopMoviesFindMovieAiClient.find_movies', return_value=[])
+    @patch('movie.services.MovieRepository.search_movies_in_omdb', return_value=[])
+    def test_top_movies_fallback_to_popular(self, _mock_search, _mock_find_movies):
+        liker_one = get_user_model().objects.create_user(email='liker1@test.test', password='pass12345')
+        liker_two = get_user_model().objects.create_user(email='liker2@test.test', password='pass12345')
+
+        popular_one = Movie.objects.create(title='Popular One', imdb_id='ttpop0001')
+        popular_two = Movie.objects.create(title='Popular Two', imdb_id='ttpop0002')
+
+        LikeMovie.objects.create(user=liker_one, movie=popular_one)
+        LikeMovie.objects.create(user=liker_two, movie=popular_one)
+        LikeMovie.objects.create(user=liker_one, movie=popular_two)
+
+        results = self.service.get_top_movies(user_id=self.user.id)
+
+        returned_titles = [movie.title for movie in results]
+        self.assertIn('Popular One', returned_titles)
+        self.assertIn('Popular Two', returned_titles)
+        self.assertEqual(TopMovie.objects.count(), len(returned_titles))
+
+    @patch.object(TopMoviesService, '_refresh_top_movies', return_value=[])
+    def test_get_top_movies_refreshes_when_cache_empty_and_recent(self, mock_refresh):
+        with patch.object(self.service.top_movies_repository, 'get_latest_generated_at', return_value=timezone.now()):
+            with patch.object(self.service, '_should_refresh', return_value=False):
+                self.service.get_top_movies(user_id=None)
+
+        mock_refresh.assert_called_once_with(None)
+
+    @patch.object(TopMoviesService, '_refresh_top_movies', return_value=['refreshed'])
+    def test_force_refresh_delegates(self, mock_refresh):
+        result = self.service.force_refresh()
+
+        self.assertEqual(result, ['refreshed'])
+        mock_refresh.assert_called_once_with(None)
+
+
+class TopMoviesRepositoryTests(TestCase):
+    def setUp(self):
+        self.repository = TopMoviesRepository()
+        self.user = get_user_model().objects.create_user(email='toprepo@test.test', password='strongpass')
+
+    def test_replace_top_movies_deduplicates_and_orders(self):
+        first = Movie.objects.create(title='First', imdb_id='tttoprep1')
+        second = Movie.objects.create(title='Second', imdb_id='tttoprep2')
+
+        generated_at = self.repository.replace_top_movies([first.id, first.id, second.id])
+
+        top_entries = list(TopMovie.objects.order_by('position'))
+        self.assertEqual([entry.movie_id for entry in top_entries], [first.id, second.id])
+        self.assertEqual(top_entries[0].generated_at.date(), generated_at.date())
+
+    def test_get_top_movies_handles_missing_entries(self):
+        self.assertEqual(self.repository.get_top_movies(user_id=None), [])
+
+    def test_get_top_movies_returns_empty_when_no_ids(self):
+        with patch.object(self.repository, 'get_latest_generated_at', return_value=timezone.now()):
+            with patch('movie.repositories.TopMovie.objects.filter') as mock_filter:
+                mock_filter.return_value.order_by.return_value.values_list.return_value = []
+                self.assertEqual(self.repository.get_top_movies(user_id=None), [])
+
+    def test_top_movie_str(self):
+        movie = Movie.objects.create(title='Stringed', imdb_id='tttoprep4')
+        entry = TopMovie.objects.create(movie=movie, position=0)
+
+        self.assertIn('Stringed', str(entry))

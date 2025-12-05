@@ -1,8 +1,10 @@
 import textwrap
-from datetime import datetime
+from datetime import datetime, timedelta
 from datetime import timezone as dt_timezone
 
-from .ai_find_movie import FindMovieAiClient, RecommendationFindMovieAiClient, SearchFindMovieAiClient
+from django.utils import timezone
+
+from .ai_find_movie import FindMovieAiClient, RecommendationFindMovieAiClient, SearchFindMovieAiClient, TopMoviesFindMovieAiClient
 from .dataclasses import (
     AiMovie,
     ImdbMovie,
@@ -11,7 +13,7 @@ from .dataclasses import (
     UserActivitySummary,
     UserContext,
 )
-from .repositories import GenreRepository, MovieRepository, RecommendationRepository
+from .repositories import GenreRepository, MovieRepository, RecommendationRepository, TopMoviesRepository
 
 
 class MovieService:
@@ -104,3 +106,66 @@ class GenreService:
 
     def get_all_genres(self):
         return self.genre_repository.get_all()
+
+
+class TopMoviesService:
+    REFRESH_INTERVAL_DAYS = 7
+    TOP_MOVIES_PROMPT = (
+        'Return a JSON array of up to 10 currently trending and widely loved movies or TV series across genres. '
+        'Use only real, already released titles (no upcoming). '
+        'Respond with the JSON array of titles only, e.g. ["Dune", "Barbie", "Succession"].'
+    )
+
+    def __init__(
+        self,
+        top_movies_repository: TopMoviesRepository | None = None,
+        movie_repository: MovieRepository | None = None,
+        recommendation_repository: RecommendationRepository | None = None,
+        ai_client: FindMovieAiClient | None = None,
+    ):
+        self.top_movies_repository = top_movies_repository or TopMoviesRepository()
+        self.movie_repository = movie_repository or MovieRepository()
+        self.recommendation_repository = recommendation_repository or RecommendationRepository()
+        self.ai_client = ai_client or TopMoviesFindMovieAiClient()
+
+    def get_top_movies(self, user_id: int | None = None) -> list[MovieRecommendation]:
+        last_generated_at = self.top_movies_repository.get_latest_generated_at()
+
+        if self._should_refresh(last_generated_at):
+            refreshed_movies = self._refresh_top_movies(user_id)
+            if refreshed_movies:
+                return refreshed_movies
+
+        cached_movies = self.top_movies_repository.get_top_movies(user_id)
+        if cached_movies:
+            return cached_movies
+
+        return self._refresh_top_movies(user_id)
+
+    def force_refresh(self, user_id: int | None = None) -> list[MovieRecommendation]:
+        return self._refresh_top_movies(user_id)
+
+    def _refresh_top_movies(self, user_id: int | None) -> list[MovieRecommendation]:
+        ai_movies = self.ai_client.find_movies(self.TOP_MOVIES_PROMPT)
+        requested_titles = [movie.title for movie in ai_movies if movie.title]
+        top_movies: list[MovieRecommendation] = []
+
+        if requested_titles:
+            omdb_movies = self.movie_repository.search_movies_in_omdb(requested_titles, initiator_id=0)
+            movie_ids = [movie.id for movie in omdb_movies if movie.id is not None]
+            if movie_ids:
+                self.top_movies_repository.replace_top_movies(movie_ids)
+                top_movies = self.top_movies_repository.get_top_movies(user_id)
+
+        if not top_movies:
+            fallback_movies = self.recommendation_repository.get_popular_movies(0)
+            if fallback_movies:
+                self.top_movies_repository.replace_top_movies([movie.id for movie in fallback_movies])
+                top_movies = self.top_movies_repository.get_top_movies(user_id)
+
+        return top_movies
+
+    def _should_refresh(self, generated_at) -> bool:
+        if generated_at is None:
+            return True
+        return timezone.now() - generated_at >= timedelta(days=self.REFRESH_INTERVAL_DAYS)

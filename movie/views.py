@@ -42,7 +42,7 @@ from .serializers import (
     WatchLaterListSerializer,
     WatchLaterStatisticsSerializer,
 )
-from .services import GenreService, MovieRecommendationService, MovieService
+from .services import GenreService, MovieRecommendationService, MovieService, TopMoviesService
 
 
 class MovieView(RetrieveAPIView):
@@ -282,4 +282,16 @@ class MoviesRecommendationsView(GenericAPIView):
         user_context = UserContext(id=request.user.id)
         recommended_movies = recommendation_service.get_recommended_movies(user_context)
         serializer = self.get_serializer(recommended_movies, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class TopMoviesView(GenericAPIView):
+    permission_classes = [permissions.AllowAny]
+    serializer_class = MovieRecommendationSerializer
+
+    def get(self, request, *args, **kwargs):
+        top_movies_service = TopMoviesService()
+        user_id = request.user.id if request.user.is_authenticated else None
+        movies = top_movies_service.get_top_movies(user_id)
+        serializer = self.get_serializer(movies, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)

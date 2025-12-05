@@ -5,7 +5,7 @@ import requests
 from django.conf import settings
 from django.contrib.postgres.aggregates import ArrayAgg, JSONBAgg
 from django.db import transaction
-from django.db.models import Count, F, JSONField, Q, Value
+from django.db.models import Case, Count, F, IntegerField, JSONField, Q, Value, When
 from django.db.models.functions import JSONObject
 from django.utils import timezone
 
@@ -36,19 +36,7 @@ from movie.dataclasses import (
 from movie.dataclasses import (
     Writer as WriterDTO,
 )
-from movie.models import (
-    Actor,
-    Country,
-    Director,
-    Genre,
-    Language,
-    LikeMovie,
-    Movie,
-    Rating,
-    RecommendedMovie,
-    WatchLaterMovie,
-    Writer,
-)
+from movie.models import Actor, Country, Director, Genre, Language, LikeMovie, Movie, Rating, RecommendedMovie, TopMovie, WatchLaterMovie, Writer
 
 
 class MovieRepository:
@@ -426,3 +414,43 @@ class GenreRepository:
     def get_all(self) -> list[GenreDTO]:
         genres = Genre.objects.values_list('name', flat=True).distinct()
         return [GenreDTO(name=g) for g in genres]
+
+
+class TopMoviesRepository(RecommendationRepository):
+    def get_latest_generated_at(self):
+        return TopMovie.objects.order_by('-generated_at').values_list('generated_at', flat=True).first()
+
+    def replace_top_movies(self, movie_ids: list[int]):
+        generated_at = timezone.now()
+        seen_ids = set()
+        ordered_unique_ids: list[int] = []
+        for movie_id in movie_ids:
+            if movie_id in seen_ids:
+                continue
+            seen_ids.add(movie_id)
+            ordered_unique_ids.append(movie_id)
+
+        with transaction.atomic():
+            TopMovie.objects.all().delete()
+            entries = [TopMovie(movie_id=movie_id, position=idx, generated_at=generated_at) for idx, movie_id in enumerate(ordered_unique_ids)]
+            TopMovie.objects.bulk_create(entries)
+
+        return generated_at
+
+    def get_top_movies(self, user_id: int | None) -> list[MovieRecommendation]:
+        generated_at = self.get_latest_generated_at()
+        if generated_at is None:
+            return []
+
+        movie_ids = list(TopMovie.objects.filter(generated_at=generated_at).order_by('position').values_list('movie_id', flat=True))
+        if not movie_ids:
+            return []
+
+        order_case = Case(
+            *[When(id=movie_id, then=idx) for idx, movie_id in enumerate(movie_ids)],
+            default=len(movie_ids),
+            output_field=IntegerField(),
+        )
+
+        queryset = self._recommendation_queryset(user_id).filter(id__in=movie_ids).annotate(_top_order=order_case).order_by('_top_order')
+        return [self._to_recommendation_dto(movie) for movie in queryset]
