@@ -16,6 +16,7 @@ from movie.views import (
     MovieUnlikeView,
     MovieView,
     StructuresListView,
+    TopMoviesView,
     WatchLaterCreateView,
     WatchLaterDestroyView,
     WatchLaterListView,
@@ -60,6 +61,7 @@ movies_patterns = [
     path('movies/search/', MoviesSearchView.as_view(), name='movies_search'),
     path('movies/ai/search/', MoviesAiSearchView.as_view(), name='movies_ai_search'),
     path('movies/recommendations/', MoviesRecommendationsView.as_view(), name='movies_recommendations'),
+    path('movies/top/', TopMoviesView.as_view(), name='movies_top'),
     path('watch_later/', include(watch_later_patterns)),
     path('structures/', StructuresListView.as_view(), name='genre-list'),
 ]

@@ -10,7 +10,7 @@ from rest_framework import status
 from rest_framework.test import APITestCase
 from rest_framework_simplejwt.tokens import RefreshToken
 
-from movie.dataclasses import AiMovie, ImdbMovie, OmdbMovie
+from movie.dataclasses import AiMovie, ImdbMovie, MovieRecommendation, OmdbMovie
 from movie.dataclasses import Genre as GenreDTO
 from movie.errors import AddLikeError
 from movie.models import Genre, LikeMovie, Movie, Rating, RecommendedMovie, WatchLaterMovie
@@ -467,3 +467,44 @@ class RecommendedMoviesTests(APITestCase):
         self.assertEqual(response.data[0]['title'], 'Popular One')
         mock_find_movies.assert_not_called()
         self.assertEqual(RecommendedMovie.objects.filter(user=fallback_user, recommendation_date=timezone.now().date()).count(), len(response.data))
+
+
+class TopMoviesViewTests(APITestCase):
+    def test_get_top_movies_returns_cached_entries(self):
+        top_movies = [
+            MovieRecommendation(
+                id=1,
+                imdb_id='tttop001',
+                title='Top One',
+                year='2023',
+                released_date=None,
+                runtime=None,
+                plot=None,
+                awards=None,
+                poster=None,
+                metascore=None,
+                imdb_rating=None,
+                imdb_votes=None,
+                type='movie',
+                total_seasons=None,
+                created_at=None,
+                genres=[],
+                actors=[],
+                directors=[],
+                writers=[],
+                ratings=[],
+                languages=[],
+                countries=[],
+                is_liked=False,
+                likes_count=0,
+                is_watch_later=False,
+                watch_later_count=0,
+            )
+        ]
+
+        with patch('movie.views.TopMoviesService.get_top_movies', return_value=top_movies) as mock_service:
+            response = self.client.get(reverse('movies_top'))
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data[0]['title'], 'Top One')
+        self.assertIsNone(mock_service.call_args.args[0])

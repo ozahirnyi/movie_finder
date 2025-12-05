@@ -274,6 +274,7 @@ class AccountTierModelTests(TestCase):
 
 class AccountTierRepositoryTests(TestCase):
     def setUp(self):
+        get_user_model().objects.all().delete()
         AccountTier.objects.all().delete()
         self.repo = AccountTierRepository()
 
@@ -312,6 +313,8 @@ class AccountTierRepositoryTests(TestCase):
 
 class AccountTierMigrationTests(TestCase):
     def setUp(self):
+        self.UserModel = get_user_model()
+        self.UserModel.objects.all().delete()
         self.migration_module = import_module('auth_app.migrations.0002_account_tiers')
         self.AccountTierModel = django_apps.get_model('auth_app', 'AccountTier')
 
@@ -359,3 +362,30 @@ class AccountTierMigrationTests(TestCase):
         self.assertTrue(filter_called['free'])
         fallback.refresh_from_db()
         self.assertFalse(AccountTier.objects.exclude(pk=fallback.pk).filter(is_default=True).exists())
+
+
+class DefaultAdminMigrationTests(TestCase):
+    def setUp(self):
+        self.UserModel = get_user_model()
+        self.AccountTierModel = django_apps.get_model('auth_app', 'AccountTier')
+        self.migration_module = import_module('auth_app.migrations.0003_default_admin')
+        self.UserModel.objects.all().delete()
+        self.admin_tier, _ = self.AccountTierModel.objects.get_or_create(
+            code='admin',
+            defaults={'name': 'Admin', 'daily_ai_search_limit': 100, 'is_default': False},
+        )
+
+    def test_create_default_admin_noop_when_exists(self):
+        existing = self.UserModel.objects.create(email='admin@admin.com', account_tier=self.admin_tier)
+
+        self.migration_module.create_default_admin(django_apps, None)
+
+        self.assertEqual(self.UserModel.objects.filter(email='admin@admin.com').count(), 1)
+        self.assertEqual(self.UserModel.objects.get(email='admin@admin.com').id, existing.id)
+
+    def test_delete_default_admin_removes_user(self):
+        self.UserModel.objects.create(email='admin@admin.com', account_tier=self.admin_tier)
+
+        self.migration_module.delete_default_admin(django_apps, None)
+
+        self.assertFalse(self.UserModel.objects.filter(email='admin@admin.com').exists())

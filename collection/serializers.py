@@ -44,3 +44,7 @@ class CollectionUpdateSerializer(serializers.Serializer):
         required=False,
         allow_empty=True,
     )
+
+
+class EmptySerializer(serializers.Serializer):
+    pass
