@@ -58,7 +58,7 @@ class CollectionListCreateView(GenericAPIView):
                 name='subscribed',
                 type=OpenApiTypes.BOOL,
                 location=OpenApiParameter.QUERY,
-                description='When true, return only collections the requester is subscribed to.',
+                description='When true, return only collections the requester is subscribed to; when false, return only unsubscribed ones.',
                 required=False,
             ),
         ],

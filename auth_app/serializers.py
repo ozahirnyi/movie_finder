@@ -56,3 +56,8 @@ class ChangePasswordSerializer(serializers.Serializer):
             raise ChangePasswordError
 
         return instance
+
+
+class PersonalInfoSerializer(serializers.Serializer):
+    id = serializers.IntegerField(read_only=True)
+    email = serializers.EmailField(read_only=True)

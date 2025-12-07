@@ -27,14 +27,13 @@ class CollectionService:
     ) -> CollectionListResult:
         visibility_filter = self._resolve_visibility_filter(viewer_id=viewer_id, requested_owner_id=owner_id, explicit_public=is_public)
         subscriber_id = viewer_id
-        only_subscribed = bool(subscribed)
         return self.repository.list(
             owner_id=owner_id,
             is_public=visibility_filter,
             limit=limit,
             offset=offset,
             subscriber_id=subscriber_id,
-            only_subscribed=only_subscribed,
+            subscribed=subscribed,
         )
 
     def create_collection(
