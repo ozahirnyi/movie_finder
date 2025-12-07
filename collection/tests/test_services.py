@@ -181,7 +181,10 @@ class CollectionServiceTests(TestCase):
         self.assertEqual([collection.id for collection in subscribed.items], [public_collection.id])
 
         unsubscribed_view = self.service.list_collections(viewer_id=self.another_user.id, is_staff=False, subscribed=False)
-        self.assertEqual({collection.id for collection in unsubscribed_view.items}, {public_collection.id, other_public.id})
+        self.assertEqual({collection.id for collection in unsubscribed_view.items}, {other_public.id})
+
+        all_collections = self.service.list_collections(viewer_id=self.another_user.id, is_staff=False, subscribed=None)
+        self.assertEqual({collection.id for collection in all_collections.items}, {public_collection.id, other_public.id})
 
     def test_is_subscribed_flag_propagates(self):
         dto = self.service.create_collection(

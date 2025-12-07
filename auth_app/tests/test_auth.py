@@ -79,6 +79,13 @@ class AuthTests(APITestCase):
         self.assertEqual(default_code, ChangePasswordError.default_code)
         self.assertEqual(default_detail, ChangePasswordError.default_detail)
 
+    def test_personal_info(self):
+        response = self.client.get(reverse('personal_info'))
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['id'], self.user.id)
+        self.assertEqual(response.data['email'], self.user.email)
+
 
 User = get_user_model()
 

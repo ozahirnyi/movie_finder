@@ -28,15 +28,17 @@ class CollectionRepository:
         offset: int | None = None,
         is_public: bool | None = None,
         subscriber_id: int | None = None,
-        only_subscribed: bool = False,
+        subscribed: bool | None = None,
     ) -> CollectionListResult:
         queryset = self._base_queryset(subscriber_id=subscriber_id)
         if owner_id is not None:
             queryset = queryset.filter(owner_id=owner_id)
         if is_public is not None:
             queryset = queryset.filter(is_public=is_public)
-        if only_subscribed:
+        if subscribed is True and subscriber_id is not None:
             queryset = queryset.filter(subscriptions__user_id=subscriber_id)
+        elif subscribed is False and subscriber_id is not None:
+            queryset = queryset.exclude(subscriptions__user_id=subscriber_id)
 
         total_count = queryset.count()
         if offset:
@@ -163,7 +165,7 @@ class CollectionRepository:
 
     def _base_queryset(self, *, subscriber_id: int | None = None) -> QuerySet[Collection]:
         queryset = Collection.objects.all().select_related('owner').annotate(movies_count=Count('collection_movies'))
-        if subscriber_id:
+        if subscriber_id is not None:
             queryset = queryset.annotate(
                 is_subscribed=Exists(CollectionSubscription.objects.filter(collection_id=OuterRef('pk'), user_id=subscriber_id))
             )

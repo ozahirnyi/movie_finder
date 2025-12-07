@@ -5,6 +5,7 @@ from rest_framework.views import APIView
 
 from .serializers import (
     ChangePasswordSerializer,
+    PersonalInfoSerializer,
     SignUpSerializer,
 )
 
@@ -29,4 +30,13 @@ class ChangePasswordAPIView(APIView):
         serializer.is_valid(raise_exception=True)
         serializer.save()
 
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class PersonalInfoAPIView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+    serializer_class = PersonalInfoSerializer
+
+    def get(self, request, *args, **kwargs):
+        serializer = self.serializer_class(request.user)
         return Response(serializer.data, status=status.HTTP_200_OK)

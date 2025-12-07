@@ -185,9 +185,13 @@ class CollectionViewTests(APITestCase):
         subscribed = self.client.get(reverse('collections'), {'subscribed': 'true'})
         self.assertEqual([item['id'] for item in subscribed.data['results']], [public.id])
 
-        unsubscribed = self.client.get(reverse('collections'))
+        unsubscribed = self.client.get(reverse('collections'), {'subscribed': 'false'})
         returned_ids = {item['id'] for item in unsubscribed.data['results']}
-        self.assertEqual(returned_ids, {public.id, other.id})
+        self.assertEqual(returned_ids, {other.id})
+
+        all_collections = self.client.get(reverse('collections'))
+        all_ids = {item['id'] for item in all_collections.data['results']}
+        self.assertEqual(all_ids, {public.id, other.id})
 
     def test_collection_movies_endpoint(self):
         collection = Collection.objects.create(owner=self.user, name='With Movies', description='', is_public=True)

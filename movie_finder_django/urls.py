@@ -5,6 +5,7 @@ from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
 from auth_app.views import (
     ChangePasswordAPIView,
+    PersonalInfoAPIView,
     SignUpApiView,
 )
 from movie.views import (
@@ -35,6 +36,11 @@ users_patterns = [
         'users/change_password/',
         ChangePasswordAPIView.as_view(),
         name='change_password',
+    ),
+    path(
+        'users/personal-info/',
+        PersonalInfoAPIView.as_view(),
+        name='personal_info',
     ),
 ]
 
