@@ -3,6 +3,7 @@ from django.core.exceptions import ValidationError
 from django.test import TestCase
 
 from collection.models import Collection
+from collection.repositories import CollectionRepository
 from collection.services import CollectionService
 from movie.models import Movie
 
@@ -14,9 +15,9 @@ class CollectionServiceTests(TestCase):
         self.another_user = get_user_model().objects.create_user(email='another@example.com', password='pass1234')
         self.admin = get_user_model().objects.create_user(email='admin@example.com', password='pass1234', is_staff=True)
 
-        self.movie_one = Movie.objects.create(title='Movie One', imdb_id='tt000010')
-        self.movie_two = Movie.objects.create(title='Movie Two', imdb_id='tt000011')
-        self.movie_three = Movie.objects.create(title='Movie Three', imdb_id='tt000012')
+        self.movie_one = Movie.objects.create(title='Movie One', imdb_id='tt000010', poster='poster-1.jpg')
+        self.movie_two = Movie.objects.create(title='Movie Two', imdb_id='tt000011', poster='poster-2.jpg')
+        self.movie_three = Movie.objects.create(title='Movie Three', imdb_id='tt000012', poster='poster-3.jpg')
 
     def test_create_collection_with_movies(self):
         dto = self.service.create_collection(
@@ -82,6 +83,39 @@ class CollectionServiceTests(TestCase):
 
         only_public = self.service.list_collections(viewer_id=self.owner.id, is_staff=False, is_public=True)
         self.assertEqual([collection.id for collection in only_public.items], [public_collection.id])
+
+    def test_list_collections_includes_preview_movies(self):
+        movie_four = Movie.objects.create(title='Movie Four', imdb_id='tt000013', poster='poster-4.jpg')
+        no_poster = Movie.objects.create(title='No Poster', imdb_id='tt000014', poster='')
+        collection = self.service.create_collection(
+            owner_id=self.owner.id,
+            name='Previewed',
+            description='',
+            is_public=True,
+            movie_ids=[no_poster.id, self.movie_three.id, self.movie_one.id, movie_four.id, self.movie_two.id],
+        )
+
+        result = self.service.list_collections(viewer_id=self.owner.id, is_staff=False, owner_id=self.owner.id)
+        self.assertEqual(len(result.items), 1)
+        self.assertEqual(result.items[0].id, collection.id)
+        preview = result.items[0].preview_movies
+        self.assertEqual(len(preview), 3)
+        self.assertEqual([movie.id for movie in preview], [self.movie_three.id, self.movie_one.id, movie_four.id])
+        self.assertEqual(preview[0].title, 'Movie Three')
+        self.assertEqual(preview[0].poster, 'poster-3.jpg')
+
+    def test_preview_movies_populated_without_prefetch(self):
+        collection = Collection.objects.create(owner=self.owner, name='No Prefetch', description='', is_public=True)
+        CollectionMovie = collection.collection_movies.model  # type: ignore[attr-defined]
+        no_poster = Movie.objects.create(title='Posterless', imdb_id='tt009999', poster='')
+        CollectionMovie.objects.create(collection=collection, movie=no_poster, position=0)
+        CollectionMovie.objects.create(collection=collection, movie=self.movie_two, position=1)
+        CollectionMovie.objects.create(collection=collection, movie=self.movie_one, position=2)
+
+        fresh = Collection.objects.get(pk=collection.id)
+        previews = CollectionRepository._build_preview_movies(fresh)
+
+        self.assertEqual([movie.id for movie in previews], [self.movie_two.id, self.movie_one.id])
 
     def test_update_collection_replaces_movies(self):
         dto = self.service.create_collection(
@@ -228,7 +262,7 @@ class CollectionServiceTests(TestCase):
         with self.assertRaises(PermissionError):
             self.service.clone_collection(viewer_id=self.another_user.id, is_staff=False, collection_id=source.id)
 
-    def test_clone_same_name_conflict(self):
+    def test_clone_allows_same_name(self):
         source = self.service.create_collection(
             owner_id=self.owner.id,
             name='Original',
@@ -236,15 +270,18 @@ class CollectionServiceTests(TestCase):
             is_public=True,
             movie_ids=None,
         )
-        self.service.create_collection(
+        existing = self.service.create_collection(
             owner_id=self.another_user.id,
             name='Original',
             description='',
             is_public=True,
             movie_ids=None,
         )
-        with self.assertRaises(ValidationError):
-            self.service.clone_collection(viewer_id=self.another_user.id, is_staff=False, collection_id=source.id)
+        cloned = self.service.clone_collection(viewer_id=self.another_user.id, is_staff=False, collection_id=source.id)
+
+        self.assertEqual(cloned.name, source.name)
+        self.assertNotEqual(cloned.id, existing.id)
+        self.assertEqual(cloned.owner_id, self.another_user.id)
 
     def test_subscribe_noop_for_owner(self):
         collection = self.service.create_collection(
