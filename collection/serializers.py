@@ -11,6 +11,12 @@ class CollectionMovieSerializer(serializers.Serializer):
     year = serializers.CharField(allow_null=True, allow_blank=True)
 
 
+class CollectionMoviePreviewSerializer(serializers.Serializer):
+    id = serializers.IntegerField()
+    title = serializers.CharField()
+    poster = serializers.CharField(allow_null=True, allow_blank=True)
+
+
 class CollectionSerializer(serializers.Serializer):
     id = serializers.IntegerField()
     name = serializers.CharField()
@@ -20,6 +26,7 @@ class CollectionSerializer(serializers.Serializer):
     owner_email = serializers.EmailField(allow_null=True)
     movies_count = serializers.IntegerField()
     is_subscribed = serializers.BooleanField()
+    preview_movies = CollectionMoviePreviewSerializer(many=True)
     created_at = serializers.DateTimeField()
     updated_at = serializers.DateTimeField()
 

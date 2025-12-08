@@ -4,7 +4,7 @@ from typing import Iterable, Sequence
 
 from django.core.exceptions import ValidationError
 from django.db import transaction
-from django.db.models import Count, Exists, OuterRef, QuerySet
+from django.db.models import Count, Exists, OuterRef, Prefetch, QuerySet
 
 from movie.models import Movie
 
@@ -13,6 +13,7 @@ from .dataclasses import (
     CollectionListResult,
     CollectionMovieDTO,
     CollectionMovieListResult,
+    CollectionMoviePreviewDTO,
     CollectionPayload,
     CollectionUpdatePayload,
 )
@@ -122,8 +123,6 @@ class CollectionRepository:
 
     def clone(self, *, source_id: int, owner_id: int) -> CollectionDTO:
         source = Collection.objects.get(pk=source_id)
-        if Collection.objects.filter(owner_id=owner_id, name=source.name).exists():
-            raise ValidationError({'name': 'Collection with this name already exists.'})
         movie_ids = list(
             CollectionMovie.objects.filter(collection_id=source_id).order_by('position', 'added_at', 'id').values_list('movie_id', flat=True)
         )
@@ -164,7 +163,18 @@ class CollectionRepository:
         return movie_map
 
     def _base_queryset(self, *, subscriber_id: int | None = None) -> QuerySet[Collection]:
-        queryset = Collection.objects.all().select_related('owner').annotate(movies_count=Count('collection_movies'))
+        queryset = (
+            Collection.objects.all()
+            .select_related('owner')
+            .annotate(movies_count=Count('collection_movies'))
+            .prefetch_related(
+                Prefetch(
+                    'collection_movies',
+                    queryset=CollectionMovie.objects.select_related('movie').order_by('position', 'added_at', 'id'),
+                    to_attr='prefetched_collection_movies',
+                )
+            )
+        )
         if subscriber_id is not None:
             queryset = queryset.annotate(
                 is_subscribed=Exists(CollectionSubscription.objects.filter(collection_id=OuterRef('pk'), user_id=subscriber_id))
@@ -185,6 +195,36 @@ class CollectionRepository:
             owner_email=getattr(collection.owner, 'email', None),
             movies_count=getattr(collection, 'movies_count', 0),
             is_subscribed=getattr(collection, 'is_subscribed', False),
+            preview_movies=CollectionRepository._build_preview_movies(collection),
             created_at=collection.created_at,
             updated_at=collection.updated_at,
         )
+
+    @staticmethod
+    def _build_preview_movies(collection: Collection) -> list[CollectionMoviePreviewDTO]:
+        prefetched = getattr(collection, 'prefetched_collection_movies', None)
+        if prefetched is None:
+            relations = list(
+                CollectionMovie.objects.filter(collection_id=collection.id, movie__poster__isnull=False)
+                .exclude(movie__poster='')
+                .select_related('movie')
+                .order_by('position', 'added_at', 'id')[:3]
+            )
+        else:
+            relations = prefetched
+
+        preview_movies: list[CollectionMoviePreviewDTO] = []
+        for relation in relations:
+            movie = getattr(relation, 'movie', None)
+            if movie is None or not movie.poster:
+                continue
+            preview_movies.append(
+                CollectionMoviePreviewDTO(
+                    id=movie.id,
+                    title=movie.title,
+                    poster=movie.poster or None,
+                )
+            )
+            if len(preview_movies) == 3:
+                break
+        return preview_movies

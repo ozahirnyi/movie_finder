@@ -29,6 +29,13 @@ class CollectionMovieDTO:
 
 
 @dataclass(slots=True)
+class CollectionMoviePreviewDTO:
+    id: int
+    title: str
+    poster: str | None
+
+
+@dataclass(slots=True)
 class CollectionDTO:
     id: int
     name: str
@@ -38,6 +45,7 @@ class CollectionDTO:
     owner_email: str | None
     movies_count: int
     is_subscribed: bool
+    preview_movies: list[CollectionMoviePreviewDTO]
     created_at: datetime
     updated_at: datetime
 

@@ -1,10 +1,11 @@
 from django.contrib.auth import get_user_model
+from django.core.exceptions import ValidationError as DjangoValidationError
 from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APITestCase
 
 from collection.models import Collection, CollectionMovie
-from collection.views import CollectionListCreateView, CollectionMoviesView
+from collection.views import CollectionCloneView, CollectionListCreateView, CollectionMoviesView
 from movie.models import Movie
 
 
@@ -13,8 +14,8 @@ class CollectionViewTests(APITestCase):
         self.user = get_user_model().objects.create_user(email='user@example.com', password='pass1234')
         self.other_user = get_user_model().objects.create_user(email='other@example.com', password='pass1234')
         self.admin = get_user_model().objects.create_user(email='admin@example.com', password='pass1234', is_staff=True)
-        self.movie_one = Movie.objects.create(title='Movie One', imdb_id='tt010001')
-        self.movie_two = Movie.objects.create(title='Movie Two', imdb_id='tt010002')
+        self.movie_one = Movie.objects.create(title='Movie One', imdb_id='tt010001', poster='poster-one.jpg')
+        self.movie_two = Movie.objects.create(title='Movie Two', imdb_id='tt010002', poster='poster-two.jpg')
 
     def test_create_collection(self):
         self.client.force_authenticate(user=self.user)
@@ -32,6 +33,7 @@ class CollectionViewTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertEqual(response.data['name'], 'Weekend Watch')
         self.assertEqual(response.data['movies_count'], 2)
+        self.assertEqual([movie['id'] for movie in response.data['preview_movies']], [self.movie_one.id, self.movie_two.id])
         self.assertNotIn('movies', response.data)
         self.assertTrue(Collection.objects.filter(name='Weekend Watch', owner=self.user).exists())
 
@@ -81,6 +83,25 @@ class CollectionViewTests(APITestCase):
         )
         self.assertEqual(private_response.status_code, status.HTTP_200_OK)
         self.assertEqual([item['id'] for item in private_response.data['results']], [private.id])
+
+    def test_list_collections_includes_preview_movies(self):
+        third_movie = Movie.objects.create(title='Movie Three', imdb_id='tt010003', poster='poster-three.jpg')
+        extra_movie = Movie.objects.create(title='Movie Four', imdb_id='tt010004', poster='poster-four.jpg')
+        collection = Collection.objects.create(owner=self.user, name='Public', description='', is_public=True)
+        posterless = Movie.objects.create(title='Posterless', imdb_id='tt010005', poster='')
+        CollectionMovie.objects.create(collection=collection, movie=self.movie_two, position=0)
+        CollectionMovie.objects.create(collection=collection, movie=self.movie_one, position=1)
+        CollectionMovie.objects.create(collection=collection, movie=third_movie, position=2)
+        CollectionMovie.objects.create(collection=collection, movie=extra_movie, position=3)
+        CollectionMovie.objects.create(collection=collection, movie=posterless, position=4)
+
+        self.client.force_authenticate(user=self.user)
+        response = self.client.get(reverse('collections'))
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        previews = response.data['results'][0]['preview_movies']
+        self.assertEqual(len(previews), 3)
+        self.assertEqual([movie['id'] for movie in previews], [self.movie_two.id, self.movie_one.id, third_movie.id])
+        self.assertEqual(previews[0]['poster'], 'poster-two.jpg')
 
     def test_list_collections_invalid_owner_id(self):
         self.client.force_authenticate(user=self.user)
@@ -240,6 +261,7 @@ class CollectionViewTests(APITestCase):
         self.assertEqual(clone_response.data['name'], 'Source')
         self.assertEqual(clone_response.data['owner_id'], self.user.id)
         self.assertEqual(clone_response.data['movies_count'], 1)
+        self.assertEqual([movie['id'] for movie in clone_response.data['preview_movies']], [self.movie_one.id])
 
         movies_response = self.client.get(reverse('collection_movies', kwargs={'collection_id': clone_response.data['id']}))
         self.assertEqual([movie['id'] for movie in movies_response.data['results']], [self.movie_one.id])
@@ -257,6 +279,22 @@ class CollectionViewTests(APITestCase):
         self.client.force_authenticate(user=self.user)
 
         response = self.client.post(reverse('collection_clone', kwargs={'collection_id': source.id}))
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(response.data['name'], source.name)
+
+    def test_clone_validation_error_converted(self):
+        collection = Collection.objects.create(owner=self.other_user, name='Error Source', description='', is_public=True)
+
+        class ErrorService:
+            def clone_collection(self, *args, **kwargs):
+                raise DjangoValidationError({'name': ['invalid']})
+
+        original_service = CollectionCloneView.service_class
+        CollectionCloneView.service_class = ErrorService
+        self.addCleanup(lambda: setattr(CollectionCloneView, 'service_class', original_service))
+
+        self.client.force_authenticate(user=self.user)
+        response = self.client.post(reverse('collection_clone', kwargs={'collection_id': collection.id}))
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn('name', response.data)
 
