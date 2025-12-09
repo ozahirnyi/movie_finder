@@ -4,7 +4,8 @@ from typing import Iterable, Sequence
 
 from django.core.exceptions import ValidationError
 from django.db import transaction
-from django.db.models import Count, Exists, OuterRef, Prefetch, QuerySet
+from django.db.models import Case, Count, Exists, FloatField, OuterRef, Prefetch, QuerySet, When
+from django.db.models.functions import Cast
 
 from movie.models import Movie
 
@@ -60,6 +61,7 @@ class CollectionRepository:
                 owner_id=payload.owner_id,
                 name=payload.name,
                 description=payload.description or '',
+                design=payload.design or '',
                 is_public=payload.is_public,
             )
             if payload.movie_ids is not None:
@@ -75,6 +77,9 @@ class CollectionRepository:
         if payload.description is not None:
             collection.description = payload.description
             update_fields.append('description')
+        if payload.design is not None:
+            collection.design = payload.design
+            update_fields.append('design')
         if payload.is_public is not None:
             collection.is_public = payload.is_public
             update_fields.append('is_public')
@@ -96,8 +101,39 @@ class CollectionRepository:
         collection_id: int,
         limit: int | None = None,
         offset: int | None = None,
+        title_search: str | None = None,
+        genres: str | None = None,
+        year: str | None = None,
+        imdb_id: str | None = None,
+        rating_min: float | None = None,
+        rating_max: float | None = None,
+        ordering: str | None = None,
     ) -> CollectionMovieListResult:
-        base_qs = CollectionMovie.objects.filter(collection_id=collection_id).select_related('movie').order_by('position', 'added_at', 'id')
+        base_qs = CollectionMovie.objects.filter(collection_id=collection_id).select_related('movie')
+        needs_rating_value = rating_min is not None or rating_max is not None or self._ordering_needs_rating(ordering)
+        if needs_rating_value:
+            base_qs = base_qs.annotate(
+                imdb_rating_value=Case(
+                    When(movie__imdb_rating__regex=r'^\d+(\.\d+)?$', then=Cast('movie__imdb_rating', FloatField())),
+                    default=None,
+                    output_field=FloatField(),
+                )
+            )
+        if title_search:
+            base_qs = base_qs.filter(movie__title__icontains=title_search)
+        if genres:
+            base_qs = base_qs.filter(movie__genres__name__icontains=genres)
+        if year:
+            base_qs = base_qs.filter(movie__year__icontains=year)
+        if imdb_id:
+            base_qs = base_qs.filter(movie__imdb_id__exact=imdb_id)
+        if rating_min is not None:
+            base_qs = base_qs.filter(imdb_rating_value__gte=rating_min)
+        if rating_max is not None:
+            base_qs = base_qs.filter(imdb_rating_value__lte=rating_max)
+
+        order_fields = self._resolve_ordering(ordering)
+        base_qs = base_qs.order_by(*order_fields).distinct()
         total_count = base_qs.count()
         if offset:
             base_qs = base_qs[offset:]
@@ -110,6 +146,7 @@ class CollectionRepository:
                 imdb_id=relation.movie.imdb_id,
                 poster=relation.movie.poster,
                 year=relation.movie.year,
+                description=relation.movie.plot,
             )
             for relation in base_qs
         ]
@@ -130,6 +167,7 @@ class CollectionRepository:
             owner_id=owner_id,
             name=source.name,
             description=source.description,
+            design=source.design,
             is_public=source.is_public,
             movie_ids=movie_ids,
         )
@@ -184,12 +222,46 @@ class CollectionRepository:
     def _to_dtos(self, collections: Sequence[Collection]) -> list[CollectionDTO]:
         return [self._to_dto(collection) for collection in collections]
 
+    def _resolve_ordering(self, ordering: str | None) -> list[str]:
+        if not ordering:
+            return ['position', 'added_at', 'id']
+
+        allowed_fields = {
+            'position': ['position', 'id'],
+            'added_at': ['added_at', 'id'],
+            'title': ['movie__title', 'id'],
+            'year': ['movie__year', 'id'],
+            'imdb_id': ['movie__imdb_id', 'id'],
+            'imdb_rating': ['imdb_rating_value', 'id'],
+        }
+        parts = [part.strip() for part in ordering.split(',') if part.strip()]
+        if not parts:
+            return ['position', 'added_at', 'id']
+
+        order_fields: list[str] = []
+        for part in parts:
+            descending = part.startswith('-')
+            field_key = part[1:] if descending else part
+            if field_key not in allowed_fields:
+                raise ValidationError({'ordering': f'Unsupported ordering: {part}'})
+            for field in allowed_fields[field_key]:
+                order_fields.append(f'-{field}' if descending else field)
+
+        return order_fields
+
+    @staticmethod
+    def _ordering_needs_rating(ordering: str | None) -> bool:
+        if not ordering:
+            return False
+        return any(segment.strip().lstrip('-') == 'imdb_rating' for segment in ordering.split(','))
+
     @staticmethod
     def _to_dto(collection: Collection) -> CollectionDTO:
         return CollectionDTO(
             id=collection.id,
             name=collection.name,
             description=collection.description,
+            design=collection.design,
             is_public=collection.is_public,
             owner_id=collection.owner_id,
             owner_email=getattr(collection.owner, 'email', None),

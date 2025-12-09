@@ -5,7 +5,7 @@ from django.test import TestCase
 from collection.models import Collection
 from collection.repositories import CollectionRepository
 from collection.services import CollectionService
-from movie.models import Movie
+from movie.models import Genre, Movie
 
 
 class CollectionServiceTests(TestCase):
@@ -24,11 +24,13 @@ class CollectionServiceTests(TestCase):
             owner_id=self.owner.id,
             name='Favorites',
             description='Top picks',
+            design='grid',
             is_public=False,
             movie_ids=[self.movie_one.id, self.movie_two.id],
         )
 
         self.assertEqual(dto.owner_id, self.owner.id)
+        self.assertEqual(dto.design, 'grid')
         self.assertEqual(dto.movies_count, 2)
         movies = self.service.list_collection_movies(viewer_id=self.owner.id, is_staff=False, collection_id=dto.id)
         self.assertEqual([movie.id for movie in movies.items], [self.movie_one.id, self.movie_two.id])
@@ -132,11 +134,13 @@ class CollectionServiceTests(TestCase):
             collection_id=dto.id,
             name='Updated',
             description='Changed',
+            design='list',
             is_public=True,
             movie_ids=[self.movie_three.id],
         )
 
         self.assertEqual(updated.name, 'Updated')
+        self.assertEqual(updated.design, 'list')
         movies = self.service.list_collection_movies(viewer_id=self.owner.id, is_staff=False, collection_id=dto.id)
         self.assertEqual([movie.id for movie in movies.items], [self.movie_three.id])
 
@@ -241,6 +245,7 @@ class CollectionServiceTests(TestCase):
             owner_id=self.owner.id,
             name='Clone Me',
             description='Desc',
+            design='tiled',
             is_public=True,
             movie_ids=[self.movie_one.id, self.movie_two.id],
         )
@@ -248,6 +253,7 @@ class CollectionServiceTests(TestCase):
 
         self.assertEqual(cloned.name, source.name)
         self.assertEqual(cloned.owner_id, self.another_user.id)
+        self.assertEqual(cloned.design, 'tiled')
         movies = self.service.list_collection_movies(viewer_id=self.another_user.id, is_staff=False, collection_id=cloned.id)
         self.assertEqual([movie.id for movie in movies.items], [self.movie_one.id, self.movie_two.id])
 
@@ -313,3 +319,89 @@ class CollectionServiceTests(TestCase):
         )
         movies = self.service.list_collection_movies(viewer_id=self.owner.id, is_staff=False, collection_id=dto.id, offset=1)
         self.assertEqual([movie.id for movie in movies.items], [self.movie_two.id])
+
+    def test_list_collection_movies_supports_filters(self):
+        dto = self.service.create_collection(
+            owner_id=self.owner.id,
+            name='Filters',
+            description='',
+            design='',
+            is_public=True,
+            movie_ids=[self.movie_one.id, self.movie_two.id, self.movie_three.id],
+        )
+        thriller = Genre.objects.create(name='Thriller')
+        Movie.objects.filter(pk=self.movie_one.id).update(title='Alpha', imdb_rating='6.5', year='2020')
+        Movie.objects.filter(pk=self.movie_two.id).update(title='Beta Filter', imdb_rating='8.2', year='2021')
+        Movie.objects.filter(pk=self.movie_three.id).update(title='Gamma', imdb_rating='7.1', year='2019')
+        refreshed_two = Movie.objects.get(pk=self.movie_two.id)
+        refreshed_two.genres.add(thriller)
+
+        filtered = self.service.list_collection_movies(
+            viewer_id=self.owner.id,
+            is_staff=False,
+            collection_id=dto.id,
+            title_search='Filter',
+            rating_min=8.0,
+        )
+        self.assertEqual([movie.id for movie in filtered.items], [self.movie_two.id])
+        self.assertIsNotNone(filtered.items[0].description)
+
+        genre_filtered = self.service.list_collection_movies(
+            viewer_id=self.owner.id,
+            is_staff=False,
+            collection_id=dto.id,
+            genres='Thrill',
+        )
+        self.assertEqual([movie.id for movie in genre_filtered.items], [self.movie_two.id])
+
+        year_filtered = self.service.list_collection_movies(
+            viewer_id=self.owner.id,
+            is_staff=False,
+            collection_id=dto.id,
+            year='2021',
+        )
+        self.assertEqual([movie.id for movie in year_filtered.items], [self.movie_two.id])
+
+        imdb_filtered = self.service.list_collection_movies(
+            viewer_id=self.owner.id,
+            is_staff=False,
+            collection_id=dto.id,
+            imdb_id=refreshed_two.imdb_id,
+            rating_max=9.0,
+        )
+        self.assertEqual([movie.id for movie in imdb_filtered.items], [self.movie_two.id])
+
+        ordered = self.service.list_collection_movies(
+            viewer_id=self.owner.id,
+            is_staff=False,
+            collection_id=dto.id,
+            ordering='-year',
+        )
+        self.assertEqual([movie.year for movie in ordered.items], ['2021', '2020', '2019'])
+
+        rating_ordered = self.service.list_collection_movies(
+            viewer_id=self.owner.id,
+            is_staff=False,
+            collection_id=dto.id,
+            ordering='-imdb_rating',
+        )
+        self.assertEqual(
+            [movie.imdb_id for movie in rating_ordered.items],
+            [self.movie_two.imdb_id, self.movie_three.imdb_id, self.movie_one.imdb_id],
+        )
+
+        fallback_ordering = self.service.list_collection_movies(
+            viewer_id=self.owner.id,
+            is_staff=False,
+            collection_id=dto.id,
+            ordering='',
+        )
+        self.assertEqual([movie.id for movie in fallback_ordering.items], [self.movie_one.id, self.movie_two.id, self.movie_three.id])
+
+        comma_ordering = self.service.list_collection_movies(
+            viewer_id=self.owner.id,
+            is_staff=False,
+            collection_id=dto.id,
+            ordering=',',
+        )
+        self.assertEqual([movie.id for movie in comma_ordering.items], [self.movie_one.id, self.movie_two.id, self.movie_three.id])

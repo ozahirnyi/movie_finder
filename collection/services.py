@@ -42,6 +42,7 @@ class CollectionService:
         owner_id: int,
         name: str,
         description: str | None,
+        design: str | None = '',
         is_public: bool,
         movie_ids: list[int] | None,
     ) -> CollectionDTO:
@@ -49,6 +50,7 @@ class CollectionService:
             owner_id=owner_id,
             name=name,
             description=description or '',
+            design=design or '',
             is_public=is_public,
             movie_ids=movie_ids or [],
         )
@@ -67,6 +69,7 @@ class CollectionService:
         collection_id: int,
         name: str | None = None,
         description: str | None = None,
+        design: str | None = None,
         is_public: bool | None = None,
         movie_ids: list[int] | None = None,
     ) -> CollectionDTO:
@@ -75,6 +78,7 @@ class CollectionService:
         payload = CollectionUpdatePayload(
             name=name,
             description=description,
+            design=design,
             is_public=is_public,
             movie_ids=movie_ids,
         )
@@ -86,11 +90,35 @@ class CollectionService:
         self.repository.delete(collection_id)
 
     def list_collection_movies(
-        self, *, viewer_id: int, is_staff: bool, collection_id: int, limit: int | None = None, offset: int | None = None
+        self,
+        *,
+        viewer_id: int,
+        is_staff: bool,
+        collection_id: int,
+        limit: int | None = None,
+        offset: int | None = None,
+        title_search: str | None = None,
+        genres: str | None = None,
+        year: str | None = None,
+        imdb_id: str | None = None,
+        rating_min: float | None = None,
+        rating_max: float | None = None,
+        ordering: str | None = None,
     ) -> CollectionMovieListResult:
         collection = self.repository.retrieve(collection_id, viewer_id=viewer_id)
         self._ensure_can_view(viewer_id=viewer_id, is_staff=is_staff, owner_id=collection.owner_id, is_public=collection.is_public)
-        return self.repository.list_movies(collection_id=collection_id, limit=limit, offset=offset)
+        return self.repository.list_movies(
+            collection_id=collection_id,
+            limit=limit,
+            offset=offset,
+            title_search=title_search,
+            genres=genres,
+            year=year,
+            imdb_id=imdb_id,
+            rating_min=rating_min,
+            rating_max=rating_max,
+            ordering=ordering,
+        )
 
     def subscribe(self, *, viewer_id: int, is_staff: bool, collection_id: int) -> None:
         collection = self.repository.retrieve(collection_id, viewer_id=viewer_id)
