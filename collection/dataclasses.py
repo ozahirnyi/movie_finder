@@ -7,6 +7,7 @@ class CollectionPayload:
     owner_id: int
     name: str
     description: str | None = ''
+    design: str | None = ''
     is_public: bool = False
     movie_ids: list[int] | None = field(default=None)
 
@@ -15,6 +16,7 @@ class CollectionPayload:
 class CollectionUpdatePayload:
     name: str | None = None
     description: str | None = None
+    design: str | None = None
     is_public: bool | None = None
     movie_ids: list[int] | None = field(default=None)
 
@@ -26,6 +28,7 @@ class CollectionMovieDTO:
     imdb_id: str | None
     poster: str | None
     year: str | None
+    description: str | None
 
 
 @dataclass(slots=True)
@@ -40,6 +43,7 @@ class CollectionDTO:
     id: int
     name: str
     description: str
+    design: str
     is_public: bool
     owner_id: int
     owner_email: str | None

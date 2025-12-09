@@ -6,6 +6,7 @@ class Collection(models.Model):
     owner = models.ForeignKey(get_user_model(), on_delete=models.CASCADE, related_name='collections')
     name = models.CharField(max_length=255)
     description = models.TextField(blank=True)
+    design = models.CharField(max_length=255, blank=True, default='')
     is_public = models.BooleanField(default=False)
     movies = models.ManyToManyField('movie.Movie', through='CollectionMovie', related_name='collections')
 

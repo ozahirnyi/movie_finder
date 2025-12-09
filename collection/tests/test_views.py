@@ -24,6 +24,7 @@ class CollectionViewTests(APITestCase):
             data={
                 'name': 'Weekend Watch',
                 'description': 'Good stuff',
+                'design': 'grid',
                 'is_public': True,
                 'movie_ids': [self.movie_one.id, self.movie_two.id],
             },
@@ -32,10 +33,12 @@ class CollectionViewTests(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertEqual(response.data['name'], 'Weekend Watch')
+        self.assertEqual(response.data['design'], 'grid')
         self.assertEqual(response.data['movies_count'], 2)
         self.assertEqual([movie['id'] for movie in response.data['preview_movies']], [self.movie_one.id, self.movie_two.id])
         self.assertNotIn('movies', response.data)
-        self.assertTrue(Collection.objects.filter(name='Weekend Watch', owner=self.user).exists())
+        created = Collection.objects.get(name='Weekend Watch', owner=self.user)
+        self.assertEqual(created.design, 'grid')
 
     def test_update_collection_requires_owner_or_admin(self):
         collection = Collection.objects.create(owner=self.user, name='Private', description='', is_public=False)
@@ -52,12 +55,13 @@ class CollectionViewTests(APITestCase):
         self.client.force_authenticate(user=self.admin)
         response = self.client.patch(
             reverse('collection_detail', kwargs={'collection_id': collection.id}),
-            data={'name': 'Admin Edit'},
+            data={'name': 'Admin Edit', 'design': 'list'},
             format='json',
         )
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         collection.refresh_from_db()
         self.assertEqual(collection.name, 'Admin Edit')
+        self.assertEqual(collection.design, 'list')
 
     def test_list_collections_filters_visibility(self):
         Collection.objects.create(owner=self.user, name='Public', description='', is_public=True)
@@ -223,6 +227,7 @@ class CollectionViewTests(APITestCase):
         response = self.client.get(reverse('collection_movies', kwargs={'collection_id': collection.id}))
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual([movie['id'] for movie in response.data['results']], [self.movie_one.id, self.movie_two.id])
+        self.assertIn('description', response.data['results'][0])
 
     def test_collection_movies_private_requires_access(self):
         collection = Collection.objects.create(owner=self.other_user, name='Hidden', description='', is_public=False)
@@ -235,6 +240,60 @@ class CollectionViewTests(APITestCase):
         self.client.force_authenticate(user=self.other_user)
         authorized = self.client.get(reverse('collection_movies', kwargs={'collection_id': collection.id}))
         self.assertEqual(authorized.status_code, status.HTTP_200_OK)
+
+    def test_collection_movies_support_search_and_filters(self):
+        collection = Collection.objects.create(owner=self.user, name='Filtered', description='', is_public=True)
+        target = Movie.objects.create(
+            title='Filter Target',
+            imdb_id='tt010003',
+            poster='poster-three.jpg',
+            year='2020',
+            imdb_rating='8.1',
+            plot='Target plot',
+        )
+        other = Movie.objects.create(
+            title='Other Movie',
+            imdb_id='tt010004',
+            poster='poster-four.jpg',
+            year='2015',
+            imdb_rating='6.2',
+            plot='Other plot',
+        )
+        CollectionMovie.objects.create(collection=collection, movie=self.movie_one, position=0)
+        CollectionMovie.objects.create(collection=collection, movie=target, position=1)
+        CollectionMovie.objects.create(collection=collection, movie=other, position=2)
+
+        self.client.force_authenticate(user=self.user)
+        search_response = self.client.get(reverse('collection_movies', kwargs={'collection_id': collection.id}), {'search': 'Filter'})
+        self.assertEqual([movie['id'] for movie in search_response.data['results']], [target.id])
+        self.assertEqual(search_response.data['results'][0]['description'], 'Target plot')
+
+        rating_response = self.client.get(
+            reverse('collection_movies', kwargs={'collection_id': collection.id}),
+            {'rating_min': '8.0'},
+        )
+        self.assertEqual([movie['id'] for movie in rating_response.data['results']], [target.id])
+
+        invalid_rating = self.client.get(
+            reverse('collection_movies', kwargs={'collection_id': collection.id}),
+            {'rating_max': 'bad'},
+        )
+        self.assertEqual(invalid_rating.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn('rating_max', invalid_rating.data)
+
+        ordering_response = self.client.get(
+            reverse('collection_movies', kwargs={'collection_id': collection.id}),
+            {'ordering': '-year'},
+        )
+        returned_years = [movie['year'] for movie in ordering_response.data['results']]
+        self.assertEqual(returned_years, ['2020', '2015', self.movie_one.year])
+
+        bad_ordering = self.client.get(
+            reverse('collection_movies', kwargs={'collection_id': collection.id}),
+            {'ordering': 'invalid'},
+        )
+        self.assertEqual(bad_ordering.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn('ordering', bad_ordering.data)
 
     def test_collection_movies_without_pagination(self):
         original_pagination = CollectionMoviesView.pagination_class
@@ -252,13 +311,14 @@ class CollectionViewTests(APITestCase):
         self.assertEqual(len(response.data), 2)
 
     def test_clone_collection_endpoint(self):
-        source = Collection.objects.create(owner=self.other_user, name='Source', description='OG', is_public=True)
+        source = Collection.objects.create(owner=self.other_user, name='Source', description='OG', design='cards', is_public=True)
         CollectionMovie.objects.create(collection=source, movie=self.movie_one, position=0)
         self.client.force_authenticate(user=self.user)
 
         clone_response = self.client.post(reverse('collection_clone', kwargs={'collection_id': source.id}))
         self.assertEqual(clone_response.status_code, status.HTTP_201_CREATED)
         self.assertEqual(clone_response.data['name'], 'Source')
+        self.assertEqual(clone_response.data['design'], 'cards')
         self.assertEqual(clone_response.data['owner_id'], self.user.id)
         self.assertEqual(clone_response.data['movies_count'], 1)
         self.assertEqual([movie['id'] for movie in clone_response.data['preview_movies']], [self.movie_one.id])

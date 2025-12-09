@@ -102,6 +102,7 @@ class CollectionListCreateView(GenericAPIView):
             owner_id=request.user.id,
             name=serializer.validated_data['name'],
             description=serializer.validated_data.get('description', ''),
+            design=serializer.validated_data.get('design', ''),
             is_public=serializer.validated_data.get('is_public', False),
             movie_ids=serializer.validated_data.get('movie_ids'),
         )
@@ -151,6 +152,7 @@ class CollectionDetailView(GenericAPIView):
                 collection_id=self._get_collection_id(),
                 name=serializer.validated_data.get('name'),
                 description=serializer.validated_data.get('description'),
+                design=serializer.validated_data.get('design'),
                 is_public=serializer.validated_data.get('is_public'),
                 movie_ids=serializer.validated_data.get('movie_ids') if 'movie_ids' in serializer.validated_data else None,
             )
@@ -193,6 +195,61 @@ class CollectionMoviesView(GenericAPIView):
     service_class = CollectionService
     lookup_url_kwarg = 'collection_id'
 
+    @extend_schema(
+        parameters=[
+            OpenApiParameter(
+                name='search',
+                type=OpenApiTypes.STR,
+                location=OpenApiParameter.QUERY,
+                description='Filter collection movies by title (case-insensitive).',
+                required=False,
+            ),
+            OpenApiParameter(
+                name='genres',
+                type=OpenApiTypes.STR,
+                location=OpenApiParameter.QUERY,
+                description='Filter collection movies by genre name (case-insensitive).',
+                required=False,
+            ),
+            OpenApiParameter(
+                name='year',
+                type=OpenApiTypes.STR,
+                location=OpenApiParameter.QUERY,
+                description='Filter collection movies by year.',
+                required=False,
+            ),
+            OpenApiParameter(
+                name='imdb_id',
+                type=OpenApiTypes.STR,
+                location=OpenApiParameter.QUERY,
+                description='Filter collection movies by exact IMDb id.',
+                required=False,
+            ),
+            OpenApiParameter(
+                name='rating_min',
+                type=OpenApiTypes.FLOAT,
+                location=OpenApiParameter.QUERY,
+                description='Return movies with IMDb rating greater than or equal to this value.',
+                required=False,
+            ),
+            OpenApiParameter(
+                name='rating_max',
+                type=OpenApiTypes.FLOAT,
+                location=OpenApiParameter.QUERY,
+                description='Return movies with IMDb rating less than or equal to this value.',
+                required=False,
+            ),
+            OpenApiParameter(
+                name='ordering',
+                type=OpenApiTypes.STR,
+                location=OpenApiParameter.QUERY,
+                description='Order collection movies by allowed fields: position, added_at, title, '
+                'year, imdb_id, imdb_rating (prefix with - for descending).',
+                required=False,
+            ),
+        ],
+        responses=CollectionMovieSerializer(many=True),
+    )
     def get(self, request, *args, **kwargs):
         service = self.service_class()
         pagination = self.pagination_class() if self.pagination_class else None
@@ -208,9 +265,18 @@ class CollectionMoviesView(GenericAPIView):
                 collection_id=self._get_collection_id(),
                 limit=limit,
                 offset=offset,
+                title_search=request.query_params.get('search'),
+                genres=request.query_params.get('genres'),
+                year=request.query_params.get('year'),
+                imdb_id=request.query_params.get('imdb_id'),
+                rating_min=self._parse_float(request.query_params.get('rating_min'), 'rating_min'),
+                rating_max=self._parse_float(request.query_params.get('rating_max'), 'rating_max'),
+                ordering=request.query_params.get('ordering'),
             )
         except PermissionError as exc:
             raise PermissionDenied(str(exc)) from exc
+        except DjangoValidationError as exc:
+            raise ValidationError(exc.message_dict) from exc
         movie_serializer = CollectionMovieSerializer(result.items, many=True)
         if pagination:
             pagination.count = result.total_count
@@ -221,6 +287,15 @@ class CollectionMoviesView(GenericAPIView):
 
     def _get_collection_id(self) -> int:
         return int(self.kwargs[self.lookup_url_kwarg])
+
+    @staticmethod
+    def _parse_float(value: str | None, field_name: str) -> float | None:
+        if value is None:
+            return None
+        try:
+            return float(value)
+        except (TypeError, ValueError) as exc:
+            raise ValidationError({field_name: f'{field_name} must be a number'}) from exc
 
 
 class CollectionSubscriptionView(GenericAPIView):
