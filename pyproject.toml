@@ -60,6 +60,7 @@ uvicorn = "==0.32.0"
 wheel = "==0.45.1"
 pytest = "==8.4.2"
 drf-spectacular = "^0.28.0"
+whitenoise = "6.8.2"
 
 [tool.poetry.group.dev.dependencies]
 pre-commit = "^4.3.0"
