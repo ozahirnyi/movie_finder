@@ -67,6 +67,11 @@ class OmdbMovie:
 @dataclass
 class AiMovie:
     title: str
+    match_score: int
+
+    def __init__(self,data: dict):
+        self.title = data.get("title", "")
+        self.match_score = data.get("match_score", 0)
 
 
 @dataclass
