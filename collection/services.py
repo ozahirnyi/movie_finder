@@ -24,6 +24,8 @@ class CollectionService:
         subscribed: bool | None = None,
         limit: int | None = None,
         offset: int | None = None,
+        search: str | None = None,
+        ordering: str | None = None,
     ) -> CollectionListResult:
         visibility_filter = self._resolve_visibility_filter(viewer_id=viewer_id, requested_owner_id=owner_id, explicit_public=is_public)
         subscriber_id = viewer_id
@@ -34,6 +36,8 @@ class CollectionService:
             offset=offset,
             subscriber_id=subscriber_id,
             subscribed=subscribed,
+            search=search,
+            ordering=ordering,
         )
 
     def create_collection(

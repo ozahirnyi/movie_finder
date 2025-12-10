@@ -31,16 +31,24 @@ class CollectionRepository:
         is_public: bool | None = None,
         subscriber_id: int | None = None,
         subscribed: bool | None = None,
+        search: str | None = None,
+        ordering: str | None = None,
     ) -> CollectionListResult:
         queryset = self._base_queryset(subscriber_id=subscriber_id)
         if owner_id is not None:
             queryset = queryset.filter(owner_id=owner_id)
         if is_public is not None:
             queryset = queryset.filter(is_public=is_public)
+        if search:
+            queryset = queryset.filter(name__icontains=search)
         if subscribed is True and subscriber_id is not None:
             queryset = queryset.filter(subscriptions__user_id=subscriber_id)
         elif subscribed is False and subscriber_id is not None:
             queryset = queryset.exclude(subscriptions__user_id=subscriber_id)
+
+        order_fields = self._resolve_list_ordering(ordering)
+        if order_fields:
+            queryset = queryset.order_by(*order_fields)
 
         total_count = queryset.count()
         if offset:
@@ -204,7 +212,7 @@ class CollectionRepository:
         queryset = (
             Collection.objects.all()
             .select_related('owner')
-            .annotate(movies_count=Count('collection_movies'))
+            .annotate(movies_count=Count('collection_movies', distinct=True), subscribers_count=Count('subscriptions', distinct=True))
             .prefetch_related(
                 Prefetch(
                     'collection_movies',
@@ -221,6 +229,28 @@ class CollectionRepository:
 
     def _to_dtos(self, collections: Sequence[Collection]) -> list[CollectionDTO]:
         return [self._to_dto(collection) for collection in collections]
+
+    def _resolve_list_ordering(self, ordering: str | None) -> list[str] | None:
+        if not ordering:
+            return None
+
+        allowed_fields = {
+            'created_at': ['created_at', 'id'],
+            'subscribers': ['subscribers_count', 'id'],
+        }
+        parts = [part.strip() for part in ordering.split(',') if part.strip()]
+        if not parts:
+            return None
+
+        order_fields: list[str] = []
+        for part in parts:
+            descending = part.startswith('-')
+            field_key = part[1:] if descending else part
+            if field_key not in allowed_fields:
+                raise ValidationError({'ordering': f'Unsupported ordering: {part}'})
+            for field in allowed_fields[field_key]:
+                order_fields.append(f'-{field}' if descending else field)
+        return order_fields
 
     def _resolve_ordering(self, ordering: str | None) -> list[str]:
         if not ordering:
@@ -267,6 +297,7 @@ class CollectionRepository:
             owner_email=getattr(collection.owner, 'email', None),
             movies_count=getattr(collection, 'movies_count', 0),
             is_subscribed=getattr(collection, 'is_subscribed', False),
+            subscribers_count=getattr(collection, 'subscribers_count', 0),
             preview_movies=CollectionRepository._build_preview_movies(collection),
             created_at=collection.created_at,
             updated_at=collection.updated_at,

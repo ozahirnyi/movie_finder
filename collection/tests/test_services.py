@@ -1,6 +1,9 @@
+from datetime import timedelta
+
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
 from django.test import TestCase
+from django.utils import timezone
 
 from collection.models import Collection
 from collection.repositories import CollectionRepository
@@ -85,6 +88,44 @@ class CollectionServiceTests(TestCase):
 
         only_public = self.service.list_collections(viewer_id=self.owner.id, is_staff=False, is_public=True)
         self.assertEqual([collection.id for collection in only_public.items], [public_collection.id])
+
+    def test_list_collections_supports_search_and_ordering(self):
+        alpha = self.service.create_collection(
+            owner_id=self.owner.id,
+            name='Alpha Picks',
+            description='',
+            is_public=True,
+            movie_ids=None,
+        )
+        beta = self.service.create_collection(
+            owner_id=self.owner.id,
+            name='Beta Bag',
+            description='',
+            is_public=True,
+            movie_ids=None,
+        )
+        extra_user = get_user_model().objects.create_user(email='extra@example.com', password='pass1234')
+        self.service.subscribe(viewer_id=self.another_user.id, is_staff=False, collection_id=alpha.id)
+        self.service.subscribe(viewer_id=extra_user.id, is_staff=False, collection_id=alpha.id)
+        now = timezone.now()
+        Collection.objects.filter(pk=alpha.id).update(created_at=now - timedelta(days=1))
+        Collection.objects.filter(pk=beta.id).update(created_at=now)
+
+        search_result = self.service.list_collections(viewer_id=self.owner.id, is_staff=False, search='alpha')
+        self.assertEqual([collection.id for collection in search_result.items], [alpha.id])
+        self.assertEqual(search_result.items[0].subscribers_count, 2)
+
+        ordering_result = self.service.list_collections(viewer_id=self.owner.id, is_staff=False, ordering='-subscribers')
+        self.assertEqual([collection.id for collection in ordering_result.items], [alpha.id, beta.id])
+
+        created_at_order = self.service.list_collections(viewer_id=self.owner.id, is_staff=False, ordering='created_at')
+        self.assertEqual([collection.id for collection in created_at_order.items], [alpha.id, beta.id])
+
+        blank_ordering = self.service.list_collections(viewer_id=self.owner.id, is_staff=False, ordering=',')
+        self.assertEqual({collection.id for collection in blank_ordering.items}, {alpha.id, beta.id})
+
+        with self.assertRaises(ValidationError):
+            self.service.list_collections(viewer_id=self.owner.id, is_staff=False, ordering='invalid')
 
     def test_list_collections_includes_preview_movies(self):
         movie_four = Movie.objects.create(title='Movie Four', imdb_id='tt000013', poster='poster-4.jpg')
@@ -300,6 +341,23 @@ class CollectionServiceTests(TestCase):
         self.service.subscribe(viewer_id=self.owner.id, is_staff=False, collection_id=collection.id)
         refreshed = Collection.objects.get(pk=collection.id)
         self.assertFalse(refreshed.subscriptions.exists())
+
+    def test_movies_count_not_multiplied_by_subscribers(self):
+        dto = self.service.create_collection(
+            owner_id=self.owner.id,
+            name='Counted',
+            description='',
+            is_public=True,
+            movie_ids=[self.movie_one.id, self.movie_two.id, self.movie_three.id],
+        )
+        extra_user = get_user_model().objects.create_user(email='extra2@example.com', password='pass1234')
+        self.service.subscribe(viewer_id=self.another_user.id, is_staff=False, collection_id=dto.id)
+        self.service.subscribe(viewer_id=extra_user.id, is_staff=False, collection_id=dto.id)
+
+        listed = self.service.list_collections(viewer_id=self.owner.id, is_staff=False, owner_id=self.owner.id)
+        self.assertEqual(listed.items[0].movies_count, 3)
+        detail = self.service.retrieve_collection(viewer_id=self.owner.id, is_staff=False, collection_id=dto.id)
+        self.assertEqual(detail.movies_count, 3)
 
     def test_unsubscribe_requires_authentication(self):
         with self.assertRaises(TypeError):

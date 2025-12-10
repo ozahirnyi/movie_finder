@@ -28,6 +28,7 @@ class CollectionSerializer(serializers.Serializer):
     owner_email = serializers.EmailField(allow_null=True)
     movies_count = serializers.IntegerField()
     is_subscribed = serializers.BooleanField()
+    subscribers_count = serializers.IntegerField()
     preview_movies = CollectionMoviePreviewSerializer(many=True)
     created_at = serializers.DateTimeField()
     updated_at = serializers.DateTimeField()
