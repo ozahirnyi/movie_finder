@@ -61,6 +61,27 @@ class CollectionListCreateView(GenericAPIView):
                 description='When true, return only collections the requester is subscribed to; when false, return only unsubscribed ones.',
                 required=False,
             ),
+            OpenApiParameter(
+                name='search',
+                type=OpenApiTypes.STR,
+                location=OpenApiParameter.QUERY,
+                description='Filter collections by name (case-insensitive).',
+                required=False,
+            ),
+            OpenApiParameter(
+                name='ordering',
+                type=OpenApiTypes.STR,
+                location=OpenApiParameter.QUERY,
+                description='Order collections by allowed fields: subscribers, created_at (prefix with - for descending).',
+                required=False,
+            ),
+            OpenApiParameter(
+                name='sort',
+                type=OpenApiTypes.STR,
+                location=OpenApiParameter.QUERY,
+                description='Shortcut for ordering: trending=-subscribers, newest=-created_at, oldest=created_at.',
+                required=False,
+            ),
         ],
         responses=CollectionSerializer(many=True),
     )
@@ -76,15 +97,21 @@ class CollectionListCreateView(GenericAPIView):
             pagination.request = request
             limit = pagination.get_limit(request)
             offset = pagination.get_offset(request)
-        result = service.list_collections(
-            viewer_id=request.user.id,
-            is_staff=bool(getattr(request.user, 'is_staff', False)),
-            is_public=is_public,
-            owner_id=owner_id_int,
-            subscribed=subscribed,
-            limit=limit,
-            offset=offset,
-        )
+        try:
+            ordering = request.query_params.get('ordering') or self._map_sort(request.query_params.get('sort'))
+            result = service.list_collections(
+                viewer_id=request.user.id,
+                is_staff=bool(getattr(request.user, 'is_staff', False)),
+                is_public=is_public,
+                owner_id=owner_id_int,
+                subscribed=subscribed,
+                limit=limit,
+                offset=offset,
+                search=request.query_params.get('search'),
+                ordering=ordering,
+            )
+        except DjangoValidationError as exc:
+            raise ValidationError(exc.message_dict) from exc
         serializer = CollectionSerializer(result.items, many=True)
         if pagination:
             pagination.count = result.total_count
@@ -127,6 +154,20 @@ class CollectionListCreateView(GenericAPIView):
             return int(value)
         except (TypeError, ValueError) as exc:
             raise ValidationError({'owner_id': 'owner_id must be an integer'}) from exc
+
+    @staticmethod
+    def _map_sort(sort: str | None) -> str | None:
+        if not sort:
+            return None
+        mapping = {
+            'trending': '-subscribers',
+            'newest': '-created_at',
+            'oldest': 'created_at',
+        }
+        try:
+            return mapping[sort]
+        except KeyError as exc:
+            raise ValidationError({'sort': 'Unsupported sort value'}) from exc
 
 
 class CollectionDetailView(GenericAPIView):

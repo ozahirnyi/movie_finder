@@ -49,6 +49,7 @@ class CollectionDTO:
     owner_email: str | None
     movies_count: int
     is_subscribed: bool
+    subscribers_count: int
     preview_movies: list[CollectionMoviePreviewDTO]
     created_at: datetime
     updated_at: datetime

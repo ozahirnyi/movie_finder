@@ -1,6 +1,9 @@
+from datetime import timedelta
+
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.urls import reverse
+from django.utils import timezone
 from rest_framework import status
 from rest_framework.test import APITestCase
 
@@ -87,6 +90,41 @@ class CollectionViewTests(APITestCase):
         )
         self.assertEqual(private_response.status_code, status.HTTP_200_OK)
         self.assertEqual([item['id'] for item in private_response.data['results']], [private.id])
+
+    def test_list_collections_supports_search_and_ordering(self):
+        popular = Collection.objects.create(owner=self.other_user, name='Popular Picks', description='', is_public=True)
+        quiet = Collection.objects.create(owner=self.other_user, name='Quiet Corner', description='', is_public=True)
+        now = timezone.now()
+        Collection.objects.filter(pk=popular.id).update(created_at=now - timedelta(days=1))
+        Collection.objects.filter(pk=quiet.id).update(created_at=now)
+        extra_user = get_user_model().objects.create_user(email='extra@example.com', password='pass1234')
+
+        self.client.force_authenticate(user=self.user)
+        self.client.post(reverse('collection_subscribe', kwargs={'collection_id': popular.id}))
+        self.client.force_authenticate(user=extra_user)
+        self.client.post(reverse('collection_subscribe', kwargs={'collection_id': popular.id}))
+        self.client.force_authenticate(user=self.user)
+
+        search_response = self.client.get(reverse('collections'), {'search': 'popular'})
+        self.assertEqual([item['id'] for item in search_response.data['results']], [popular.id])
+        self.assertEqual(search_response.data['results'][0]['subscribers_count'], 2)
+
+        ordering_response = self.client.get(reverse('collections'), {'ordering': '-subscribers'})
+        self.assertEqual([item['id'] for item in ordering_response.data['results']], [popular.id, quiet.id])
+
+        created_order = self.client.get(reverse('collections'), {'ordering': 'created_at'})
+        self.assertEqual([item['id'] for item in created_order.data['results']], [popular.id, quiet.id])
+
+        sort_trending = self.client.get(reverse('collections'), {'sort': 'trending'})
+        self.assertEqual([item['id'] for item in sort_trending.data['results']], [popular.id, quiet.id])
+
+        bad_sort = self.client.get(reverse('collections'), {'sort': 'random'})
+        self.assertEqual(bad_sort.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn('sort', bad_sort.data)
+
+        bad_ordering = self.client.get(reverse('collections'), {'ordering': 'invalid'})
+        self.assertEqual(bad_ordering.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn('ordering', bad_ordering.data)
 
     def test_list_collections_includes_preview_movies(self):
         third_movie = Movie.objects.create(title='Movie Three', imdb_id='tt010003', poster='poster-three.jpg')
@@ -364,3 +402,18 @@ class CollectionViewTests(APITestCase):
         self.client.force_authenticate(user=self.user)
         response = self.client.post(reverse('collection_subscribe', kwargs={'collection_id': collection.id}))
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_movies_count_not_duplicated_by_subscribers(self):
+        collection = Collection.objects.create(owner=self.user, name='Dupes', description='', is_public=True)
+        CollectionMovie.objects.create(collection=collection, movie=self.movie_one, position=0)
+        CollectionMovie.objects.create(collection=collection, movie=self.movie_two, position=1)
+
+        self.client.force_authenticate(user=self.other_user)
+        self.client.post(reverse('collection_subscribe', kwargs={'collection_id': collection.id}))
+        self.client.force_authenticate(user=self.admin)
+        self.client.post(reverse('collection_subscribe', kwargs={'collection_id': collection.id}))
+
+        self.client.force_authenticate(user=self.user)
+        response = self.client.get(reverse('collections'))
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['results'][0]['movies_count'], 2)
