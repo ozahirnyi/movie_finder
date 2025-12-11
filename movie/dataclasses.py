@@ -78,7 +78,7 @@ class AiMovie:
                 self.title = data.get('title', '')
                 self.match_score = data.get('match_score', 0)
             else:
-                raise TypeError(f'Unsupported AiMovie init type: {type(data)}') # pragma: no cover
+                raise TypeError(f'Unsupported AiMovie init type: {type(data)}')  # pragma: no cover
         else:
             self.title = title or ''
             self.match_score = match_score
