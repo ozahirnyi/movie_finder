@@ -15,9 +15,9 @@ from movie.system_prompts import find_movie_system_prompt, recommendations_syste
 class FindMovieAiClientTests(SimpleTestCase):
     def test_returns_empty_list_when_prompt_too_long(self):
         with patch.object(
-                SearchFindMovieAiClient,
-                'count_tokens',
-                return_value=settings.MAX_PROMPT_TOKENS_LENGTH + 1,
+            SearchFindMovieAiClient,
+            'count_tokens',
+            return_value=settings.MAX_PROMPT_TOKENS_LENGTH + 1,
         ):
             client = SearchFindMovieAiClient()
             result = client.find_movies('an extremely long prompt')
@@ -27,9 +27,7 @@ class FindMovieAiClientTests(SimpleTestCase):
     @patch.object(SearchFindMovieAiClient, 'count_tokens', return_value=10)
     @patch('movie.ai_find_movie.Anthropic')
     def test_parse_response_into_ai_movies(self, mock_anthropic, _):
-        fake_response = SimpleNamespace(
-            content=[SimpleNamespace(text='[{"title": "Shrek", "match_score": 10}, {"title": "Shrek 2"}]')]
-        )
+        fake_response = SimpleNamespace(content=[SimpleNamespace(text='[{"title": "Shrek", "match_score": 10}, {"title": "Shrek 2"}]')])
         fake_client = MagicMock()
         fake_client.messages.create.return_value = fake_response
         mock_anthropic.return_value = fake_client
@@ -41,8 +39,10 @@ class FindMovieAiClientTests(SimpleTestCase):
         self.assertEqual([movie.match_score for movie in result], [10, 0])
         fake_client.messages.create.assert_called_once()
 
-        from movie.dataclasses import AiMovie
         import pytest
+
+        from movie.dataclasses import AiMovie
+
         with pytest.raises(TypeError):
             AiMovie(123)
 
