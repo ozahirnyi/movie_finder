@@ -66,12 +66,18 @@ class OmdbMovie:
 
 @dataclass
 class AiMovie:
-    title: str
-    match_score: int
+    title: str = ''
+    match_score: int = 0
 
-    def __init__(self, data: dict):
-        self.title = data.get('title', '')
-        self.match_score = data.get('match_score', 0)
+    def __init__(self, data=None):
+        if isinstance(data, str):
+            self.title = data
+            self.match_score = 0
+        elif isinstance(data, dict):
+            self.title = data.get('title', '')
+            self.match_score = data.get('match_score', 0)
+        else:
+            raise TypeError(f'Unsupported AiMovie init type: {type(data)}')
 
 
 @dataclass
