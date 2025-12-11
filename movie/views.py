@@ -51,8 +51,7 @@ class MovieView(RetrieveAPIView):
     lookup_field = 'id'
 
     def get_queryset(self):
-        return Movie.objects.with_is_liked(self.request.user.id).with_is_watch_later(
-            self.request.user.id).with_likes_count().with_watch_later_count()
+        return Movie.objects.with_is_liked(self.request.user.id).with_is_watch_later(self.request.user.id).with_likes_count().with_watch_later_count()
 
 
 class MovieLikeView(GenericAPIView):
@@ -198,8 +197,7 @@ class WatchLaterCreateView(CreateAPIView):
             description='Comma-separated list of ordering fields. Prefix with `-` for descending order.',
             required=False,
             type=str,
-            enum=['-imdb_id', 'imdb_id', '-title', 'title', '-genre', 'genre', '-year', 'year', '-likes_count',
-                  'likes_count'],
+            enum=['-imdb_id', 'imdb_id', '-title', 'title', '-genre', 'genre', '-year', 'year', '-likes_count', 'likes_count'],
         ),
     ]
 )
@@ -231,14 +229,10 @@ class WatchLaterStatisticsView(GenericAPIView):
     def get(self, request, *args, **kwargs):
         rating_stats = WatchLaterMovie.objects.filter(user=self.request.user).aggregate(
             ratings_9_plus=Count(Case(When(movie__movie_ratings__value__gte='9.0', then=Value(1)))),
-            ratings_8_to_9=Count(Case(
-                When(movie__movie_ratings__value__gte='8.0', movie__movie_ratings__value__lt='9.0', then=Value(1)))),
-            ratings_7_to_8=Count(Case(
-                When(movie__movie_ratings__value__gte='7.0', movie__movie_ratings__value__lt='8.0', then=Value(1)))),
-            ratings_6_to_7=Count(Case(
-                When(movie__movie_ratings__value__gte='6.0', movie__movie_ratings__value__lt='7.0', then=Value(1)))),
-            ratings_5_to_6=Count(Case(
-                When(movie__movie_ratings__value__gte='5.0', movie__movie_ratings__value__lt='6.0', then=Value(1)))),
+            ratings_8_to_9=Count(Case(When(movie__movie_ratings__value__gte='8.0', movie__movie_ratings__value__lt='9.0', then=Value(1)))),
+            ratings_7_to_8=Count(Case(When(movie__movie_ratings__value__gte='7.0', movie__movie_ratings__value__lt='8.0', then=Value(1)))),
+            ratings_6_to_7=Count(Case(When(movie__movie_ratings__value__gte='6.0', movie__movie_ratings__value__lt='7.0', then=Value(1)))),
+            ratings_5_to_6=Count(Case(When(movie__movie_ratings__value__gte='5.0', movie__movie_ratings__value__lt='6.0', then=Value(1)))),
             ratings_below_5=Count(Case(When(movie__movie_ratings__value__lt='5.0', then=Value(1)))),
         )
         genres_stats = (

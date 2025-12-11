@@ -1,7 +1,6 @@
 from django.db import transaction
 from django.utils import timezone
 
-from movie_finder_django import settings
 from .exceptions import AiSearchLimitExceeded
 from .models import AccountTier, User
 
