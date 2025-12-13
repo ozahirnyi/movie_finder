@@ -63,10 +63,13 @@ class FindMovieAiClient:
     @staticmethod
     def _parse_response(response) -> list[AiMovie]:
         try:
-            ai_movies = []
-            for data in json.loads(response.content[0].text):
-                ai_movies.append(AiMovie(data))
-            return ai_movies
+            raw = json.loads(response.content[0].text)
+
+            if not isinstance(raw, list):
+                raise TypeError(f'Expected list from AI response, got {type(raw)}')
+
+            return [AiMovie.from_dict(item) for item in raw]
+
         except Exception as exc:
             raise Exception(f'Error while parsing response: {exc} | content: {response.content[0].text}') from exc
 

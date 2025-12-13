@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from datetime import date, datetime
-from typing import List
+from typing import Any, Dict, List
 
 
 @dataclass
@@ -69,19 +69,15 @@ class AiMovie:
     title: str
     match_score: int = 0
 
-    def __init__(self, data=None, *, title=None, match_score=0):
-        if data is not None:
-            if isinstance(data, str):
-                self.title = data
-                self.match_score = 0
-            elif isinstance(data, dict):
-                self.title = data.get('title', '')
-                self.match_score = data.get('match_score', 0)
-            else:
-                raise TypeError(f'Unsupported AiMovie init type: {type(data)}')  # pragma: no cover
-        else:
-            self.title = title or ''
-            self.match_score = match_score
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> 'AiMovie':
+        if not isinstance(data, dict):
+            raise TypeError(f'AiMovie.from_dict expects dict, got {type(data)}')
+
+        return cls(
+            title=data.get('title', ''),
+            match_score=data.get('match_score', 0),
+        )
 
 
 @dataclass

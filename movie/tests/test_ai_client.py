@@ -1,6 +1,7 @@
 from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
+import pytest
 from django.conf import settings
 from django.test import SimpleTestCase
 
@@ -9,6 +10,7 @@ from movie.ai_find_movie import (
     RecommendationFindMovieAiClient,
     SearchFindMovieAiClient,
 )
+from movie.dataclasses import AiMovie
 from movie.system_prompts import find_movie_system_prompt, recommendations_system_prompt
 
 
@@ -35,16 +37,12 @@ class FindMovieAiClientTests(SimpleTestCase):
         client = SearchFindMovieAiClient()
         result = client.find_movies('family animation')
 
-        self.assertEqual([movie.title for movie in result], ['Shrek', 'Shrek 2'])
-        self.assertEqual([movie.match_score for movie in result], [10, 0])
+        self.assertEqual([(m.title, m.match_score) for m in result], [('Shrek', 10), ('Shrek 2', 0)])
         fake_client.messages.create.assert_called_once()
 
-        import pytest
-
-        from movie.dataclasses import AiMovie
-
+    def test_ai_movie_from_dict_invalid_type(self):
         with pytest.raises(TypeError):
-            AiMovie(123)
+            AiMovie.from_dict('Shrek')
 
     @patch.object(SearchFindMovieAiClient, 'count_tokens', return_value=10)
     @patch('movie.ai_find_movie.Anthropic')
