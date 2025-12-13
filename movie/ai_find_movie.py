@@ -69,6 +69,8 @@ class FindMovieAiClient:
                 raise TypeError(f'Expected list from AI response, got {type(raw)}')
 
             return [AiMovie.from_dict(item) for item in raw]
+        except TypeError:
+            raise
 
         except Exception as exc:
             raise Exception(f'Error while parsing response: {exc} | content: {response.content[0].text}') from exc

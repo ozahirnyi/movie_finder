@@ -58,6 +58,12 @@ class FindMovieAiClientTests(SimpleTestCase):
 
         self.assertIn('Error while finding movies', str(exc.exception))
 
+    def test_parse_response_raises_type_error_when_not_list(self):
+        fake_response = SimpleNamespace(content=[SimpleNamespace(text='{"title": "Shrek"}')])
+
+        with pytest.raises(TypeError):
+            SearchFindMovieAiClient._parse_response(fake_response)
+
     def test_parse_response_error_path(self):
         fake_response = SimpleNamespace(content=[SimpleNamespace(text='not-json')])
 
