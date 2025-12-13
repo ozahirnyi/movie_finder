@@ -1,6 +1,7 @@
 from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
+import pytest
 from django.conf import settings
 from django.test import SimpleTestCase
 
@@ -9,6 +10,7 @@ from movie.ai_find_movie import (
     RecommendationFindMovieAiClient,
     SearchFindMovieAiClient,
 )
+from movie.dataclasses import AiMovie
 from movie.system_prompts import find_movie_system_prompt, recommendations_system_prompt
 
 
@@ -27,7 +29,7 @@ class FindMovieAiClientTests(SimpleTestCase):
     @patch.object(SearchFindMovieAiClient, 'count_tokens', return_value=10)
     @patch('movie.ai_find_movie.Anthropic')
     def test_parse_response_into_ai_movies(self, mock_anthropic, _):
-        fake_response = SimpleNamespace(content=[SimpleNamespace(text='["Shrek", "Shrek 2"]')])
+        fake_response = SimpleNamespace(content=[SimpleNamespace(text='[{"title": "Shrek", "match_score": 10}, {"title": "Shrek 2"}]')])
         fake_client = MagicMock()
         fake_client.messages.create.return_value = fake_response
         mock_anthropic.return_value = fake_client
@@ -35,8 +37,12 @@ class FindMovieAiClientTests(SimpleTestCase):
         client = SearchFindMovieAiClient()
         result = client.find_movies('family animation')
 
-        self.assertEqual([movie.title for movie in result], ['Shrek', 'Shrek 2'])
+        self.assertEqual([(m.title, m.match_score) for m in result], [('Shrek', 10), ('Shrek 2', 0)])
         fake_client.messages.create.assert_called_once()
+
+    def test_ai_movie_from_dict_invalid_type(self):
+        with pytest.raises(TypeError):
+            AiMovie.from_dict('Shrek')
 
     @patch.object(SearchFindMovieAiClient, 'count_tokens', return_value=10)
     @patch('movie.ai_find_movie.Anthropic')
@@ -51,6 +57,12 @@ class FindMovieAiClientTests(SimpleTestCase):
             client.find_movies('prompt')
 
         self.assertIn('Error while finding movies', str(exc.exception))
+
+    def test_parse_response_raises_type_error_when_not_list(self):
+        fake_response = SimpleNamespace(content=[SimpleNamespace(text='{"title": "Shrek"}')])
+
+        with pytest.raises(TypeError):
+            SearchFindMovieAiClient._parse_response(fake_response)
 
     def test_parse_response_error_path(self):
         fake_response = SimpleNamespace(content=[SimpleNamespace(text='not-json')])
