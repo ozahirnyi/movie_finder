@@ -31,7 +31,7 @@ class MovieService:
     def get_movie_from_omdb_by_expression(self, title: str) -> OmdbMovie:
         return self.movie_repository.get_movie_from_omdb_by_expression(title)
 
-    def search_movies_in_omdb(self, movie_titles: list[str], initiator_id: int) -> list[OmdbMovie]:
+    def search_movies_in_omdb(self, movie_titles: list[str | tuple[str, str | None]], initiator_id: int) -> list[OmdbMovie]:
         return self.movie_repository.search_movies_in_omdb(movie_titles, initiator_id)
 
     def get_movies_from_ai(self, expression: str) -> list[AiMovie]:
@@ -86,10 +86,19 @@ class MovieRecommendationService:
         if activity_summary.has_activity:
             preference_prompt = self.prompt_service.build_prompt(activity_summary)
             ai_movies = self.ai_client.find_movies(preference_prompt)
-            requested_titles = {movie.title for movie in ai_movies if movie.title}
+            requested_titles = []
+            seen_pairs = set()
+            for movie in ai_movies:
+                if not movie.title:
+                    continue
+                pair = (movie.title, movie.title_ua)
+                if pair in seen_pairs:
+                    continue
+                seen_pairs.add(pair)
+                requested_titles.append(pair if movie.title_ua else movie.title)
             if requested_titles:
-                omdb_movies = self.movie_repository.search_movies_in_omdb(list(requested_titles), user_context.id)
-                omdb_titles = {movie.title for movie in omdb_movies if movie.title}
+                omdb_movies = self.movie_repository.search_movies_in_omdb(requested_titles, user_context.id)
+                omdb_titles = {title for movie in omdb_movies for title in (movie.title, movie.title_ua) if title}
                 if omdb_titles:
                     recommended_movies = self.recommendation_repository.get_movies_by_titles(list(omdb_titles), user_context.id)
 
@@ -147,7 +156,16 @@ class TopMoviesService:
 
     def _refresh_top_movies(self, user_id: int | None) -> list[MovieRecommendation]:
         ai_movies = self.ai_client.find_movies(self.TOP_MOVIES_PROMPT)
-        requested_titles = [movie.title for movie in ai_movies if movie.title]
+        requested_titles: list[str | tuple[str, str | None]] = []
+        seen_pairs = set()
+        for movie in ai_movies:
+            if not movie.title:
+                continue
+            pair = (movie.title, movie.title_ua)
+            if pair in seen_pairs:
+                continue
+            seen_pairs.add(pair)
+            requested_titles.append(pair if movie.title_ua else movie.title)
         top_movies: list[MovieRecommendation] = []
 
         if requested_titles:

@@ -37,6 +37,7 @@ class Writer(models.Model):
 
 class Movie(models.Model):
     title = models.CharField(max_length=128)
+    title_ua = models.CharField(max_length=128, blank=True, default='')
     imdb_id = models.CharField(max_length=128, unique=True)
     year = models.CharField(max_length=16, blank=True)
     released_date = models.DateField(null=True, blank=True)

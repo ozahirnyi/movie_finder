@@ -1,3 +1,4 @@
+import json
 from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
@@ -92,3 +93,15 @@ class FindMovieAiClientTests(SimpleTestCase):
             RecommendationFindMovieAiClient().system_prompt,
             recommendations_system_prompt,
         )
+
+    def test_parse_response_handles_dicts_and_missing_titles(self):
+        payload = [
+            {'title': 'Inception', 'title_ua': 'Початок'},
+            {'name': 'The Matrix', 'ukrainian_title': 'Матриця'},
+            {'title': ''},
+        ]
+        fake_response = SimpleNamespace(content=[SimpleNamespace(text=json.dumps(payload))])
+
+        result = FindMovieAiClient._parse_response(fake_response)
+
+        self.assertEqual([(m.title, m.title_ua) for m in result], [('Inception', 'Початок'), ('The Matrix', 'Матриця')])

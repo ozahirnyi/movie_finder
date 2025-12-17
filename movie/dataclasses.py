@@ -42,6 +42,7 @@ class Language:
 @dataclass
 class OmdbMovie:
     title: str
+    title_ua: str | None = None
     year: str | None = None
     released_date: date | None = None
     runtime: str | None = None
@@ -67,6 +68,7 @@ class OmdbMovie:
 @dataclass
 class AiMovie:
     title: str
+    title_ua: str | None = None
 
 
 @dataclass
@@ -83,6 +85,7 @@ class MovieRecommendation:
     id: int
     imdb_id: str | None
     title: str
+    title_ua: str | None
     year: str | None
     released_date: date | None
     runtime: str | None
