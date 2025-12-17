@@ -85,6 +85,7 @@ class MovieModelSerializer(serializers.ModelSerializer, LikesWatchLaterSerialize
             'id',
             'imdb_id',
             'title',
+            'title_ua',
             'year',
             'released_date',
             'runtime',
@@ -143,6 +144,7 @@ class WriterSerializer(serializers.Serializer):
 class MovieSerializer(LikesWatchLaterSerializer):
     id = serializers.IntegerField()
     title = serializers.CharField(max_length=255, required=True)
+    title_ua = serializers.CharField(max_length=255, required=False, allow_blank=True, allow_null=True)
     year = serializers.CharField(max_length=255, required=False)
     released_date = serializers.DateField(required=False)
     runtime = serializers.CharField(max_length=255, required=False)

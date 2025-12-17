@@ -63,9 +63,19 @@ class FindMovieAiClient:
     @staticmethod
     def _parse_response(response) -> list[AiMovie]:
         try:
-            ai_movies = []
-            for data in json.loads(response.content[0].text):
-                ai_movies.append(AiMovie(data))
+            ai_movies: list[AiMovie] = []
+            parsed = json.loads(response.content[0].text)
+            for item in parsed:
+                if isinstance(item, dict):
+                    title = item.get('title') or item.get('title_en') or item.get('original_title') or item.get('name')
+                    title_ua = item.get('title_ua') or item.get('ua_title') or item.get('ukrainian_title')
+                else:
+                    title = str(item)
+                    title_ua = str(item)
+
+                if not title:
+                    continue
+                ai_movies.append(AiMovie(title=title, title_ua=title_ua))
             return ai_movies
         except Exception as exc:
             raise Exception(f'Error while parsing response: {exc} | content: {response.content[0].text}') from exc

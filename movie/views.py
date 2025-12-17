@@ -113,7 +113,7 @@ class MoviesListView(ListAPIView):
     pagination_class = MoviesPagination
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
     filterset_class = MovieFilter
-    search_fields = ['title']
+    search_fields = ['title', 'title_ua']
     ordering_fields = ['imdb_id', 'title', 'genre', 'year', 'likes_count']
     ordering = ['imdb_id']
 
@@ -172,7 +172,12 @@ class MoviesAiSearchView(APIView):
             raise AiSearchLimitError
         movie_service = MovieService()
         ai_movies = movie_service.get_movies_from_ai(input_serializer.data.get('expression'))
-        omdb_movies = movie_service.search_movies_in_omdb([movie.title for movie in ai_movies], self.request.user.id)
+        requested_titles = []
+        for movie in ai_movies:
+            if not movie.title:
+                continue
+            requested_titles.append((movie.title, movie.title_ua) if movie.title_ua else movie.title)
+        omdb_movies = movie_service.search_movies_in_omdb(requested_titles, self.request.user.id)
         serialized_movies = MovieSerializer(omdb_movies, many=True)
         return Response(serialized_movies.data, status=status.HTTP_200_OK)
 
@@ -204,7 +209,7 @@ class WatchLaterListView(ListAPIView):
     pagination_class = MoviesPagination
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
     filterset_class = WatchLaterFilter
-    search_fields = ['title']
+    search_fields = ['title', 'title_ua']
     ordering_fields = ['imdb_id', 'title', 'genre', 'year', 'added_at']
     ordering = ['-added_at']
 

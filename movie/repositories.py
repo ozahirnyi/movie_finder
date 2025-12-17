@@ -6,7 +6,7 @@ from django.conf import settings
 from django.contrib.postgres.aggregates import ArrayAgg, JSONBAgg
 from django.db import transaction
 from django.db.models import Case, Count, F, IntegerField, JSONField, Q, Value, When
-from django.db.models.functions import JSONObject
+from django.db.models.functions import Coalesce, JSONObject
 from django.utils import timezone
 
 from movie.dataclasses import (
@@ -115,6 +115,7 @@ class MovieRepository:
                 imdb_id=omdb_movie.imdb_id,
                 defaults={
                     'title': _normalize_char(omdb_movie.title),
+                    'title_ua': _normalize_char(omdb_movie.title_ua),
                     'year': _normalize_char(omdb_movie.year),
                     'released_date': omdb_movie.released_date,
                     'runtime': _normalize_char(omdb_movie.runtime),
@@ -152,11 +153,17 @@ class MovieRepository:
                     movie_instance.writers.set(writers)
             return movie_instance
 
-    def search_movies_in_omdb(self, movie_titles: list[str], initiator_id: int) -> list[OmdbMovie]:
+    def search_movies_in_omdb(self, movie_titles: list[str | tuple[str, str | None]], initiator_id: int) -> list[OmdbMovie]:
         search_results = []
-        for title in movie_titles:
+        for title_entry in movie_titles:
+            if isinstance(title_entry, tuple):
+                title, title_ua = title_entry
+            else:
+                title, title_ua = title_entry, None
+
+            localized_title = title_ua.strip() if isinstance(title_ua, str) and title_ua.strip() else None
             movie_instance = (
-                Movie.objects.filter(title=title)
+                Movie.objects.filter(Q(title__iexact=title) | Q(title_ua__iexact=title))
                 .with_is_liked(initiator_id)
                 .with_is_watch_later(initiator_id)
                 .with_likes_count()
@@ -165,12 +172,22 @@ class MovieRepository:
             )
             if not movie_instance:
                 omdb_movie = self.get_movie_from_omdb_by_expression(title)
+                if localized_title and not omdb_movie.title_ua:
+                    omdb_movie.title_ua = localized_title
                 saved_movie = self._create_movie_in_db(omdb_movie)
+                if localized_title and saved_movie.title_ua != localized_title:
+                    saved_movie.title_ua = localized_title
+                    saved_movie.save(update_fields=['title_ua'])
                 omdb_movie.id = saved_movie.id
+                omdb_movie.title_ua = saved_movie.title_ua
             else:
+                if localized_title and not movie_instance.title_ua:
+                    movie_instance.title_ua = localized_title
+                    movie_instance.save(update_fields=['title_ua'])
                 omdb_movie = OmdbMovie(
                     id=movie_instance.id,
                     title=movie_instance.title,
+                    title_ua=movie_instance.title_ua,
                     year=movie_instance.year,
                     released_date=movie_instance.released_date,
                     runtime=movie_instance.runtime,
@@ -216,7 +233,7 @@ class RecommendationRepository:
             return []
         queryset = (
             self._recommendation_queryset(user_id)
-            .filter(title__in=set(titles))
+            .filter(Q(title__in=set(titles)) | Q(title_ua__in=set(titles)))
             .exclude(likemovie__user_id=user_id)
             .exclude(watchlatermovie__user_id=user_id)
         )
@@ -295,10 +312,18 @@ class RecommendationRepository:
         )
 
         liked_titles = list(
-            LikeMovie.objects.filter(user_id=user_id).select_related('movie').order_by('-created_at').values_list('movie__title', flat=True)[:5]
+            LikeMovie.objects.filter(user_id=user_id)
+            .select_related('movie')
+            .annotate(display_title=Coalesce('movie__title_ua', 'movie__title'))
+            .order_by('-created_at')
+            .values_list('display_title', flat=True)[:5]
         )
         watch_later_titles = list(
-            WatchLaterMovie.objects.filter(user_id=user_id).select_related('movie').order_by('-created_at').values_list('movie__title', flat=True)[:5]
+            WatchLaterMovie.objects.filter(user_id=user_id)
+            .select_related('movie')
+            .annotate(display_title=Coalesce('movie__title_ua', 'movie__title'))
+            .order_by('-created_at')
+            .values_list('display_title', flat=True)[:5]
         )
 
         return UserActivitySummary(
@@ -380,6 +405,7 @@ class RecommendationRepository:
             id=movie.id,
             imdb_id=movie.imdb_id,
             title=movie.title,
+            title_ua=movie.title_ua or None,
             year=movie.year or None,
             released_date=movie.released_date,
             runtime=movie.runtime or None,

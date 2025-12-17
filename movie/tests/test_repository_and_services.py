@@ -1,6 +1,6 @@
 import json
 from datetime import date, timedelta
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from django.contrib.auth import get_user_model
 from django.test import TestCase
@@ -11,7 +11,10 @@ from movie.dataclasses import (
 )
 from movie.dataclasses import (
     AiMovie,
+    MovieRecommendation,
     OmdbMovie,
+    UserActivitySummary,
+    UserContext,
 )
 from movie.dataclasses import (
     Country as CountryDTO,
@@ -34,7 +37,7 @@ from movie.dataclasses import (
 from movie.filters import MovieFilter
 from movie.models import Actor, Country, Director, Genre, Language, LikeMovie, Movie, Rating, RecommendedMovie, TopMovie, Writer
 from movie.repositories import MovieRepository, RecommendationRepository, TopMoviesRepository
-from movie.services import MovieService, TopMoviesService
+from movie.services import MovieRecommendationService, MovieService, TopMoviesService
 
 
 class MovieFilterTests(TestCase):
@@ -44,6 +47,23 @@ class MovieFilterTests(TestCase):
 
         self.assertIs(filterset.filter_rating_min(queryset, 'rating_min', None), queryset)
         self.assertIs(filterset.filter_rating_max(queryset, 'rating_max', None), queryset)
+
+    def test_filter_title_searches_both_languages(self):
+        movie_en = Movie.objects.create(title='English Title', imdb_id='tt0101001')
+        movie_ua = Movie.objects.create(title='Placeholder', title_ua='Українська назва', imdb_id='tt0101002')
+
+        queryset = Movie.objects.all()
+        filterset = MovieFilter(data={'title': 'українська'}, queryset=queryset)
+        results = filterset.qs
+
+        self.assertNotIn(movie_en, results)
+        self.assertIn(movie_ua, results)
+
+    def test_filter_title_returns_queryset_when_blank(self):
+        queryset = Movie.objects.all()
+        returned = MovieFilter.filter_title(queryset, 'title', '')
+
+        self.assertIs(returned, queryset)
 
 
 class MovieRepositoryTests(TestCase):
@@ -226,6 +246,42 @@ class MovieRepositoryTests(TestCase):
         created_movie = Movie.objects.get(imdb_id='tt000002')
         self.assertEqual(new_entry.id, created_movie.id)
 
+    @patch.object(MovieRepository, 'get_movie_from_omdb_by_expression')
+    def test_search_movies_in_omdb_sets_localized_title_on_new(self, mock_get_movie):
+        localized_title = 'Бренд'
+        omdb_movie = OmdbMovie(title='Brand', imdb_id='tt010010', title_ua='Old Name')
+        mock_get_movie.return_value = omdb_movie
+        user = get_user_model().objects.create_user(email='ua@test.test', password='validpass')
+
+        results = self.repository.search_movies_in_omdb([('Brand', localized_title)], initiator_id=user.id)
+
+        created = Movie.objects.get(imdb_id='tt010010')
+        self.assertEqual(created.title_ua, localized_title)
+        self.assertEqual(results[0].title_ua, localized_title)
+
+    @patch.object(MovieRepository, 'get_movie_from_omdb_by_expression')
+    def test_search_movies_in_omdb_sets_missing_localized_title_on_new(self, mock_get_movie):
+        localized_title = 'Новий бренд'
+        omdb_movie = OmdbMovie(title='BrandNew', imdb_id='tt010011', title_ua=None)
+        mock_get_movie.return_value = omdb_movie
+        user = get_user_model().objects.create_user(email='ua3@test.test', password='validpass')
+
+        results = self.repository.search_movies_in_omdb([('BrandNew', localized_title)], initiator_id=user.id)
+
+        created = Movie.objects.get(imdb_id='tt010011')
+        self.assertEqual(created.title_ua, localized_title)
+        self.assertEqual(results[0].title_ua, localized_title)
+
+    def test_search_movies_in_omdb_updates_localized_title_on_existing(self):
+        user = get_user_model().objects.create_user(email='ua2@test.test', password='validpass')
+        existing = Movie.objects.create(title='Existing', imdb_id='tt010020', title_ua='')
+
+        results = self.repository.search_movies_in_omdb([('Existing', 'Існуючий')], initiator_id=user.id)
+
+        existing.refresh_from_db()
+        self.assertEqual(existing.title_ua, 'Існуючий')
+        self.assertEqual(results[0].title_ua, 'Існуючий')
+
 
 class MovieServiceTests(TestCase):
     def test_service_delegates_to_repository(self):
@@ -244,6 +300,76 @@ class MovieServiceTests(TestCase):
 
         with patch('movie.ai_find_movie.FindMovieAiClient.find_movies', return_value=['ai_movie']):
             self.assertEqual(service.get_movies_from_ai('prompt'), ['ai_movie'])
+
+
+class MovieRecommendationServiceTests(TestCase):
+    def test_recommendations_skip_empty_and_deduplicate_titles(self):
+        ai_movies = [
+            AiMovie(title='One'),
+            AiMovie(title='One', title_ua='Один'),
+            AiMovie(title='One', title_ua='Один'),
+            AiMovie(title='', title_ua='Без назви'),
+        ]
+
+        mock_ai_client = MagicMock(find_movies=MagicMock(return_value=ai_movies))
+        mock_movie_repo = MagicMock()
+        omdb_result = OmdbMovie(title='One', title_ua='Один', imdb_id='tt1', id=1)
+        mock_movie_repo.search_movies_in_omdb.return_value = [omdb_result]
+        recommended = MovieRecommendation(
+            id=1,
+            imdb_id='tt1',
+            title='One',
+            title_ua='Один',
+            year=None,
+            released_date=None,
+            runtime=None,
+            plot=None,
+            awards=None,
+            poster=None,
+            metascore=None,
+            imdb_rating=None,
+            imdb_votes=None,
+            type=None,
+            total_seasons=None,
+            created_at=None,
+            genres=[],
+            actors=[],
+            directors=[],
+            writers=[],
+            ratings=[],
+            languages=[],
+            countries=[],
+            is_liked=False,
+            likes_count=0,
+            is_watch_later=False,
+            watch_later_count=0,
+        )
+        mock_rec_repo = MagicMock()
+        mock_rec_repo.get_cached_movie_ids.return_value = []
+        mock_rec_repo.get_user_activity_summary.return_value = UserActivitySummary(
+            top_genres=[],
+            top_directors=[],
+            top_actors=[],
+            liked_titles=[],
+            watch_later_titles=[],
+            has_movies=True,
+        )
+        mock_rec_repo.get_movies_by_titles.return_value = [recommended]
+        mock_rec_repo.get_popular_movies.return_value = []
+        mock_prompt_service = MagicMock(build_prompt=MagicMock(return_value='prompt'))
+
+        service = MovieRecommendationService(
+            recommendation_repository=mock_rec_repo,
+            movie_repository=mock_movie_repo,
+            prompt_service=mock_prompt_service,
+            ai_client=mock_ai_client,
+        )
+
+        result = service.get_recommended_movies(UserContext(id=1))
+
+        mock_movie_repo.search_movies_in_omdb.assert_called_once_with(['One', ('One', 'Один')], 1)
+        mock_rec_repo.get_movies_by_titles.assert_called_once()
+        self.assertEqual(len(result), 1)
 
 
 class RecommendationRepositoryTests(TestCase):
@@ -330,13 +456,17 @@ class TopMoviesServiceTests(TestCase):
     @patch('movie.services.TopMoviesFindMovieAiClient.find_movies')
     @patch('movie.services.MovieRepository.search_movies_in_omdb')
     def test_top_movies_cached_weekly(self, mock_search, mock_find_movies):
-        mock_find_movies.return_value = [AiMovie('Hit One'), AiMovie('Hit Two')]
+        mock_find_movies.return_value = [AiMovie('Hit One', title_ua='Хіт Один'), AiMovie('Hit Two')]
 
         def fake_search(titles: list[str], initiator_id: int):
             results = []
-            for idx, title in enumerate(titles, start=1):
+            for idx, title_entry in enumerate(titles, start=1):
+                if isinstance(title_entry, tuple):
+                    title, title_ua = title_entry
+                else:
+                    title, title_ua = title_entry, None
                 movie, _ = Movie.objects.get_or_create(title=title, imdb_id=f'ttTop{idx:07d}')
-                results.append(OmdbMovie(title=movie.title, imdb_id=movie.imdb_id, id=movie.id))
+                results.append(OmdbMovie(title=movie.title, title_ua=title_ua, imdb_id=movie.imdb_id, id=movie.id))
             return results
 
         mock_search.side_effect = fake_search
@@ -380,6 +510,60 @@ class TopMoviesServiceTests(TestCase):
         self.assertIn('Popular One', returned_titles)
         self.assertIn('Popular Two', returned_titles)
         self.assertEqual(TopMovie.objects.count(), len(returned_titles))
+
+    def test_top_movies_deduplicates_ai_titles(self):
+        mock_ai = MagicMock(
+            find_movies=MagicMock(
+                return_value=[AiMovie('One'), AiMovie('One'), AiMovie('One', title_ua='Один'), AiMovie('', title_ua='Без')],
+            ),
+        )
+        mock_movie_repo = MagicMock()
+        mock_movie_repo.search_movies_in_omdb.return_value = [OmdbMovie(title='One', title_ua='Один', imdb_id='tt123', id=1)]
+        recommended = MovieRecommendation(
+            id=1,
+            imdb_id='tt123',
+            title='One',
+            title_ua='Один',
+            year=None,
+            released_date=None,
+            runtime=None,
+            plot=None,
+            awards=None,
+            poster=None,
+            metascore=None,
+            imdb_rating=None,
+            imdb_votes=None,
+            type=None,
+            total_seasons=None,
+            created_at=None,
+            genres=[],
+            actors=[],
+            directors=[],
+            writers=[],
+            ratings=[],
+            languages=[],
+            countries=[],
+            is_liked=False,
+            likes_count=0,
+            is_watch_later=False,
+            watch_later_count=0,
+        )
+        mock_top_repo = MagicMock()
+        mock_top_repo.get_latest_generated_at.return_value = None
+        mock_top_repo.get_top_movies.side_effect = [[], [recommended]]
+        mock_top_repo.replace_top_movies = MagicMock()
+        mock_rec_repo = MagicMock(get_popular_movies=MagicMock(return_value=[]))
+
+        service = TopMoviesService(
+            top_movies_repository=mock_top_repo,
+            movie_repository=mock_movie_repo,
+            recommendation_repository=mock_rec_repo,
+            ai_client=mock_ai,
+        )
+
+        service.get_top_movies(user_id=None)
+
+        mock_movie_repo.search_movies_in_omdb.assert_called_once_with(['One', ('One', 'Один')], initiator_id=0)
 
     @patch.object(TopMoviesService, '_refresh_top_movies', return_value=[])
     def test_get_top_movies_refreshes_when_cache_empty_and_recent(self, mock_refresh):

@@ -6,6 +6,7 @@ from rest_framework import serializers
 class CollectionMovieSerializer(serializers.Serializer):
     id = serializers.IntegerField()
     title = serializers.CharField()
+    title_ua = serializers.CharField(allow_null=True, allow_blank=True)
     imdb_id = serializers.CharField(allow_null=True, allow_blank=True)
     poster = serializers.CharField(allow_null=True, allow_blank=True)
     year = serializers.CharField(allow_null=True, allow_blank=True)
@@ -15,6 +16,7 @@ class CollectionMovieSerializer(serializers.Serializer):
 class CollectionMoviePreviewSerializer(serializers.Serializer):
     id = serializers.IntegerField()
     title = serializers.CharField()
+    title_ua = serializers.CharField(allow_null=True, allow_blank=True)
     poster = serializers.CharField(allow_null=True, allow_blank=True)
 
 

@@ -18,9 +18,9 @@ class CollectionServiceTests(TestCase):
         self.another_user = get_user_model().objects.create_user(email='another@example.com', password='pass1234')
         self.admin = get_user_model().objects.create_user(email='admin@example.com', password='pass1234', is_staff=True)
 
-        self.movie_one = Movie.objects.create(title='Movie One', imdb_id='tt000010', poster='poster-1.jpg')
-        self.movie_two = Movie.objects.create(title='Movie Two', imdb_id='tt000011', poster='poster-2.jpg')
-        self.movie_three = Movie.objects.create(title='Movie Three', imdb_id='tt000012', poster='poster-3.jpg')
+        self.movie_one = Movie.objects.create(title='Movie One', title_ua='Фільм Один', imdb_id='tt000010', poster='poster-1.jpg')
+        self.movie_two = Movie.objects.create(title='Movie Two', title_ua='Фільм Два', imdb_id='tt000011', poster='poster-2.jpg')
+        self.movie_three = Movie.objects.create(title='Movie Three', title_ua='Фільм Три', imdb_id='tt000012', poster='poster-3.jpg')
 
     def test_create_collection_with_movies(self):
         dto = self.service.create_collection(
@@ -126,6 +126,25 @@ class CollectionServiceTests(TestCase):
 
         with self.assertRaises(ValidationError):
             self.service.list_collections(viewer_id=self.owner.id, is_staff=False, ordering='invalid')
+
+    def test_list_collection_movies_includes_title_ua_and_search(self):
+        collection = self.service.create_collection(
+            owner_id=self.owner.id,
+            name='UA Titles',
+            description='',
+            is_public=True,
+            movie_ids=[self.movie_one.id, self.movie_two.id],
+        )
+
+        movies = self.service.list_collection_movies(
+            viewer_id=self.owner.id,
+            is_staff=False,
+            collection_id=collection.id,
+            title_search='фільм',
+        )
+
+        self.assertEqual([item.id for item in movies.items], [self.movie_one.id, self.movie_two.id])
+        self.assertEqual([item.title_ua for item in movies.items], ['Фільм Один', 'Фільм Два'])
 
     def test_list_collections_includes_preview_movies(self):
         movie_four = Movie.objects.create(title='Movie Four', imdb_id='tt000013', poster='poster-4.jpg')

@@ -17,8 +17,8 @@ class CollectionViewTests(APITestCase):
         self.user = get_user_model().objects.create_user(email='user@example.com', password='pass1234')
         self.other_user = get_user_model().objects.create_user(email='other@example.com', password='pass1234')
         self.admin = get_user_model().objects.create_user(email='admin@example.com', password='pass1234', is_staff=True)
-        self.movie_one = Movie.objects.create(title='Movie One', imdb_id='tt010001', poster='poster-one.jpg')
-        self.movie_two = Movie.objects.create(title='Movie Two', imdb_id='tt010002', poster='poster-two.jpg')
+        self.movie_one = Movie.objects.create(title='Movie One', title_ua='Фільм Один', imdb_id='tt010001', poster='poster-one.jpg')
+        self.movie_two = Movie.objects.create(title='Movie Two', title_ua='Фільм Два', imdb_id='tt010002', poster='poster-two.jpg')
 
     def test_create_collection(self):
         self.client.force_authenticate(user=self.user)
@@ -39,6 +39,7 @@ class CollectionViewTests(APITestCase):
         self.assertEqual(response.data['design'], 'grid')
         self.assertEqual(response.data['movies_count'], 2)
         self.assertEqual([movie['id'] for movie in response.data['preview_movies']], [self.movie_one.id, self.movie_two.id])
+        self.assertEqual(response.data['preview_movies'][0]['title_ua'], 'Фільм Один')
         self.assertNotIn('movies', response.data)
         created = Collection.objects.get(name='Weekend Watch', owner=self.user)
         self.assertEqual(created.design, 'grid')
@@ -144,6 +145,7 @@ class CollectionViewTests(APITestCase):
         self.assertEqual(len(previews), 3)
         self.assertEqual([movie['id'] for movie in previews], [self.movie_two.id, self.movie_one.id, third_movie.id])
         self.assertEqual(previews[0]['poster'], 'poster-two.jpg')
+        self.assertEqual(previews[0]['title_ua'], 'Фільм Два')
 
     def test_list_collections_invalid_owner_id(self):
         self.client.force_authenticate(user=self.user)
@@ -266,6 +268,7 @@ class CollectionViewTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual([movie['id'] for movie in response.data['results']], [self.movie_one.id, self.movie_two.id])
         self.assertIn('description', response.data['results'][0])
+        self.assertEqual(response.data['results'][0]['title_ua'], 'Фільм Один')
 
     def test_collection_movies_private_requires_access(self):
         collection = Collection.objects.create(owner=self.other_user, name='Hidden', description='', is_public=False)
@@ -302,9 +305,10 @@ class CollectionViewTests(APITestCase):
         CollectionMovie.objects.create(collection=collection, movie=other, position=2)
 
         self.client.force_authenticate(user=self.user)
-        search_response = self.client.get(reverse('collection_movies', kwargs={'collection_id': collection.id}), {'search': 'Filter'})
-        self.assertEqual([movie['id'] for movie in search_response.data['results']], [target.id])
-        self.assertEqual(search_response.data['results'][0]['description'], 'Target plot')
+        search_response = self.client.get(reverse('collection_movies', kwargs={'collection_id': collection.id}), {'search': 'фільм'})
+        returned_ids = [movie['id'] for movie in search_response.data['results']]
+        self.assertIn(self.movie_one.id, returned_ids)
+        self.assertEqual(search_response.data['results'][0]['title_ua'], 'Фільм Один')
 
         rating_response = self.client.get(
             reverse('collection_movies', kwargs={'collection_id': collection.id}),

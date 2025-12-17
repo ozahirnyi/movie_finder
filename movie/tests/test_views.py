@@ -72,7 +72,7 @@ class FinderTests(APITestCase):
             ),
         ]
         mock_search_omdb.return_value = [
-            OmdbMovie(title='Shrek', imdb_id='tt0126029', genres=[GenreDTO(name='Animation')], id=self.movie.id),
+            OmdbMovie(title='Shrek', title_ua='Шрек', imdb_id='tt0126029', genres=[GenreDTO(name='Animation')], id=self.movie.id),
         ]
 
         response = self.client.post(
@@ -83,6 +83,7 @@ class FinderTests(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data[0]['title'], 'Shrek')
+        self.assertEqual(response.data[0]['title_ua'], 'Шрек')
         self.assertEqual(response.data[0]['id'], self.movie.id)
         mock_imdb.assert_called_once_with('Shrek')
         mock_search_omdb.assert_called_once()
@@ -184,16 +185,21 @@ class FindMovieAiTests(APITestCase):
     @patch('movie.views.MovieService.search_movies_in_omdb')
     @patch('movie.views.MovieService.get_movies_from_ai')
     def test_find_movie_ai(self, mock_ai, mock_search):
-        mock_ai.return_value = [AiMovie(title='Shrek'), AiMovie(title='Shrek 2')]
+        mock_ai.return_value = [AiMovie(title='Shrek', title_ua='Шрек'), AiMovie(title='Shrek 2')]
 
         def fake_search(titles: List[str], initiator_id: int):
             results = []
-            for idx, title in enumerate(titles, start=1):
+            for idx, title_entry in enumerate(titles, start=1):
+                if isinstance(title_entry, tuple):
+                    title, title_ua = title_entry
+                else:
+                    title, title_ua = title_entry, None
                 imdb_id = f'tt{idx:07d}'
                 movie, _ = Movie.objects.get_or_create(title=title, imdb_id=imdb_id)
                 results.append(
                     OmdbMovie(
                         title=movie.title,
+                        title_ua=title_ua or f'Українська назва {idx}',
                         imdb_id=movie.imdb_id,
                         plot=f'Plot for {title}',
                         genres=[GenreDTO(name='Animation')],
@@ -215,7 +221,30 @@ class FindMovieAiTests(APITestCase):
         self.assertTrue(Movie.objects.filter(title='Shrek').exists())
         self.assertEqual(response.data[0]['genres'][0]['name'], 'Animation')
         self.assertEqual(response.data[0]['plot'], 'Plot for Shrek')
+        self.assertEqual(response.data[0]['title_ua'], 'Шрек')
         self.assertIsNotNone(response.data[0]['id'])
+
+    @patch('movie.views.MovieService.search_movies_in_omdb')
+    @patch('movie.views.MovieService.get_movies_from_ai')
+    def test_find_movie_ai_skips_empty_titles(self, mock_ai, mock_search):
+        mock_ai.return_value = [AiMovie(title='Valid'), AiMovie(title='', title_ua='Порожня')]
+
+        def fake_search(titles: List[str], initiator_id: int):
+            return [
+                OmdbMovie(title='Valid', title_ua='Валідний', imdb_id='tt0001001', id=1, genres=[GenreDTO(name='Drama')]),
+            ]
+
+        mock_search.side_effect = fake_search
+
+        response = self.client.post(
+            reverse('movies_ai_search'),
+            data={'expression': 'anything'},
+            format='json',
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        mock_search.assert_called_once_with(['Valid'], self.user.id)
+        self.assertEqual(response.data[0]['title_ua'], 'Валідний')
 
     def test_prompt_max_length(self):
         max_length = 255
@@ -418,13 +447,17 @@ class RecommendedMoviesTests(APITestCase):
     @patch('movie.services.MovieRepository.search_movies_in_omdb')
     @patch('movie.services.FindMovieAiClient.find_movies')
     def test_recommendations_cached_per_day(self, mock_find_movies, mock_search):
-        mock_find_movies.return_value = [AiMovie(title='Recommended One'), AiMovie(title='Recommended Two')]
+        mock_find_movies.return_value = [AiMovie(title='Recommended One', title_ua='Рекомендований'), AiMovie(title='Recommended Two')]
 
         def fake_search(titles: List[str], initiator_id: int):
             results = []
-            for idx, title in enumerate(titles, start=1):
+            for idx, title_entry in enumerate(titles, start=1):
+                if isinstance(title_entry, tuple):
+                    title, title_ua = title_entry
+                else:
+                    title, title_ua = title_entry, None
                 movie, _ = Movie.objects.get_or_create(title=title, imdb_id=f'ttrec{idx:07d}')
-                results.append(OmdbMovie(title=movie.title, imdb_id=movie.imdb_id, genres=[GenreDTO(name='Action')]))
+                results.append(OmdbMovie(title=movie.title, title_ua=title_ua, imdb_id=movie.imdb_id, genres=[GenreDTO(name='Action')]))
             return results
 
         mock_search.side_effect = fake_search
@@ -476,6 +509,7 @@ class TopMoviesViewTests(APITestCase):
                 id=1,
                 imdb_id='tttop001',
                 title='Top One',
+                title_ua='Топ Один',
                 year='2023',
                 released_date=None,
                 runtime=None,

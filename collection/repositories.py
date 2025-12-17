@@ -4,7 +4,7 @@ from typing import Iterable, Sequence
 
 from django.core.exceptions import ValidationError
 from django.db import transaction
-from django.db.models import Case, Count, Exists, FloatField, OuterRef, Prefetch, QuerySet, When
+from django.db.models import Case, Count, Exists, FloatField, OuterRef, Prefetch, Q, QuerySet, When
 from django.db.models.functions import Cast
 
 from movie.models import Movie
@@ -128,7 +128,7 @@ class CollectionRepository:
                 )
             )
         if title_search:
-            base_qs = base_qs.filter(movie__title__icontains=title_search)
+            base_qs = base_qs.filter(Q(movie__title__icontains=title_search) | Q(movie__title_ua__icontains=title_search))
         if genres:
             base_qs = base_qs.filter(movie__genres__name__icontains=genres)
         if year:
@@ -151,6 +151,7 @@ class CollectionRepository:
             CollectionMovieDTO(
                 id=relation.movie_id,
                 title=relation.movie.title,
+                title_ua=relation.movie.title_ua,
                 imdb_id=relation.movie.imdb_id,
                 poster=relation.movie.poster,
                 year=relation.movie.year,
@@ -260,6 +261,7 @@ class CollectionRepository:
             'position': ['position', 'id'],
             'added_at': ['added_at', 'id'],
             'title': ['movie__title', 'id'],
+            'title_ua': ['movie__title_ua', 'id'],
             'year': ['movie__year', 'id'],
             'imdb_id': ['movie__imdb_id', 'id'],
             'imdb_rating': ['imdb_rating_value', 'id'],
@@ -325,6 +327,7 @@ class CollectionRepository:
                 CollectionMoviePreviewDTO(
                     id=movie.id,
                     title=movie.title,
+                    title_ua=movie.title_ua,
                     poster=movie.poster or None,
                 )
             )

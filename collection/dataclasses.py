@@ -25,6 +25,7 @@ class CollectionUpdatePayload:
 class CollectionMovieDTO:
     id: int
     title: str
+    title_ua: str | None
     imdb_id: str | None
     poster: str | None
     year: str | None
@@ -35,6 +36,7 @@ class CollectionMovieDTO:
 class CollectionMoviePreviewDTO:
     id: int
     title: str
+    title_ua: str | None
     poster: str | None
 
 
