@@ -5,6 +5,7 @@ from anthropic import Anthropic
 from django.conf import settings
 
 from .dataclasses import AiMovie
+from .errors import AiResponseError
 from .system_prompts import find_movie_system_prompt, recommendations_system_prompt, top_movies_system_prompt
 
 
@@ -66,14 +67,15 @@ class FindMovieAiClient:
             raw = json.loads(response.content[0].text)
 
             if not isinstance(raw, list):
-                raise TypeError(f'Expected list from AI response, got {type(raw)}')
+                raise AiResponseError(f'AI returned invalid format, expected list, got {type(raw)}')
 
             return [AiMovie.from_dict(item) for item in raw]
-        except TypeError:
+
+        except AiResponseError:
             raise
 
         except Exception as exc:
-            raise Exception(f'Error while parsing response: {exc} | content: {response.content[0].text}') from exc
+            raise AiResponseError(f'Failed to parse AI response: {exc}') from exc
 
     @property
     def client(self) -> Anthropic:

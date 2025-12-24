@@ -2,6 +2,7 @@ import textwrap
 from datetime import datetime, timedelta
 from datetime import timezone as dt_timezone
 
+from django.core.exceptions import BadRequest
 from django.utils import timezone
 
 from .ai_find_movie import FindMovieAiClient, RecommendationFindMovieAiClient, SearchFindMovieAiClient, TopMoviesFindMovieAiClient
@@ -13,6 +14,7 @@ from .dataclasses import (
     UserActivitySummary,
     UserContext,
 )
+from .errors import AiResponseError
 from .repositories import GenreRepository, MovieRepository, RecommendationRepository, TopMoviesRepository
 
 
@@ -35,7 +37,10 @@ class MovieService:
         return self.movie_repository.search_movies_in_omdb(movie_titles, initiator_id)
 
     def get_movies_from_ai(self, expression: str) -> list[AiMovie]:
-        return self.ai_client.find_movies(expression)
+        try:
+            return self.ai_client.find_movies(expression)
+        except AiResponseError:
+            raise BadRequest('AI service returned an invalid response. Please try again later.')
 
 
 class RecommendationPromptService:
