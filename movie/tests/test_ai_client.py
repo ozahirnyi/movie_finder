@@ -3,6 +3,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 from django.conf import settings
+from django.core.exceptions import BadRequest
 from django.test import SimpleTestCase
 
 from movie.ai_find_movie import (
@@ -12,6 +13,7 @@ from movie.ai_find_movie import (
 )
 from movie.dataclasses import AiMovie
 from movie.errors import AiResponseError
+from movie.services import MovieService
 from movie.system_prompts import find_movie_system_prompt, recommendations_system_prompt
 
 
@@ -74,6 +76,19 @@ class FindMovieAiClientTests(SimpleTestCase):
             FindMovieAiClient._parse_response(fake_response)
 
         self.assertIn('Failed to parse AI response', str(exc.exception))
+
+    def test_get_movies_from_ai_handles_ai_response_error(self):
+        """Перевірка обробки AiResponseError в сервісному шарі"""
+        mock_ai_client = MagicMock()
+        mock_ai_client.find_movies.side_effect = AiResponseError('Invalid AI response')
+
+        service = MovieService(ai_client=mock_ai_client)
+
+        with pytest.raises(BadRequest) as exc_info:
+            service.get_movies_from_ai('some expression')
+
+        assert 'AI service returned an invalid response' in str(exc_info.value)
+        mock_ai_client.find_movies.assert_called_once_with('some expression')
 
     @patch('movie.ai_find_movie.Anthropic')
     def test_count_tokens_calls_messages_api(self, mock_anthropic):
