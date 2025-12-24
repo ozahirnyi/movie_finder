@@ -12,3 +12,7 @@ class AiSearchLimitError(APIException):
     status_code = status.HTTP_429_TOO_MANY_REQUESTS
     default_code = 'AI_SEARCH_LIMIT_REACHED'
     default_detail = 'Daily AI search limit reached'
+
+
+class AiResponseError(APIException):
+    pass
