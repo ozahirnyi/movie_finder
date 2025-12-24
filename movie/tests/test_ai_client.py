@@ -11,6 +11,7 @@ from movie.ai_find_movie import (
     SearchFindMovieAiClient,
 )
 from movie.dataclasses import AiMovie
+from movie.errors import AiResponseError
 from movie.system_prompts import find_movie_system_prompt, recommendations_system_prompt
 
 
@@ -58,11 +59,13 @@ class FindMovieAiClientTests(SimpleTestCase):
 
         self.assertIn('Error while finding movies', str(exc.exception))
 
-    def test_parse_response_raises_type_error_when_not_list(self):
+    def test_parse_response_raises_ai_response_error_when_not_list(self):
         fake_response = SimpleNamespace(content=[SimpleNamespace(text='{"title": "Shrek"}')])
 
-        with pytest.raises(TypeError):
+        with pytest.raises(AiResponseError) as exc:
             SearchFindMovieAiClient._parse_response(fake_response)
+
+        self.assertIn('expected list', str(exc.value))
 
     def test_parse_response_error_path(self):
         fake_response = SimpleNamespace(content=[SimpleNamespace(text='not-json')])
@@ -70,7 +73,7 @@ class FindMovieAiClientTests(SimpleTestCase):
         with self.assertRaises(Exception) as exc:
             FindMovieAiClient._parse_response(fake_response)
 
-        self.assertIn('Error while parsing response', str(exc.exception))
+        self.assertIn('Failed to parse AI response', str(exc.exception))
 
     @patch('movie.ai_find_movie.Anthropic')
     def test_count_tokens_calls_messages_api(self, mock_anthropic):
