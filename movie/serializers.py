@@ -163,6 +163,7 @@ class MovieSerializer(LikesWatchLaterSerializer):
     languages = LanguageSerializer(many=True, read_only=True)
     countries = CountrySerializer(many=True, read_only=True)
     writers = WriterSerializer(many=True, read_only=True)
+    match_score = serializers.IntegerField(required=False, min_value=0, max_value=100)
 
 
 class WatchLaterListSerializer(MovieModelSerializer):

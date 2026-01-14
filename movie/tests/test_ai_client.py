@@ -1,7 +1,9 @@
 from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
+import pytest
 from django.conf import settings
+from django.core.exceptions import BadRequest
 from django.test import SimpleTestCase
 
 from movie.ai_find_movie import (
@@ -9,6 +11,9 @@ from movie.ai_find_movie import (
     RecommendationFindMovieAiClient,
     SearchFindMovieAiClient,
 )
+from movie.dataclasses import AiMovie
+from movie.errors import AiResponseError
+from movie.services import MovieService
 from movie.system_prompts import find_movie_system_prompt, recommendations_system_prompt
 
 
@@ -27,7 +32,7 @@ class FindMovieAiClientTests(SimpleTestCase):
     @patch.object(SearchFindMovieAiClient, 'count_tokens', return_value=10)
     @patch('movie.ai_find_movie.Anthropic')
     def test_parse_response_into_ai_movies(self, mock_anthropic, _):
-        fake_response = SimpleNamespace(content=[SimpleNamespace(text='["Shrek", "Shrek 2"]')])
+        fake_response = SimpleNamespace(content=[SimpleNamespace(text='[{"title": "Shrek", "match_score": 10}, {"title": "Shrek 2"}]')])
         fake_client = MagicMock()
         fake_client.messages.create.return_value = fake_response
         mock_anthropic.return_value = fake_client
@@ -35,8 +40,12 @@ class FindMovieAiClientTests(SimpleTestCase):
         client = SearchFindMovieAiClient()
         result = client.find_movies('family animation')
 
-        self.assertEqual([movie.title for movie in result], ['Shrek', 'Shrek 2'])
+        self.assertEqual([(m.title, m.match_score) for m in result], [('Shrek', 10), ('Shrek 2', 0)])
         fake_client.messages.create.assert_called_once()
+
+    def test_ai_movie_from_dict_invalid_type(self):
+        with pytest.raises(TypeError):
+            AiMovie.from_dict('Shrek')
 
     @patch.object(SearchFindMovieAiClient, 'count_tokens', return_value=10)
     @patch('movie.ai_find_movie.Anthropic')
@@ -52,13 +61,34 @@ class FindMovieAiClientTests(SimpleTestCase):
 
         self.assertIn('Error while finding movies', str(exc.exception))
 
+    def test_parse_response_raises_ai_response_error_when_not_list(self):
+        fake_response = SimpleNamespace(content=[SimpleNamespace(text='{"title": "Shrek"}')])
+
+        with pytest.raises(AiResponseError) as exc:
+            SearchFindMovieAiClient._parse_response(fake_response)
+
+        self.assertIn('expected list', str(exc.value))
+
     def test_parse_response_error_path(self):
         fake_response = SimpleNamespace(content=[SimpleNamespace(text='not-json')])
 
         with self.assertRaises(Exception) as exc:
             FindMovieAiClient._parse_response(fake_response)
 
-        self.assertIn('Error while parsing response', str(exc.exception))
+        self.assertIn('Failed to parse AI response', str(exc.exception))
+
+    def test_get_movies_from_ai_handles_ai_response_error(self):
+        """Перевірка обробки AiResponseError в сервісному шарі"""
+        mock_ai_client = MagicMock()
+        mock_ai_client.find_movies.side_effect = AiResponseError('Invalid AI response')
+
+        service = MovieService(ai_client=mock_ai_client)
+
+        with pytest.raises(BadRequest) as exc_info:
+            service.get_movies_from_ai('some expression')
+
+        assert 'AI service returned an invalid response' in str(exc_info.value)
+        mock_ai_client.find_movies.assert_called_once_with('some expression')
 
     @patch('movie.ai_find_movie.Anthropic')
     def test_count_tokens_calls_messages_api(self, mock_anthropic):

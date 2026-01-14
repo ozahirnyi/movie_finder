@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from datetime import date, datetime
-from typing import List
+from typing import Any, Dict, List
 
 
 @dataclass
@@ -67,6 +67,17 @@ class OmdbMovie:
 @dataclass
 class AiMovie:
     title: str
+    match_score: int = 0
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> 'AiMovie':
+        if not isinstance(data, dict):
+            raise TypeError(f'AiMovie.from_dict expects dict, got {type(data)}')
+
+        return cls(
+            title=data.get('title', ''),
+            match_score=data.get('match_score', 0),
+        )
 
 
 @dataclass
