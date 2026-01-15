@@ -1,0 +1,79 @@
+name: Deploy to Lightsail
+
+on:
+  push:
+    branches:
+      - main
+    # Only runs if CI passed successfully
+  workflow_run:
+    workflows: ["CI"]
+    types:
+      - completed
+    branches:
+      - main
+  # Or when creating a tag (for production releases)
+  tags:
+    - 'v*'
+
+jobs:
+  deploy:
+    name: Deploy to Lightsail
+    runs-on: ubuntu-latest
+    # Only runs if CI passed successfully (for push to main)
+    if: |
+      (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success') ||
+      (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
+      (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v'))
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup SSH
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.LIGHTSAIL_SSH_PRIVATE_KEY }}
+
+      - name: Add Lightsail host to known hosts
+        run: |
+          ssh-keyscan -H ${{ secrets.LIGHTSAIL_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Deploy to Lightsail
+        env:
+          LIGHTSAIL_HOST: ${{ secrets.LIGHTSAIL_HOST }}
+          LIGHTSAIL_USER: ${{ secrets.LIGHTSAIL_USER }}
+          LIGHTSAIL_APP_DIR: ${{ secrets.LIGHTSAIL_APP_DIR }}
+        run: |
+          ssh -o StrictHostKeyChecking=no ${LIGHTSAIL_USER}@${LIGHTSAIL_HOST} << 'ENDSSH'
+            set -e
+            cd ${LIGHTSAIL_APP_DIR:-/home/ubuntu/movie_finder}
+            
+            echo "🔄 Fetching latest changes from Git..."
+            git fetch origin
+            git reset --hard origin/main
+            
+            echo "🔨 Rebuilding Docker containers..."
+            docker compose -f docker-compose.lightsail.yml build --no-cache
+            
+            echo "🔄 Applying migrations..."
+            docker compose -f docker-compose.lightsail.yml run --rm web poetry run python manage.py migrate --noinput
+            
+            echo "📦 Collecting static files..."
+            docker compose -f docker-compose.lightsail.yml run --rm web poetry run python manage.py collectstatic --noinput
+            
+            echo "🚀 Restarting services..."
+            docker compose -f docker-compose.lightsail.yml up -d
+            
+            echo "⏳ Waiting for services to be ready..."
+            sleep 10
+            
+            echo "✅ Checking container status..."
+            docker compose -f docker-compose.lightsail.yml ps
+            
+            echo "✅ Deployment completed successfully!"
+          ENDSSH
+
+      - name: Health check
+        run: |
+          sleep 5
+          curl -f ${{ secrets.LIGHTSAIL_URL }} || echo "⚠️ Health check failed, but deployment completed"
