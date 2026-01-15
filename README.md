@@ -95,6 +95,47 @@ poetry run python manage.py makemigrations
 poetry run python manage.py migrate
 ```
 
+## Deploying to a single Lightsail VM (cheap start)
+
+📖 **Детальна інструкція:** Дивіться [DEPLOY_LIGHTSAIL.md](DEPLOY_LIGHTSAIL.md) для покрокових інструкцій українською мовою.
+
+Use the production Dockerfile and the `docker-compose.lightsail.yml` stack to run backend + Postgres on one VM.
+
+1) Provision a Lightsail instance (Linux, 1 GB RAM is enough for low traffic).  
+2) Install Docker + Docker Compose plugin:  
+   ```bash
+   sudo apt-get update && sudo apt-get install -y ca-certificates curl gnupg
+   curl -fsSL https://get.docker.com | sh
+   sudo usermod -aG docker "$USER"
+   # re-login or `newgrp docker`
+   sudo apt-get install -y docker-compose-plugin
+   ```
+3) Copy the repo to the VM, then prepare environment:  
+   ```bash
+   cp env_example .env
+   # set DJANGO_KEY, API keys, email creds, ALLOWED_HOSTS, CORS origins
+   ```
+4) Build and start:  
+   ```bash
+   docker compose -f docker-compose.lightsail.yml up -d --build
+   ```
+   Or use the deployment script:
+   ```bash
+   chmod +x scripts/deploy_lightsail.sh
+   ./scripts/deploy_lightsail.sh
+   ```
+5) The app listens on port 80 → point your domain’s A/ALIAS record to the VM IP.  
+6) Enable HTTPS: either attach a Lightsail load balancer with TLS, or install certbot + nginx on the VM and terminate TLS there.  
+7) Backups: add a cron job to dump Postgres to S3 (example):  
+   ```bash
+   0 3 * * * docker compose -f /path/docker-compose.lightsail.yml exec -T db pg_dump -U "$DB_USER" -d "$DB_NAME" | aws s3 cp - s3://your-bucket/movie_finder/$(date +\%F).sql
+   ```
+8) Logs: `docker compose -f docker-compose.lightsail.yml logs -f web` for app logs; Postgres logs via `db` service.
+
+Notes:
+- DB is not exposed publicly in this stack; keep it that way. If you need psql access, use `docker compose exec db psql -U $DB_USER -d $DB_NAME`.
+- For static files, WhiteNoise serves collected assets from the container filesystem (entrypoint runs `collectstatic`). Place user uploads on a mounted volume or S3 if they grow.
+
 ## External Services & Integrations
 - **CollectAPI IMDB** (`IMDB_API_SEARCH_BY_NAME_URL`, `IMDB_API_SEARCH_BY_IMDB_ID_URL`): Supplies initial search results.
 - **OMDB**: Source of authoritative movie metadata; responses are cached in the local database via `MovieRepository`.
