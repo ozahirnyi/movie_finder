@@ -28,6 +28,12 @@ DEFAULT_ALLOWED_HOSTS = ['0.0.0.0', '127.0.0.1', 'localhost', 'movie-finder-70zg
 ALLOWED_HOSTS = env.list('ALLOWED_HOSTS', default=DEFAULT_ALLOWED_HOSTS)
 CSRF_TRUSTED_ORIGINS = env.list('CSRF_TRUSTED_ORIGINS', default=[])
 
+# Cloudflare reverse proxy configuration
+# Trust X-Forwarded-Proto header from Cloudflare/Nginx
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+USE_X_FORWARDED_HOST = True
+USE_X_FORWARDED_PORT = True
+
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
