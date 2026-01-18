@@ -42,31 +42,31 @@ jobs:
           LIGHTSAIL_USER: ${{ secrets.LIGHTSAIL_USER }}
           LIGHTSAIL_APP_DIR: ${{ secrets.LIGHTSAIL_APP_DIR }}
         run: |
-          ssh -o StrictHostKeyChecking=no ${LIGHTSAIL_USER}@${LIGHTSAIL_HOST} << ENDSSH
+          ssh -o StrictHostKeyChecking=no ${LIGHTSAIL_USER}@${LIGHTSAIL_HOST} << 'ENDSSH'
             set -e
-            cd ${LIGHTSAIL_APP_DIR:-/home/ubuntu/movie_finder}
+            cd ${LIGHTSAIL_APP_DIR:-/home/ec2-user/movie_finder}
             
             echo "🔄 Fetching latest changes from Git..."
             git fetch origin
             git reset --hard origin/main
             
             echo "🔨 Rebuilding Docker containers..."
-            sudo docker compose -f docker-compose.lightsail.yml build --no-cache
+            sudo docker-compose -f docker-compose.lightsail.yml build --no-cache
             
             echo "🔄 Applying migrations..."
-            sudo docker compose -f docker-compose.lightsail.yml run --rm web poetry run python manage.py migrate --noinput
+            sudo docker-compose -f docker-compose.lightsail.yml run --rm web poetry run python manage.py migrate --noinput
             
             echo "📦 Collecting static files..."
-            sudo docker compose -f docker-compose.lightsail.yml run --rm web poetry run python manage.py collectstatic --noinput
+            sudo docker-compose -f docker-compose.lightsail.yml run --rm web poetry run python manage.py collectstatic --noinput
             
             echo "🚀 Restarting services..."
-            sudo docker compose -f docker-compose.lightsail.yml up -d
+            sudo docker-compose -f docker-compose.lightsail.yml up -d
             
             echo "⏳ Waiting for services to be ready..."
             sleep 10
             
             echo "✅ Checking container status..."
-            sudo docker compose -f docker-compose.lightsail.yml ps
+            sudo docker-compose -f docker-compose.lightsail.yml ps
             
             echo "✅ Deployment completed successfully!"
           ENDSSH
