@@ -135,3 +135,18 @@ dmypy.json
 
 # Requirements
 requirements.txt
+
+# SSH keys and sensitive files
+*.pem
+*.key
+
+# Nginx configs (temporary/local only)
+nginx-*.conf
+nginx-config-*.txt
+
+# Cursor temp files
+.cursor/*.md
+.cursor/*.json
+
+# Deployment docs (temporary)
+FIREWALL_SETUP.md
