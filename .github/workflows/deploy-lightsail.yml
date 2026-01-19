@@ -35,7 +35,7 @@ jobs:
       - name: Add Lightsail host to known hosts
         run: |
           echo "Connecting to Lightsail host: ${{ secrets.LIGHTSAIL_HOST }}"
-          ssh-keyscan -t rsa,ecdsa,ed25519 ${{ secrets.LIGHTSAIL_HOST }} >> ~/.ssh/known_hosts 2>&1 || {
+          ssh-keyscan -t rsa,ecdsa,ed25519 ${{ secrets.LIGHTSAIL_HOST }} >> ~/.ssh/known_hosts || {
             echo "ERROR: Cannot reach host. Please check:"
             echo "1. Lightsail firewall allows port 22"
             echo "2. Instance is running"
