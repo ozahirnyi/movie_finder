@@ -35,14 +35,34 @@ jobs:
       - name: Add Lightsail host to known hosts
         run: |
           echo "Connecting to Lightsail host: ${{ secrets.LIGHTSAIL_HOST }}"
-          ssh-keyscan -t rsa,ecdsa,ed25519 ${{ secrets.LIGHTSAIL_HOST }} >> ~/.ssh/known_hosts || {
-            echo "ERROR: Cannot reach host. Please check:"
-            echo "1. Lightsail firewall allows port 22"
-            echo "2. Instance is running"
-            echo "3. LIGHTSAIL_HOST secret is correct"
+          echo "Running network diagnostics..."
+          
+          # Test DNS resolution
+          if host ${{ secrets.LIGHTSAIL_HOST }} > /dev/null 2>&1; then
+            echo "✓ DNS resolution successful"
+          else
+            echo "✗ DNS resolution failed"
+          fi
+          
+          # Test connectivity on port 22
+          if timeout 10 bash -c "cat < /dev/null > /dev/tcp/${{ secrets.LIGHTSAIL_HOST }}/22" 2>/dev/null; then
+            echo "✓ Port 22 is reachable"
+          else
+            echo "✗ Port 22 is NOT reachable"
+          fi
+          
+          # Try ssh-keyscan with verbose output
+          echo "Attempting ssh-keyscan..."
+          ssh-keyscan -v -t rsa,ecdsa,ed25519 ${{ secrets.LIGHTSAIL_HOST }} >> ~/.ssh/known_hosts 2>&1 || {
+            echo ""
+            echo "ERROR: Cannot reach host. Please verify:"
+            echo "1. Lightsail instance is running"
+            echo "2. Firewall allows port 22 from 0.0.0.0/0 (or GitHub Actions IP ranges)"
+            echo "3. LIGHTSAIL_HOST secret contains correct IP/hostname"
+            echo "4. Security group allows SSH access"
             exit 1
           }
-          echo "Host key added successfully"
+          echo "✓ Host key added successfully"
 
       - name: Deploy to Lightsail
         env:
