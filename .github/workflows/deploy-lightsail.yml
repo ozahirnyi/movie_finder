@@ -34,7 +34,15 @@ jobs:
 
       - name: Add Lightsail host to known hosts
         run: |
-          ssh-keyscan -H ${{ secrets.LIGHTSAIL_HOST }} >> ~/.ssh/known_hosts
+          echo "Connecting to Lightsail host: ${{ secrets.LIGHTSAIL_HOST }}"
+          ssh-keyscan -t rsa,ecdsa,ed25519 ${{ secrets.LIGHTSAIL_HOST }} >> ~/.ssh/known_hosts || {
+            echo "ERROR: Cannot reach host. Please check:"
+            echo "1. Lightsail firewall allows port 22"
+            echo "2. Instance is running"
+            echo "3. LIGHTSAIL_HOST secret is correct"
+            exit 1
+          }
+          echo "Host key added successfully"
 
       - name: Deploy to Lightsail
         env:
@@ -42,7 +50,7 @@ jobs:
           LIGHTSAIL_USER: ${{ secrets.LIGHTSAIL_USER }}
           LIGHTSAIL_APP_DIR: ${{ secrets.LIGHTSAIL_APP_DIR }}
         run: |
-          ssh -o StrictHostKeyChecking=no ${LIGHTSAIL_USER}@${LIGHTSAIL_HOST} << 'ENDSSH'
+          ssh -o StrictHostKeyChecking=no ${LIGHTSAIL_USER}@${LIGHTSAIL_HOST} << ENDSSH
             set -e
             cd ${LIGHTSAIL_APP_DIR:-/home/ec2-user/movie_finder}
             
@@ -51,27 +59,33 @@ jobs:
             git reset --hard origin/main
             
             echo "🔨 Rebuilding Docker containers..."
-            sudo docker-compose -f docker-compose.lightsail.yml build --no-cache
+            sudo docker compose -f docker-compose.lightsail.yml build
             
             echo "🔄 Applying migrations..."
-            sudo docker-compose -f docker-compose.lightsail.yml run --rm web poetry run python manage.py migrate --noinput
+            sudo docker compose -f docker-compose.lightsail.yml run --rm web poetry run python manage.py migrate --noinput
             
             echo "📦 Collecting static files..."
-            sudo docker-compose -f docker-compose.lightsail.yml run --rm web poetry run python manage.py collectstatic --noinput
+            sudo docker compose -f docker-compose.lightsail.yml run --rm web poetry run python manage.py collectstatic --noinput
             
             echo "🚀 Restarting services..."
-            sudo docker-compose -f docker-compose.lightsail.yml up -d
+            sudo docker compose -f docker-compose.lightsail.yml up -d
             
             echo "⏳ Waiting for services to be ready..."
             sleep 10
             
             echo "✅ Checking container status..."
-            sudo docker-compose -f docker-compose.lightsail.yml ps
+            sudo docker compose -f docker-compose.lightsail.yml ps
             
             echo "✅ Deployment completed successfully!"
           ENDSSH
 
       - name: Health check
         run: |
+          echo "⏳ Waiting for application to start..."
           sleep 5
-          curl -f ${{ secrets.LIGHTSAIL_URL }} || echo "⚠️ Health check failed, but deployment completed"
+          echo "🏥 Running health check..."
+          curl -f --retry 3 --retry-delay 5 --retry-all-errors ${{ secrets.LIGHTSAIL_URL }} || {
+            echo "❌ Health check failed! Application is not responding."
+            exit 1
+          }
+          echo "✅ Health check passed!"
