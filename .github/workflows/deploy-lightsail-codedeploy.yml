@@ -1,0 +1,119 @@
+name: Deploy to Lightsail via CodeDeploy
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - 'v*'
+  workflow_run:
+    workflows: ["CI"]
+    types:
+      - completed
+    branches:
+      - main
+
+jobs:
+  deploy:
+    name: Deploy to Lightsail
+    runs-on: ubuntu-latest
+    # Only runs if CI passed successfully (for push to main)
+    if: |
+      (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success') ||
+      (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
+      (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v'))
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Create deployment package
+        run: |
+          echo "Creating deployment package..."
+          # Exclude unnecessary files
+          tar -czf deployment.tar.gz \
+            --exclude='.git' \
+            --exclude='__pycache__' \
+            --exclude='*.pyc' \
+            --exclude='.pytest_cache' \
+            --exclude='.coverage' \
+            --exclude='node_modules' \
+            --exclude='.env' \
+            --exclude='*.log' \
+            .
+          
+          echo "Deployment package created: $(ls -lh deployment.tar.gz)"
+
+      - name: Upload to S3
+        run: |
+          TIMESTAMP=$(date +%Y%m%d-%H%M%S)
+          COMMIT_SHA=$(git rev-parse --short HEAD)
+          S3_KEY="movie-finder/deployments/${TIMESTAMP}-${COMMIT_SHA}.tar.gz"
+          
+          echo "Uploading to S3: s3://${{ secrets.CODEDEPLOY_S3_BUCKET }}/${S3_KEY}"
+          
+          aws s3 cp deployment.tar.gz "s3://${{ secrets.CODEDEPLOY_S3_BUCKET }}/${S3_KEY}"
+          
+          # Save S3 location for next step
+          echo "S3_KEY=${S3_KEY}" >> $GITHUB_ENV
+
+      - name: Create CodeDeploy deployment
+        id: deploy
+        run: |
+          echo "Creating CodeDeploy deployment..."
+          
+          DEPLOYMENT_ID=$(aws deploy create-deployment \
+            --application-name ${{ secrets.CODEDEPLOY_APP_NAME }} \
+            --deployment-group-name ${{ secrets.CODEDEPLOY_DEPLOYMENT_GROUP }} \
+            --s3-location bucket=${{ secrets.CODEDEPLOY_S3_BUCKET }},key=${S3_KEY},bundleType=tgz \
+            --deployment-config-name CodeDeployDefault.OneAtATime \
+            --description "Deployment from GitHub Actions - Commit ${GITHUB_SHA:0:7}" \
+            --query 'deploymentId' \
+            --output text)
+          
+          echo "deployment_id=${DEPLOYMENT_ID}" >> $GITHUB_OUTPUT
+          echo "✅ Deployment created: ${DEPLOYMENT_ID}"
+
+      - name: Wait for deployment
+        run: |
+          DEPLOYMENT_ID="${{ steps.deploy.outputs.deployment_id }}"
+          echo "Waiting for deployment ${DEPLOYMENT_ID} to complete..."
+          
+          aws deploy wait deployment-successful \
+            --deployment-id ${DEPLOYMENT_ID} \
+            --output text
+          
+          echo "✅ Deployment completed successfully!"
+
+      - name: Get deployment status
+        if: always()
+        run: |
+          DEPLOYMENT_ID="${{ steps.deploy.outputs.deployment_id }}"
+          
+          if [ -n "$DEPLOYMENT_ID" ]; then
+            echo "Getting deployment status..."
+            aws deploy get-deployment \
+              --deployment-id ${DEPLOYMENT_ID} \
+              --query 'deploymentInfo.[status,creator,createTime]' \
+              --output table
+          fi
+
+      - name: Health check
+        run: |
+          echo "⏳ Waiting for application to start..."
+          sleep 10
+          
+          echo "🏥 Running health check..."
+          curl -f --retry 5 --retry-delay 5 --retry-all-errors ${{ secrets.LIGHTSAIL_URL }} || {
+            echo "❌ Health check failed! Application is not responding."
+            exit 1
+          }
+          
+          echo "✅ Health check passed!"
