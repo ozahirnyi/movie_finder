@@ -37,17 +37,8 @@ jobs:
       - name: Create deployment package
         run: |
           echo "Creating deployment package..."
-          # Exclude unnecessary files
-          tar -czf deployment.tar.gz \
-            --exclude='.git' \
-            --exclude='__pycache__' \
-            --exclude='*.pyc' \
-            --exclude='.pytest_cache' \
-            --exclude='.coverage' \
-            --exclude='node_modules' \
-            --exclude='.env' \
-            --exclude='*.log' \
-            .
+          # Use git archive to create a clean package
+          git archive --format=tar.gz HEAD > deployment.tar.gz
           
           echo "Deployment package created: $(ls -lh deployment.tar.gz)"
 
