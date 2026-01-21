@@ -73,27 +73,58 @@ jobs:
           echo "✅ Deployment created: ${DEPLOYMENT_ID}"
 
       - name: Wait for deployment
+        id: wait_deploy
         run: |
           DEPLOYMENT_ID="${{ steps.deploy.outputs.deployment_id }}"
           echo "Waiting for deployment ${DEPLOYMENT_ID} to complete..."
           
           aws deploy wait deployment-successful \
             --deployment-id ${DEPLOYMENT_ID} \
-            --output text
+            --output text || {
+            echo "❌ Deployment failed!"
+            exit 1
+          }
           
           echo "✅ Deployment completed successfully!"
 
-      - name: Get deployment status
-        if: always()
+      - name: Get deployment details
+        if: failure()
         run: |
           DEPLOYMENT_ID="${{ steps.deploy.outputs.deployment_id }}"
           
           if [ -n "$DEPLOYMENT_ID" ]; then
-            echo "Getting deployment status..."
+            echo "=========================================="
+            echo "📋 Deployment Details: ${DEPLOYMENT_ID}"
+            echo "=========================================="
+            
+            echo ""
+            echo "📊 Deployment Status:"
             aws deploy get-deployment \
               --deployment-id ${DEPLOYMENT_ID} \
-              --query 'deploymentInfo.[status,creator,createTime]' \
+              --query 'deploymentInfo.[status,statusMessage,creator,createTime]' \
               --output table
+            
+            echo ""
+            echo "📝 Deployment Events (last 20):"
+            aws deploy list-deployment-instances \
+              --deployment-id ${DEPLOYMENT_ID} \
+              --query 'instancesList' \
+              --output table || echo "No instances found"
+            
+            echo ""
+            echo "🔍 Instance Status:"
+            aws deploy get-deployment-instance \
+              --deployment-id ${DEPLOYMENT_ID} \
+              --instance-id $(aws deploy list-deployment-instances --deployment-id ${DEPLOYMENT_ID} --query 'instancesList[0]' --output text 2>/dev/null || echo "") \
+              --query 'instanceSummary.[instanceId,status,lifecycleEvents[*].[lifecycleEventName,status,diagnostics]]' \
+              --output json 2>/dev/null || echo "Could not get instance details"
+            
+            echo ""
+            echo "💡 To see full logs, SSH to the instance and run:"
+            echo "   sudo tail -100 /opt/codedeploy-agent/deployment-root/deployment-logs/codedeploy-agent-deployments.log"
+            echo ""
+            echo "   Or check CodeDeploy Console:"
+            echo "   https://console.aws.amazon.com/codesuite/codedeploy/deployments/${DEPLOYMENT_ID}"
           fi
 
       - name: Health check
