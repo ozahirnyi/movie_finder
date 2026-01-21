@@ -3,6 +3,21 @@ set -e
 
 echo "===== Before Install Hook ====="
 
+# Ensure CodeDeploy agent is running
+echo "Checking CodeDeploy agent status..."
+if ! sudo service codedeploy-agent status > /dev/null 2>&1; then
+    echo "⚠️  CodeDeploy agent is not running. Starting agent..."
+    sudo service codedeploy-agent start
+    sleep 3
+    if sudo service codedeploy-agent status > /dev/null 2>&1; then
+        echo "✅ CodeDeploy agent started successfully"
+    else
+        echo "❌ Failed to start CodeDeploy agent. Continuing anyway..."
+    fi
+else
+    echo "✅ CodeDeploy agent is running"
+fi
+
 # Stop running containers (if any)
 if [ -f /home/ec2-user/movie_finder/docker-compose.lightsail.yml ]; then
     echo "Stopping existing containers..."

@@ -1,7 +1,15 @@
 #!/bin/bash
-set -e
+# Don't use set -e here - we want to handle errors gracefully
+set +e
 
 echo "===== Application Stop Hook ====="
+
+# Check if CodeDeploy agent is running
+if ! sudo service codedeploy-agent status > /dev/null 2>&1; then
+    echo "⚠️  CodeDeploy agent is not running. Attempting to start..."
+    sudo service codedeploy-agent start || true
+    sleep 2
+fi
 
 # Stop running containers (if any)
 if [ -f /home/ec2-user/movie_finder/docker-compose.lightsail.yml ]; then
@@ -14,3 +22,4 @@ else
 fi
 
 echo "Application Stop completed successfully"
+exit 0
