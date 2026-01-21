@@ -4,6 +4,10 @@ files:
   - source: /
     destination: /home/ec2-user/movie_finder
 hooks:
+  ApplicationStop:
+    - location: scripts/deploy/application_stop.sh
+      timeout: 300
+      runas: root
   BeforeInstall:
     - location: scripts/deploy/before_install.sh
       timeout: 300
