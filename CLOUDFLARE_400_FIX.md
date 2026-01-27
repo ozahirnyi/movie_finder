@@ -7,6 +7,8 @@ Requests to `https://api.moviefinder.cc/api/schema/` return 400 Bad Request.
 Django doesn't recognize HTTPS requests coming through Cloudflare reverse proxy because:
 1. `SECURE_PROXY_SSL_HEADER` is not configured
 2. Django needs to trust `X-Forwarded-Proto` header from Nginx/Cloudflare
+3. `ALLOWED_HOSTS` doesn't include the domain name (`api.moviefinder.cc`)
+4. `CSRF_TRUSTED_ORIGINS` doesn't include the HTTPS origin
 
 ## Solution Applied
 Added to `movie_finder_django/settings.py`:
@@ -17,6 +19,11 @@ Added to `movie_finder_django/settings.py`:
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 USE_X_FORWARDED_HOST = True
 USE_X_FORWARDED_PORT = True
+
+# Add domain to ALLOWED_HOSTS (also in DEFAULT_ALLOWED_HOSTS for fallback)
+DEFAULT_ALLOWED_HOSTS = [..., 'api.moviefinder.cc', 'moviefinder.cc', 'www.moviefinder.cc']
+DEFAULT_CSRF_TRUSTED_ORIGINS = ['https://api.moviefinder.cc', 'https://moviefinder.cc', 'https://www.moviefinder.cc']
+CSRF_TRUSTED_ORIGINS = env.list('CSRF_TRUSTED_ORIGINS', default=DEFAULT_CSRF_TRUSTED_ORIGINS)
 ```
 
 ## Verification Steps
