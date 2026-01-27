@@ -69,7 +69,16 @@ class FindMovieAiClient:
             if not isinstance(raw, list):
                 raise AiResponseError(f'AI returned invalid format, expected list, got {type(raw)}')
 
-            return [AiMovie.from_dict(item) for item in raw]
+            result = []
+            for item in raw:
+                if isinstance(item, dict):
+                    result.append(AiMovie.from_dict(item))
+                elif isinstance(item, str):
+                    result.append(AiMovie(title=item, match_score=0))
+                else:
+                    raise AiResponseError(f'AI returned invalid item type, expected dict or str, got {type(item)}')
+
+            return result
 
         except AiResponseError:
             raise

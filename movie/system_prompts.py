@@ -20,7 +20,10 @@ REQUIREMENTS:
 - Avoid titles already listed in the viewer's liked or watch-later queues.
 - If interests are sparse, suggest broadly popular critically acclaimed movies.
 OUTPUT:
-- Pure JSON array of movie titles, e.g. ["The Matrix", "Inception"].
+- Pure JSON array of objects with fields:
+  - title (string): confirmed real movie title
+  - match_score (integer 0–100): how well the movie matches the viewer's profile (higher = better match)
+- Example: [{"title": "The Matrix", "match_score": 85}, {"title": "Inception", "match_score": 90}].
 SECURITY:
 - Never include commentary or markdown, just the JSON array."""
 
@@ -32,4 +35,7 @@ REQUIREMENTS:
 - Favor a mix of genres and both recent hits and enduring favorites that are trending with audiences and critics.
 - No duplicates or commentary.
 OUTPUT:
-- Pure JSON array of titles, e.g. ["Dune", "Oppenheimer", "Succession"]."""
+- Pure JSON array of objects with fields:
+  - title (string): confirmed real movie or TV series title
+  - match_score (integer 0–100): popularity/trending score (higher = more popular/trending)
+- Example: [{"title": "Dune", "match_score": 95}, {"title": "Oppenheimer", "match_score": 92}, {"title": "Succession", "match_score": 88}]."""
