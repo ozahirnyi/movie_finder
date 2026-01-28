@@ -50,18 +50,18 @@ class MovieRepository:
             timeout=30,
         )
         response.raise_for_status()
-        
+
         try:
             response_data = json.loads(response.text)
         except json.JSONDecodeError as e:
             raise Exception(f'Invalid JSON response from IMDB API: {e}') from e
-        
+
         if 'result' not in response_data:
             return []
-        
+
         if not isinstance(response_data['result'], list):
             return []
-        
+
         imdb_movies = []
         for data in response_data['result']:
             if not isinstance(data, dict):
@@ -78,7 +78,7 @@ class MovieRepository:
                 )
             except (KeyError, TypeError):
                 continue
-        
+
         return imdb_movies
 
     @staticmethod
