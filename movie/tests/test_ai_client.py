@@ -212,3 +212,23 @@ class FindMovieAiClientTests(SimpleTestCase):
             FindMovieAiClient._parse_response(fake_response)
 
         self.assertIn('invalid item type', str(exc.value))
+
+    def test_parse_response_skips_none_values(self):
+        """Тест пропуску None значень"""
+        fake_response = SimpleNamespace(content=[SimpleNamespace(text='[{"title": "Shrek"}, null, "Barbie"]')])
+
+        result = FindMovieAiClient._parse_response(fake_response)
+
+        self.assertEqual(len(result), 2)
+        self.assertEqual(result[0].title, 'Shrek')
+        self.assertEqual(result[1].title, 'Barbie')
+
+    def test_parse_response_skips_empty_strings(self):
+        """Тест пропуску порожніх рядків"""
+        fake_response = SimpleNamespace(content=[SimpleNamespace(text='[{"title": "Shrek"}, "", "Barbie"]')])
+
+        result = FindMovieAiClient._parse_response(fake_response)
+
+        self.assertEqual(len(result), 2)
+        self.assertEqual(result[0].title, 'Shrek')
+        self.assertEqual(result[1].title, 'Barbie')
