@@ -76,7 +76,7 @@ class MovieRepository:
                         type=data.get('Type', ''),
                     )
                 )
-            except (KeyError, TypeError) as e:
+            except (KeyError, TypeError):
                 continue
         
         return imdb_movies
