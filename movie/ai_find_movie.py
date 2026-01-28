@@ -74,7 +74,12 @@ class FindMovieAiClient:
                 if isinstance(item, dict):
                     result.append(AiMovie.from_dict(item))
                 elif isinstance(item, str):
-                    result.append(AiMovie(title=item, match_score=0))
+                    # Skip empty strings
+                    if item.strip():
+                        result.append(AiMovie(title=item, match_score=0))
+                elif item is None:
+                    # Skip None values
+                    continue
                 else:
                     raise AiResponseError(f'AI returned invalid item type, expected dict or str, got {type(item)}')
 

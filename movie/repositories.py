@@ -49,17 +49,36 @@ class MovieRepository:
             },
             timeout=30,
         )
+        response.raise_for_status()
+        
+        try:
+            response_data = json.loads(response.text)
+        except json.JSONDecodeError as e:
+            raise Exception(f'Invalid JSON response from IMDB API: {e}') from e
+        
+        if 'result' not in response_data:
+            return []
+        
+        if not isinstance(response_data['result'], list):
+            return []
+        
         imdb_movies = []
-        for data in json.loads(response.text)['result']:
-            imdb_movies.append(
-                ImdbMovie(
-                    title=data['Title'],
-                    imdb_id=data['imdbID'],
-                    poster=data['Poster'],
-                    year=data['Year'],
-                    type=data['Type'],
+        for data in response_data['result']:
+            if not isinstance(data, dict):
+                continue
+            try:
+                imdb_movies.append(
+                    ImdbMovie(
+                        title=data.get('Title', ''),
+                        imdb_id=data.get('imdbID', ''),
+                        poster=data.get('Poster', ''),
+                        year=data.get('Year', ''),
+                        type=data.get('Type', ''),
+                    )
                 )
-            )
+            except (KeyError, TypeError) as e:
+                continue
+        
         return imdb_movies
 
     @staticmethod
