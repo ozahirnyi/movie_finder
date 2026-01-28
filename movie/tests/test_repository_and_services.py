@@ -120,6 +120,33 @@ class MovieRepositoryTests(TestCase):
         self.assertEqual(movies[0].imdb_id, 'tt0126029')
 
     @patch('movie.repositories.requests.get')
+    def test_get_movies_from_imdb_skips_items_that_raise_type_error(self, mock_get):
+        class BadDict(dict):
+            @property
+            def get(self):  # type: ignore[override]
+                raise TypeError('boom')
+
+        mock_response = mock_get.return_value
+        mock_response.text = json.dumps(
+            {
+                'result': [
+                    {'Title': 'Shrek', 'imdbID': 'tt0126029', 'Poster': 'poster', 'Year': '2001', 'Type': 'movie'},
+                ]
+            }
+        )
+        # Replace parsed JSON with a list that contains a dict-like object whose .get raises TypeError.
+        parsed = json.loads(mock_response.text)
+        parsed['result'].append(BadDict({'Title': 'Bad'}))
+        mock_response.raise_for_status = lambda: None
+
+        # Patch json.loads inside the repository so we can inject our BadDict instance.
+        with patch('movie.repositories.json.loads', return_value=parsed):
+            movies = self.repository.get_movies_from_imdb('shrek')
+
+        self.assertEqual(len(movies), 1)
+        self.assertEqual(movies[0].imdb_id, 'tt0126029')
+
+    @patch('movie.repositories.requests.get')
     def test_get_movie_from_omdb_by_expression_builds_dataclass(self, mock_get):
         mock_get.return_value.json.return_value = {
             'Title': 'Shrek',

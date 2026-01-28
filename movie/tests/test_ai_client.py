@@ -132,7 +132,12 @@ class FindMovieAiClientTests(SimpleTestCase):
     @patch('movie.ai_find_movie.Anthropic')
     def test_parse_response_handles_object_array_top_movies(self, mock_anthropic, _):
         """Test parsing object array for TopMoviesFindMovieAiClient"""
-        fake_response = SimpleNamespace(content=[SimpleNamespace(text='[{"title": "Dune", "match_score": 95}, {"title": "Barbie", "match_score": 88}, {"title": "Succession", "match_score": 92}]')])
+        json_text = (
+            '[{"title": "Dune", "match_score": 95}, '
+            '{"title": "Barbie", "match_score": 88}, '
+            '{"title": "Succession", "match_score": 92}]'
+        )
+        fake_response = SimpleNamespace(content=[SimpleNamespace(text=json_text)])
         fake_client = MagicMock()
         fake_client.messages.create.return_value = fake_response
         mock_anthropic.return_value = fake_client
@@ -164,7 +169,11 @@ class FindMovieAiClientTests(SimpleTestCase):
     @patch('movie.ai_find_movie.Anthropic')
     def test_parse_response_handles_object_array_recommendations(self, mock_anthropic, _):
         """Test parsing object array for RecommendationFindMovieAiClient"""
-        fake_response = SimpleNamespace(content=[SimpleNamespace(text='[{"title": "The Matrix", "match_score": 85}, {"title": "Inception", "match_score": 90}]')])
+        json_text = (
+            '[{"title": "The Matrix", "match_score": 85}, '
+            '{"title": "Inception", "match_score": 90}]'
+        )
+        fake_response = SimpleNamespace(content=[SimpleNamespace(text=json_text)])
         fake_client = MagicMock()
         fake_client.messages.create.return_value = fake_response
         mock_anthropic.return_value = fake_client

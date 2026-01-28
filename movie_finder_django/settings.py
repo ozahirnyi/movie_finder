@@ -24,7 +24,15 @@ SECRET_KEY = env('DJANGO_KEY', default='fallback_secret')
 
 DEBUG = env.bool('DEBUG', False)
 
-DEFAULT_ALLOWED_HOSTS = ['0.0.0.0', '127.0.0.1', 'localhost', 'movie-finder-70zg.onrender.com', 'api.moviefinder.cc', 'moviefinder.cc', 'www.moviefinder.cc']
+DEFAULT_ALLOWED_HOSTS = [
+    '0.0.0.0',
+    '127.0.0.1',
+    'localhost',
+    'movie-finder-70zg.onrender.com',
+    'api.moviefinder.cc',
+    'moviefinder.cc',
+    'www.moviefinder.cc',
+]
 ALLOWED_HOSTS = env.list('ALLOWED_HOSTS', default=DEFAULT_ALLOWED_HOSTS)
 DEFAULT_CSRF_TRUSTED_ORIGINS = ['https://api.moviefinder.cc', 'https://moviefinder.cc', 'https://www.moviefinder.cc']
 CSRF_TRUSTED_ORIGINS = env.list('CSRF_TRUSTED_ORIGINS', default=DEFAULT_CSRF_TRUSTED_ORIGINS)
