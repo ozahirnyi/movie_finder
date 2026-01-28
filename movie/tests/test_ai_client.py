@@ -79,7 +79,7 @@ class FindMovieAiClientTests(SimpleTestCase):
         self.assertIn('Failed to parse AI response', str(exc.exception))
 
     def test_get_movies_from_ai_handles_ai_response_error(self):
-        """Перевірка обробки AiResponseError в сервісному шарі"""
+        """Test handling of AiResponseError in service layer"""
         mock_ai_client = MagicMock()
         mock_ai_client.find_movies.side_effect = AiResponseError('Invalid AI response')
 
@@ -131,8 +131,15 @@ class FindMovieAiClientTests(SimpleTestCase):
     @patch.object(TopMoviesFindMovieAiClient, 'count_tokens', return_value=10)
     @patch('movie.ai_find_movie.Anthropic')
     def test_parse_response_handles_object_array_top_movies(self, mock_anthropic, _):
-        """Тест парсингу масиву об'єктів для TopMoviesFindMovieAiClient"""
-        fake_response = SimpleNamespace(content=[SimpleNamespace(text='[{"title": "Dune", "match_score": 95}, {"title": "Barbie", "match_score": 88}, {"title": "Succession", "match_score": 92}]')])
+        """Test parsing object array for TopMoviesFindMovieAiClient"""
+        json_text = ''.join(
+            [
+                '[{"title": "Dune", "match_score": 95}, ',
+                '{"title": "Barbie", "match_score": 88}, ',
+                '{"title": "Succession", "match_score": 92}]',
+            ]
+        )
+        fake_response = SimpleNamespace(content=[SimpleNamespace(text=json_text)])
         fake_client = MagicMock()
         fake_client.messages.create.return_value = fake_response
         mock_anthropic.return_value = fake_client
@@ -147,7 +154,7 @@ class FindMovieAiClientTests(SimpleTestCase):
     @patch.object(TopMoviesFindMovieAiClient, 'count_tokens', return_value=10)
     @patch('movie.ai_find_movie.Anthropic')
     def test_parse_response_handles_string_array_fallback(self, mock_anthropic, _):
-        """Тест парсингу масиву рядків (fallback для зворотної сумісності)"""
+        """Test parsing string array (fallback for backward compatibility)"""
         fake_response = SimpleNamespace(content=[SimpleNamespace(text='["Dune", "Barbie", "Succession"]')])
         fake_client = MagicMock()
         fake_client.messages.create.return_value = fake_response
@@ -163,8 +170,14 @@ class FindMovieAiClientTests(SimpleTestCase):
     @patch.object(RecommendationFindMovieAiClient, 'count_tokens', return_value=10)
     @patch('movie.ai_find_movie.Anthropic')
     def test_parse_response_handles_object_array_recommendations(self, mock_anthropic, _):
-        """Тест парсингу масиву об'єктів для RecommendationFindMovieAiClient"""
-        fake_response = SimpleNamespace(content=[SimpleNamespace(text='[{"title": "The Matrix", "match_score": 85}, {"title": "Inception", "match_score": 90}]')])
+        """Test parsing object array for RecommendationFindMovieAiClient"""
+        json_text = ''.join(
+            [
+                '[{"title": "The Matrix", "match_score": 85}, ',
+                '{"title": "Inception", "match_score": 90}]',
+            ]
+        )
+        fake_response = SimpleNamespace(content=[SimpleNamespace(text=json_text)])
         fake_client = MagicMock()
         fake_client.messages.create.return_value = fake_response
         mock_anthropic.return_value = fake_client
@@ -179,7 +192,7 @@ class FindMovieAiClientTests(SimpleTestCase):
     @patch.object(RecommendationFindMovieAiClient, 'count_tokens', return_value=10)
     @patch('movie.ai_find_movie.Anthropic')
     def test_parse_response_handles_string_array_recommendations_fallback(self, mock_anthropic, _):
-        """Тест парсингу масиву рядків для RecommendationFindMovieAiClient (fallback для зворотної сумісності)"""
+        """Test parsing string array for RecommendationFindMovieAiClient (fallback for backward compatibility)"""
         fake_response = SimpleNamespace(content=[SimpleNamespace(text='["The Matrix", "Inception"]')])
         fake_client = MagicMock()
         fake_client.messages.create.return_value = fake_response
@@ -193,7 +206,7 @@ class FindMovieAiClientTests(SimpleTestCase):
         fake_client.messages.create.assert_called_once()
 
     def test_parse_response_handles_mixed_formats(self):
-        """Тест парсингу змішаних форматів (словники та рядки)"""
+        """Test parsing mixed formats (dicts and strings)"""
         fake_response = SimpleNamespace(content=[SimpleNamespace(text='[{"title": "Shrek", "match_score": 10}, "Barbie"]')])
 
         result = FindMovieAiClient._parse_response(fake_response)
@@ -205,10 +218,30 @@ class FindMovieAiClientTests(SimpleTestCase):
         self.assertEqual(result[1].match_score, 0)
 
     def test_parse_response_raises_error_for_invalid_item_type(self):
-        """Тест помилки для невалідного типу елемента"""
+        """Test error for invalid item type"""
         fake_response = SimpleNamespace(content=[SimpleNamespace(text='[123, 456]')])
 
         with pytest.raises(AiResponseError) as exc:
             FindMovieAiClient._parse_response(fake_response)
 
         self.assertIn('invalid item type', str(exc.value))
+
+    def test_parse_response_skips_none_values(self):
+        """Test skipping None values"""
+        fake_response = SimpleNamespace(content=[SimpleNamespace(text='[{"title": "Shrek"}, null, "Barbie"]')])
+
+        result = FindMovieAiClient._parse_response(fake_response)
+
+        self.assertEqual(len(result), 2)
+        self.assertEqual(result[0].title, 'Shrek')
+        self.assertEqual(result[1].title, 'Barbie')
+
+    def test_parse_response_skips_empty_strings(self):
+        """Test skipping empty strings"""
+        fake_response = SimpleNamespace(content=[SimpleNamespace(text='[{"title": "Shrek"}, "", "Barbie"]')])
+
+        result = FindMovieAiClient._parse_response(fake_response)
+
+        self.assertEqual(len(result), 2)
+        self.assertEqual(result[0].title, 'Shrek')
+        self.assertEqual(result[1].title, 'Barbie')

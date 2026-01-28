@@ -52,19 +52,99 @@ class MovieRepositoryTests(TestCase):
 
     @patch('movie.repositories.requests.get')
     def test_get_movies_from_imdb_parses_payload(self, mock_get):
-        mock_get.return_value.text = json.dumps(
+        mock_response = mock_get.return_value
+        mock_response.text = json.dumps(
             {
                 'result': [
                     {'Title': 'Shrek', 'imdbID': 'tt0126029', 'Poster': 'poster', 'Year': '2001', 'Type': 'movie'},
                 ]
             }
         )
+        mock_response.raise_for_status = lambda: None
 
         movies = self.repository.get_movies_from_imdb('shrek')
 
         self.assertEqual(len(movies), 1)
         self.assertEqual(movies[0].imdb_id, 'tt0126029')
         mock_get.assert_called_once()
+
+    @patch('movie.repositories.requests.get')
+    def test_get_movies_from_imdb_handles_missing_result_key(self, mock_get):
+        mock_response = mock_get.return_value
+        mock_response.text = json.dumps({})
+        mock_response.raise_for_status = lambda: None
+
+        movies = self.repository.get_movies_from_imdb('shrek')
+
+        self.assertEqual(len(movies), 0)
+
+    @patch('movie.repositories.requests.get')
+    def test_get_movies_from_imdb_handles_non_list_result(self, mock_get):
+        mock_response = mock_get.return_value
+        mock_response.text = json.dumps({'result': 'not a list'})
+        mock_response.raise_for_status = lambda: None
+
+        movies = self.repository.get_movies_from_imdb('shrek')
+
+        self.assertEqual(len(movies), 0)
+
+    @patch('movie.repositories.requests.get')
+    def test_get_movies_from_imdb_handles_invalid_json(self, mock_get):
+        mock_response = mock_get.return_value
+        mock_response.text = 'not valid json'
+        mock_response.raise_for_status = lambda: None
+
+        with self.assertRaises(Exception) as exc:
+            self.repository.get_movies_from_imdb('shrek')
+
+        self.assertIn('Invalid JSON response', str(exc.exception))
+
+    @patch('movie.repositories.requests.get')
+    def test_get_movies_from_imdb_handles_invalid_items_in_array(self, mock_get):
+        mock_response = mock_get.return_value
+        mock_response.text = json.dumps(
+            {
+                'result': [
+                    {'Title': 'Shrek', 'imdbID': 'tt0126029', 'Poster': 'poster', 'Year': '2001', 'Type': 'movie'},
+                    'not a dict',
+                    123,
+                    None,
+                ]
+            }
+        )
+        mock_response.raise_for_status = lambda: None
+
+        movies = self.repository.get_movies_from_imdb('shrek')
+
+        self.assertEqual(len(movies), 1)
+        self.assertEqual(movies[0].imdb_id, 'tt0126029')
+
+    @patch('movie.repositories.requests.get')
+    def test_get_movies_from_imdb_skips_items_that_raise_type_error(self, mock_get):
+        class BadDict(dict):
+            @property
+            def get(self):  # type: ignore[override]
+                raise TypeError('boom')
+
+        mock_response = mock_get.return_value
+        mock_response.text = json.dumps(
+            {
+                'result': [
+                    {'Title': 'Shrek', 'imdbID': 'tt0126029', 'Poster': 'poster', 'Year': '2001', 'Type': 'movie'},
+                ]
+            }
+        )
+        # Replace parsed JSON with a list that contains a dict-like object whose .get raises TypeError.
+        parsed = json.loads(mock_response.text)
+        parsed['result'].append(BadDict({'Title': 'Bad'}))
+        mock_response.raise_for_status = lambda: None
+
+        # Patch json.loads inside the repository so we can inject our BadDict instance.
+        with patch('movie.repositories.json.loads', return_value=parsed):
+            movies = self.repository.get_movies_from_imdb('shrek')
+
+        self.assertEqual(len(movies), 1)
+        self.assertEqual(movies[0].imdb_id, 'tt0126029')
 
     @patch('movie.repositories.requests.get')
     def test_get_movie_from_omdb_by_expression_builds_dataclass(self, mock_get):
