@@ -16,13 +16,15 @@ def setup_tracing() -> None:
         from opentelemetry import trace
         from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
         from opentelemetry.instrumentation.django import DjangoInstrumentor
+        from opentelemetry.sdk.resources import Resource
         from opentelemetry.sdk.trace import TracerProvider
         from opentelemetry.sdk.trace.export import BatchSpanProcessor
-        from opentelemetry.sdk.resources import Resource
 
-        resource = Resource.create({
-            'service.name': os.environ.get('OTEL_SERVICE_NAME', 'movie_finder'),
-        })
+        resource = Resource.create(
+            {
+                'service.name': os.environ.get('OTEL_SERVICE_NAME', 'movie_finder'),
+            }
+        )
         provider = TracerProvider(resource=resource)
         provider.add_span_processor(BatchSpanProcessor(OTLPSpanExporter()))
         trace.set_tracer_provider(provider)

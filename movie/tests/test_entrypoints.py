@@ -37,9 +37,7 @@ class EntryPointTests(SimpleTestCase):
                 'opentelemetry.exporter.otlp.proto.grpc.trace_exporter.OTLPSpanExporter',
                 MagicMock(),
             ):
-                with patch(
-                    'opentelemetry.instrumentation.django.DjangoInstrumentor'
-                ) as mock_instr:
+                with patch('opentelemetry.instrumentation.django.DjangoInstrumentor') as mock_instr:
                     mock_instr.return_value.instrument = MagicMock()
                     setup_tracing()
                     mock_instr.return_value.instrument.assert_called_once()
