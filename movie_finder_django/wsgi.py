@@ -13,4 +13,7 @@ from django.core.wsgi import get_wsgi_application
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'movie_finder_django.settings')
 
+from movie_finder_django.tracing import setup_tracing
+
+setup_tracing()
 application = get_wsgi_application()

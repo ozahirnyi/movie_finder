@@ -23,6 +23,7 @@ from movie.views import (
     WatchLaterListView,
     WatchLaterStatisticsView,
 )
+from movie_finder_django.metrics import metrics_view
 
 auth_patterns = [
     path('token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
@@ -83,4 +84,8 @@ collections_patterns = [
     path('', include('collection.urls')),
 ]
 
-urlpatterns = auth_patterns + users_patterns + admin_patterns + movies_patterns + collections_patterns + swagger_patterns
+metrics_patterns = [
+    path('metrics', metrics_view, name='prometheus_metrics'),
+]
+
+urlpatterns = auth_patterns + users_patterns + admin_patterns + movies_patterns + collections_patterns + swagger_patterns + metrics_patterns

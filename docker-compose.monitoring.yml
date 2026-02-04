@@ -1,0 +1,83 @@
+# Monitoring stack: Prometheus, Grafana, Loki, Promtail, Tempo.
+# Run together with the app:
+#   docker compose -f docker-compose.lightsail.yml -f docker-compose.monitoring.yml up -d
+#
+# Grafana: http://<host>:3000  (default admin/admin)
+# Prometheus: http://<host>:9090  |  Tempo: http://<host>:3200  |  Loki: http://<host>:3100
+
+services:
+  web:
+    environment:
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://tempo:4317
+      OTEL_SERVICE_NAME: movie_finder
+
+  tempo:
+    image: grafana/tempo:2.3.1
+    command: ["-config.file=/etc/tempo/tempo.yml"]
+    volumes:
+      - ./monitoring/tempo/tempo.yml:/etc/tempo/tempo.yml:ro
+      - tempo_data:/tmp/tempo
+    ports:
+      - "3200:3200"
+      - "4317:4317"
+      - "4318:4318"
+    restart: unless-stopped
+
+  prometheus:
+    image: prom/prometheus:v2.47.2
+    volumes:
+      - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.enable-lifecycle'
+    ports:
+      - "9090:9090"
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:10.2.2
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-admin}
+      GF_USERS_ALLOW_SIGN_UP: 'false'
+      GF_SERVER_ROOT_URL: ${GRAFANA_ROOT_URL:-http://localhost:3000}
+      GF_INSTALL_PLUGINS: ''
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+    ports:
+      - "3000:3000"
+    depends_on:
+      - prometheus
+      - loki
+      - tempo
+    restart: unless-stopped
+
+  loki:
+    image: grafana/loki:2.9.2
+    volumes:
+      - ./monitoring/loki/loki-config.yml:/etc/loki/loki-config.yml:ro
+      - loki_data:/loki
+    command: -config.file=/etc/loki/loki-config.yml
+    ports:
+      - "3100:3100"
+    restart: unless-stopped
+
+  promtail:
+    image: grafana/promtail:2.9.2
+    volumes:
+      - ./monitoring/promtail/promtail-config.yml:/etc/promtail/promtail-config.yml:ro
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    command: -config.file=/etc/promtail/promtail-config.yml
+    depends_on:
+      - loki
+    restart: unless-stopped
+
+volumes:
+  prometheus_data:
+  grafana_data:
+  loki_data:
+  tempo_data:

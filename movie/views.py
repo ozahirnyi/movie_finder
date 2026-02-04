@@ -16,6 +16,7 @@ from rest_framework.views import APIView
 
 from auth_app.exceptions import AiSearchLimitExceeded
 from auth_app.repositories import UserRepository
+from movie_finder_django.metrics import ai_search_limit_hit_total, ai_search_used_total
 from throttling.throttling import (
     AiSearchForwardedThrottle,
     AiSearchIpThrottle,
@@ -168,7 +169,9 @@ class MoviesAiSearchView(APIView):
         user_repository = UserRepository()
         try:
             user_repository.consume_ai_search_quota(request.user)
+            ai_search_used_total.labels(tier_code=request.user.account_tier.code).inc()
         except AiSearchLimitExceeded:
+            ai_search_limit_hit_total.labels(tier_code=request.user.account_tier.code).inc()
             raise AiSearchLimitError
         movie_service = MovieService()
         ai_movies = movie_service.get_movies_from_ai(input_serializer.data.get('expression'))
