@@ -1,0 +1,12 @@
+# Load dashboards from the dashboards folder.
+apiVersion: 1
+providers:
+  - name: 'Movie Finder'
+    orgId: 1
+    folder: 'Movie Finder'
+    folderUid: 'movie-finder'
+    type: file
+    disableDeletion: false
+    editable: true
+    options:
+      path: /etc/grafana/provisioning/dashboards/json

@@ -23,17 +23,21 @@ MAX_PROMPT_TOKENS_LENGTH = 1000
 SECRET_KEY = env('DJANGO_KEY', default='fallback_secret')
 
 DEBUG = env.bool('DEBUG', False)
+METRICS_ENABLED = env.bool('METRICS_ENABLED', default=True)
 
 DEFAULT_ALLOWED_HOSTS = [
     '0.0.0.0',
     '127.0.0.1',
     'localhost',
+    'web',  # Docker Compose service name for Prometheus scrape
     'movie-finder-70zg.onrender.com',
     'api.moviefinder.cc',
     'moviefinder.cc',
     'www.moviefinder.cc',
 ]
 ALLOWED_HOSTS = env.list('ALLOWED_HOSTS', default=DEFAULT_ALLOWED_HOSTS)
+if 'web' not in ALLOWED_HOSTS:
+    ALLOWED_HOSTS = list(ALLOWED_HOSTS) + ['web']
 DEFAULT_CSRF_TRUSTED_ORIGINS = ['https://api.moviefinder.cc', 'https://moviefinder.cc', 'https://www.moviefinder.cc']
 CSRF_TRUSTED_ORIGINS = env.list('CSRF_TRUSTED_ORIGINS', default=DEFAULT_CSRF_TRUSTED_ORIGINS)
 
@@ -76,6 +80,8 @@ MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
     'allauth.account.middleware.AccountMiddleware',
 ]
+if METRICS_ENABLED:
+    MIDDLEWARE.insert(0, 'movie_finder_django.metrics.PrometheusMiddleware')
 
 ROOT_URLCONF = 'movie_finder_django.urls'
 
@@ -190,6 +196,30 @@ LOGIN_PAGE_URL = '/'
 LOGIN_REDIRECT_URL = '/'
 LOGOUT_REDIRECT_URL = LOGIN_PAGE_URL
 ACCOUNT_ADAPTER = 'allauth.account.adapter.DefaultAccountAdapter'
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'console': {
+            'format': '%(asctime)s %(levelname)s [%(name)s] %(message)s',
+        },
+    },
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+            'formatter': 'console',
+        },
+    },
+    'root': {
+        'handlers': ['console'],
+        'level': 'INFO',
+    },
+    'loggers': {
+        'django.request': {'level': 'WARNING'},
+        'django.security': {'level': 'WARNING'},
+    },
+}
 
 SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': timedelta(hours=1),

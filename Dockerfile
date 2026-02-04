@@ -18,10 +18,11 @@ ENV PYTHONUNBUFFERED=1 \
 WORKDIR /app
 
 COPY pyproject.toml poetry.lock README.md /app/
+RUN poetry lock
 RUN poetry install --no-root
 
 COPY . /app
 
-RUN chmod +x /app/scripts/entrypoint.sh
+RUN sed -i 's/\r$//' /app/scripts/entrypoint.sh && chmod +x /app/scripts/entrypoint.sh
 
 CMD ["/app/scripts/entrypoint.sh"]

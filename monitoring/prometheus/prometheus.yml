@@ -1,0 +1,20 @@
+# Prometheus config for Movie Finder.
+# Scrapes Django /metrics when run with docker-compose (web:8000).
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  - job_name: 'movie_finder'
+    metrics_path: /metrics
+    scheme: http
+    static_configs:
+      - targets: ['web:8000']
+        labels:
+          service: 'movie_finder'
+    scrape_interval: 30s
+    scrape_timeout: 10s
+
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
