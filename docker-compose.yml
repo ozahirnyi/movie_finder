@@ -15,6 +15,7 @@ services:
 
   db:
     image: postgres:14
+    platform: linux/arm64
     environment:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
