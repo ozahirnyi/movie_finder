@@ -9,7 +9,7 @@ services:
       db:
         condition: service_healthy
     ports:
-      - "80:8000"
+      - "8000:8000"  # nginx on host uses 80 and proxies here; for app directly on 80 use -f docker-compose.lightsail-direct.yml
     restart: unless-stopped
 
   db:
