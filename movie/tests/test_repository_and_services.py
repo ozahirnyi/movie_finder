@@ -11,6 +11,7 @@ from movie.dataclasses import (
 )
 from movie.dataclasses import (
     AiMovie,
+    ImdbMovie,
     OmdbMovie,
 )
 from movie.dataclasses import (
@@ -210,6 +211,16 @@ class MovieRepositoryTests(TestCase):
         self.assertEqual(movie.genres, [])
         self.assertIsNone(movie.ratings[0].value)
 
+    @patch('movie.repositories.requests.get')
+    def test_get_movie_from_omdb_by_expression_returns_none_when_movie_not_found(self, mock_get):
+        mock_get.return_value.status_code = 200
+        mock_get.return_value.text = '{"Response":"False","Error":"Movie not found!"}'
+        mock_get.return_value.json.return_value = {'Response': 'False', 'Error': 'Movie not found!'}
+
+        result = self.repository.get_movie_from_omdb_by_expression('Unknown Title')
+
+        self.assertIsNone(result)
+
     @patch('movie.repositories.requests.get', side_effect=RuntimeError('boom'))
     def test_get_movie_from_omdb_by_expression_wraps_errors(self, _):
         with self.assertRaises(Exception) as exc:
@@ -307,6 +318,39 @@ class MovieRepositoryTests(TestCase):
         self.assertEqual(new_entry.id, created_movie.id)
 
     @patch.object(MovieRepository, 'get_movie_from_omdb_by_expression')
+    def test_search_movies_in_omdb_excludes_when_omdb_returns_none(self, mock_get_movie):
+        user = get_user_model().objects.create_user(email='skip@test.test', password='pass')
+        valid = OmdbMovie(
+            title='Found',
+            imdb_id='tt000099',
+            year='2024',
+            type='movie',
+            runtime='90 min',
+            plot='P',
+            awards='',
+            poster='',
+            metascore='70',
+            imdb_rating='8.0',
+            imdb_votes='100',
+            total_seasons='',
+            genres=[],
+            directors=[],
+            writers=[],
+            actors=[],
+            countries=[],
+            languages=[],
+            ratings=[],
+        )
+
+        def side_effect(title):
+            return None if title == 'Not Found' else valid
+
+        mock_get_movie.side_effect = side_effect
+        results = self.repository.search_movies_in_omdb(['Not Found', 'Found'], initiator_id=user.id)
+        self.assertEqual(len(results), 1)
+        self.assertEqual(results[0].title, 'Found')
+
+    @patch.object(MovieRepository, 'get_movie_from_omdb_by_expression')
     def test_search_movies_in_omdb_skips_db_when_omdb_returns_no_imdb_id(self, mock_get_movie):
         omdb_no_imdb = OmdbMovie(
             title='Unknown',
@@ -337,13 +381,68 @@ class MovieRepositoryTests(TestCase):
         self.assertEqual(results[0].id, 0)
         self.assertFalse(Movie.objects.filter(title='Unknown').exists())
 
+    @patch('movie.repositories.requests.get')
+    def test_get_movies_from_omdb_search_parses_search_response(self, mock_get):
+        mock_get.return_value.status_code = 200
+        mock_get.return_value.json.return_value = {
+            'Response': 'True',
+            'Search': [
+                {
+                    'Title': 'Batman',
+                    'Year': '1989',
+                    'imdbID': 'tt0096895',
+                    'Type': 'movie',
+                    'Poster': 'https://example.com/poster.jpg',
+                },
+            ],
+            'totalResults': '1',
+        }
+        results = self.repository.get_movies_from_omdb_search('batman')
+        self.assertEqual(len(results), 1)
+        self.assertEqual(results[0].title, 'Batman')
+        self.assertEqual(results[0].imdb_id, 'tt0096895')
+        self.assertEqual(results[0].year, '1989')
+        self.assertEqual(results[0].type, 'movie')
+
+    @patch('movie.repositories.requests.get')
+    def test_get_movies_from_omdb_search_returns_empty_on_error_response(self, mock_get):
+        mock_get.return_value.status_code = 200
+        mock_get.return_value.json.return_value = {'Response': 'False', 'Error': 'Movie not found!'}
+        results = self.repository.get_movies_from_omdb_search('xyznonexistent')
+        self.assertEqual(results, [])
+
+    def test_get_movies_from_db_search_returns_imdb_movies_from_db(self):
+        Movie.objects.create(
+            title='The Dark Knight',
+            imdb_id='tt0468569',
+            year='2008',
+            type='movie',
+            poster='https://example.com/dk.jpg',
+        )
+        Movie.objects.create(
+            title='Dark City',
+            imdb_id='tt0118929',
+            year='1998',
+            type='movie',
+            poster='',
+        )
+        results = self.repository.get_movies_from_db_search('Dark')
+        self.assertEqual(len(results), 2)
+        titles = {m.title for m in results}
+        self.assertIn('The Dark Knight', titles)
+        self.assertIn('Dark City', titles)
+        for m in results:
+            self.assertIsInstance(m, ImdbMovie)
+            self.assertTrue(m.imdb_id.startswith('tt'))
+
 
 class MovieServiceTests(TestCase):
     def test_service_delegates_to_repository(self):
         service = MovieService()
-        with patch.object(MovieRepository, 'get_movies_from_imdb', return_value=['movie']) as mock_imdb:
-            self.assertEqual(service.get_movies_from_imdb('query'), ['movie'])
-            mock_imdb.assert_called_once_with('query')
+        with patch.dict('django.conf.settings.__dict__', {'MOVIE_SEARCH_PROVIDER': 'imdb'}, clear=False):
+            with patch.object(MovieRepository, 'get_movies_from_imdb', return_value=['movie']) as mock_imdb:
+                self.assertEqual(service.get_movies_from_imdb('query'), ['movie'])
+                mock_imdb.assert_called_once_with('query')
 
         with patch.object(MovieRepository, 'get_movie_from_omdb_by_expression', return_value='movie') as mock_omdb:
             self.assertEqual(service.get_movie_from_omdb_by_expression('title'), 'movie')
@@ -355,6 +454,35 @@ class MovieServiceTests(TestCase):
 
         with patch('movie.ai_find_movie.FindMovieAiClient.find_movies', return_value=['ai_movie']):
             self.assertEqual(service.get_movies_from_ai('prompt'), ['ai_movie'])
+
+    @patch.dict('django.conf.settings.__dict__', {'MOVIE_SEARCH_PROVIDER': 'omdb'}, clear=False)
+    @patch.object(MovieRepository, 'get_movies_from_omdb_search', return_value=[ImdbMovie('Batman', 'tt0096895', '', '1989', 'movie')])
+    def test_get_movies_from_imdb_uses_omdb_when_provider_omdb(self, mock_omdb_search):
+        service = MovieService()
+        result = service.get_movies_from_imdb('batman')
+        mock_omdb_search.assert_called_once_with('batman')
+        self.assertEqual(len(result), 1)
+        self.assertEqual(result[0].title, 'Batman')
+
+    @patch.dict('django.conf.settings.__dict__', {'MOVIE_SEARCH_PROVIDER': 'imdb'}, clear=False)
+    @patch.object(MovieRepository, 'get_movies_from_imdb', return_value=[ImdbMovie('Batman', 'tt0096895', '', '1989', 'movie')])
+    def test_get_movies_from_imdb_uses_imdb_when_provider_imdb(self, mock_imdb):
+        service = MovieService()
+        result = service.get_movies_from_imdb('batman')
+        mock_imdb.assert_called_once_with('batman')
+        self.assertEqual(len(result), 1)
+        self.assertEqual(result[0].title, 'Batman')
+
+    @patch.dict('django.conf.settings.__dict__', {'MOVIE_SEARCH_PROVIDER': 'omdb'}, clear=False)
+    @patch.object(MovieRepository, 'get_movies_from_omdb_search', side_effect=Exception('Network error'))
+    @patch.object(MovieRepository, 'get_movies_from_db_search', return_value=[ImdbMovie('Dark Knight', 'tt0468569', '', '2008', 'movie')])
+    def test_get_movies_from_imdb_falls_back_to_db_on_provider_error(self, mock_db_search, mock_omdb_search):
+        service = MovieService()
+        result = service.get_movies_from_imdb('batman')
+        mock_omdb_search.assert_called_once_with('batman')
+        mock_db_search.assert_called_once_with('batman')
+        self.assertEqual(len(result), 1)
+        self.assertEqual(result[0].title, 'Dark Knight')
 
 
 class RecommendationRepositoryTests(TestCase):

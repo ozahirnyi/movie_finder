@@ -16,6 +16,8 @@ IMDB_API_SEARCH_BY_IMDB_ID_URL = IMDB_API_URL + '/imdbSearchById'
 IMDB_API_KEY = env('IMDB_API_KEY', default='imdb_api_key')
 OMDB_API_URL = 'http://www.omdbapi.com'
 OMDB_API_KEY = env('OMDB_API_KEY', default='omdb_api_key')
+# Movie search: 'omdb' = OMDb ?s= search, 'imdb' = CollectAPI imdbSearchByName. On provider error we fall back to DB search.
+MOVIE_SEARCH_PROVIDER = env('MOVIE_SEARCH_PROVIDER', default='omdb')
 
 ANTHROPIC_API_KEY = env('ANTHROPIC_API_KEY', default='anthropic_api_key')
 MAX_PROMPT_TOKENS_LENGTH = 1000

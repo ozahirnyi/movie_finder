@@ -1,6 +1,7 @@
 import json
 import logging
 from datetime import datetime
+from urllib.parse import quote_plus
 
 import requests
 from django.conf import settings
@@ -90,8 +91,58 @@ class MovieRepository:
 
         return imdb_movies
 
+    def get_movies_from_omdb_search(self, expression: str) -> list[ImdbMovie]:
+        """Search movies via OMDb API (?s=). Returns list of ImdbMovie."""
+        url = f'{settings.OMDB_API_URL}/?apikey={settings.OMDB_API_KEY}&s={quote_plus(expression)}'
+        response = requests.get(url, headers={'content-type': 'application/json'}, timeout=30)
+        logger.info(
+            'OMDb search response: status=%s expression=%r body_prefix=%r',
+            response.status_code,
+            expression,
+            (response.text[:500] if response.text else ''),
+        )
+        response.raise_for_status()
+        data = response.json()
+        if data.get('Response') == 'False' or data.get('Error'):
+            logger.info('OMDb search returned no results: expression=%r error=%r', expression, data.get('Error'))
+            return []
+        search_list = data.get('Search') or []
+        if not isinstance(search_list, list):
+            return []
+        result = []
+        for item in search_list:
+            if not isinstance(item, dict):
+                continue
+            try:
+                result.append(
+                    ImdbMovie(
+                        title=item.get('Title', ''),
+                        imdb_id=item.get('imdbID', ''),
+                        poster=item.get('Poster', ''),
+                        year=item.get('Year', ''),
+                        type=item.get('Type', 'movie'),
+                    )
+                )
+            except (KeyError, TypeError):
+                continue
+        return result
+
+    def get_movies_from_db_search(self, expression: str, limit: int = 20) -> list[ImdbMovie]:
+        """Fallback: search movies in our DB by title (icontains)."""
+        qs = Movie.objects.filter(title__icontains=expression).order_by('title')[:limit]
+        return [
+            ImdbMovie(
+                title=m.title,
+                imdb_id=m.imdb_id,
+                poster=m.poster or '',
+                year=m.year or '',
+                type=m.type or 'movie',
+            )
+            for m in qs
+        ]
+
     @staticmethod
-    def get_movie_from_omdb_by_expression(title: str) -> OmdbMovie:
+    def get_movie_from_omdb_by_expression(title: str) -> OmdbMovie | None:
         def _replace_not_available(value):
             if isinstance(value, dict):
                 return {key: _replace_not_available(val) for key, val in value.items()}
@@ -114,6 +165,9 @@ class MovieRepository:
                 (response.text[:500] if response.text else ''),
             )
             data = _replace_not_available(response.json())
+            if data.get('Response') == 'False' or data.get('Error'):
+                logger.info('OMDB movie not found: title=%r error=%r', title, data.get('Error'))
+                return None
             omdb_movie = OmdbMovie(
                 title=data.get('Title'),
                 year=data.get('Year'),
@@ -200,6 +254,8 @@ class MovieRepository:
             )
             if not movie_instance:
                 omdb_movie = self.get_movie_from_omdb_by_expression(title)
+                if omdb_movie is None:
+                    continue
                 if omdb_movie.imdb_id:
                     saved_movie = self._create_movie_in_db(omdb_movie)
                     omdb_movie.id = saved_movie.id

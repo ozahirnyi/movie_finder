@@ -179,10 +179,11 @@ class MoviesAiSearchView(APIView):
         try:
             movie_service = MovieService()
             ai_movies = movie_service.get_movies_from_ai(input_serializer.data.get('expression'))
-            omdb_movies = movie_service.search_movies_in_omdb([movie.title for movie in ai_movies], self.request.user.id)
-            ai_scores = {movie.title.lower(): movie.match_score for movie in ai_movies}
+            titles_for_omdb = [m.title for m in ai_movies if m.title]
+            omdb_movies = movie_service.search_movies_in_omdb(titles_for_omdb, self.request.user.id)
+            ai_scores = {(m.title or '').lower(): m.match_score for m in ai_movies}
             for movie in omdb_movies:
-                movie.match_score = ai_scores.get(movie.title.lower(), 0)
+                movie.match_score = ai_scores.get((movie.title or '').lower(), 0)
             serialized_movies = MovieSerializer(omdb_movies, many=True)
             return Response(serialized_movies.data, status=status.HTTP_200_OK)
         except Exception as exc:

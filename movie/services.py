@@ -1,7 +1,9 @@
+import logging
 import textwrap
 from datetime import datetime, timedelta
 from datetime import timezone as dt_timezone
 
+from django.conf import settings
 from django.core.exceptions import BadRequest
 from django.utils import timezone
 
@@ -17,6 +19,8 @@ from .dataclasses import (
 from .errors import AiResponseError
 from .repositories import GenreRepository, MovieRepository, RecommendationRepository, TopMoviesRepository
 
+logger = logging.getLogger(__name__)
+
 
 class MovieService:
     def __init__(
@@ -28,9 +32,28 @@ class MovieService:
         self.ai_client = ai_client or SearchFindMovieAiClient()
 
     def get_movies_from_imdb(self, expression: str) -> list[ImdbMovie]:
-        return self.movie_repository.get_movies_from_imdb(expression)
+        provider = getattr(settings, 'MOVIE_SEARCH_PROVIDER', 'omdb')
+        try:
+            if provider == 'omdb':
+                return self.movie_repository.get_movies_from_omdb_search(expression)
+            return self.movie_repository.get_movies_from_imdb(expression)
+        except Exception as exc:
+            logger.warning(
+                'Movie search provider %s failed for expression=%r: %s; falling back to DB search',
+                provider,
+                expression,
+                exc,
+                exc_info=True,
+            )
+            results = self.movie_repository.get_movies_from_db_search(expression)
+            logger.info(
+                'Movie search DB fallback: expression=%r returned %d result(s)',
+                expression,
+                len(results),
+            )
+            return results
 
-    def get_movie_from_omdb_by_expression(self, title: str) -> OmdbMovie:
+    def get_movie_from_omdb_by_expression(self, title: str) -> OmdbMovie | None:
         return self.movie_repository.get_movie_from_omdb_by_expression(title)
 
     def search_movies_in_omdb(self, movie_titles: list[str], initiator_id: int) -> list[OmdbMovie]:
