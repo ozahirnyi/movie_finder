@@ -52,6 +52,12 @@ class MovieRepository:
             },
             timeout=30,
         )
+        logger.info(
+            'IMDB/CollectAPI response: status=%s expression=%r body_prefix=%r',
+            response.status_code,
+            expression,
+            (response.text[:500] if response.text else ''),
+        )
         response.raise_for_status()
 
         try:

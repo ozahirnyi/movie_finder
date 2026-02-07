@@ -85,7 +85,12 @@ if METRICS_ENABLED:
 
 ROOT_URLCONF = 'movie_finder_django.urls'
 
-CORS_ALLOWED_ORIGINS = env.list('CORS_ALLOWED_ORIGINS', default=[])
+DEFAULT_CORS_ALLOWED_ORIGINS = [
+    'https://moviefinder.cc',
+    'https://www.moviefinder.cc',
+    'https://api.moviefinder.cc',
+]
+CORS_ALLOWED_ORIGINS = env.list('CORS_ALLOWED_ORIGINS', default=DEFAULT_CORS_ALLOWED_ORIGINS)
 CORS_ALLOW_ALL_ORIGINS = env.bool('CORS_ALLOW_ALL_ORIGINS', default=True)
 CORS_ALLOW_CREDENTIALS = True
 
@@ -218,6 +223,7 @@ LOGGING = {
     'loggers': {
         'django.request': {'level': 'ERROR'},
         'django.security': {'level': 'ERROR'},
+        'movie': {'level': 'INFO', 'handlers': ['console'], 'propagate': False},
     },
 }
 
