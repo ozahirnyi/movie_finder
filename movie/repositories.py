@@ -1,4 +1,5 @@
 import json
+import logging
 from datetime import datetime
 
 import requests
@@ -37,6 +38,8 @@ from movie.dataclasses import (
     Writer as WriterDTO,
 )
 from movie.models import Actor, Country, Director, Genre, Language, LikeMovie, Movie, Rating, RecommendedMovie, TopMovie, WatchLaterMovie, Writer
+
+logger = logging.getLogger(__name__)
 
 
 class MovieRepository:
@@ -98,6 +101,12 @@ class MovieRepository:
                 headers={'content-type': 'application/json'},
                 timeout=30,
             )
+            logger.info(
+                'OMDB response: status=%s title=%r body_prefix=%r',
+                response.status_code,
+                title,
+                (response.text[:500] if response.text else ''),
+            )
             data = _replace_not_available(response.json())
             omdb_movie = OmdbMovie(
                 title=data.get('Title'),
@@ -123,6 +132,7 @@ class MovieRepository:
             )
             return omdb_movie
         except Exception as e:
+            logger.exception('OMDB request failed: title=%r error=%s', title, e)
             raise Exception(f'Error while getting movies from OMDB: {e}')
 
     def _create_movie_in_db(self, omdb_movie: OmdbMovie) -> Movie:
