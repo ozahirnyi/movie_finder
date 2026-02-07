@@ -1,0 +1,1147 @@
+{
+  "collections": [
+    {
+      "name": "New Year",
+      "description": "Holiday and New Year movies",
+      "movies": [
+        {
+          "position": 0,
+          "imdb_id": "tt0099785",
+          "title": "Home Alone",
+          "year": "1990",
+          "type": "movie",
+          "poster": "https://m.media-amazon.com/images/M/MV5BNzNmNmQ2ZDEtMTc1MS00NjNiLThlMGUtZmQxNTg1Nzg5NWMzXkEyXkFqcGc@._V1_SX300.jpg",
+          "plot": "An eight-year-old troublemaker, mistakenly left home alone, must defend his home against a pair of burglars on Christmas Eve."
+        },
+        {
+          "position": 1,
+          "imdb_id": "tt0104431",
+          "title": "Home Alone 2: Lost in New York",
+          "year": "1992",
+          "type": "movie",
+          "poster": "https://m.media-amazon.com/images/M/MV5BOGEyYzRmNzYtYzJjZi00ZjhlLWJiNDktYzZhNTgxMzc1NThlXkEyXkFqcGc@._V1_SX300.jpg",
+          "plot": "Kevin is separated from his family again when he accidentally boards a flight to New York City during a Christmas trip to Miami. However he crosses paths with the same burglars, who now plan to rob a toy store on Christmas Eve."
+        },
+        {
+          "position": 2,
+          "imdb_id": "tt0314331",
+          "title": "Love Actually",
+          "year": "2003",
+          "type": "movie",
+          "poster": "https://m.media-amazon.com/images/M/MV5BYWRlZjcwYTgtYWJkOS00MGYwLTk3Y2ItNmU4NTg5Nzg2YTQ2XkEyXkFqcGc@._V1_SX300.jpg",
+          "plot": "Follows the lives of eight very different couples in dealing with their love lives in various loosely interrelated tales all set during a frantic month before Christmas in London, England."
+        },
+        {
+          "position": 3,
+          "imdb_id": "tt0095016",
+          "title": "Die Hard",
+          "year": "1988",
+          "type": "movie",
+          "poster": "https://m.media-amazon.com/images/M/MV5BMGNlYmM1NmQtYWExMS00NmRjLTg5ZmEtMmYyYzJkMzljYWMxXkEyXkFqcGc@._V1_SX300.jpg",
+          "plot": "A New York City cop, John McClane, tries to save his estranged wife and several others taken hostage by terrorists during a Christmas Eve party at the Nakatomi Plaza Skyscraper in Los Angeles, California."
+        },
+        {
+          "position": 4,
+          "imdb_id": "tt0457939",
+          "title": "The Holiday",
+          "year": "2006",
+          "type": "movie",
+          "poster": "https://m.media-amazon.com/images/M/MV5BZmEwNDg0M2QtMDdiNy00YTliLTk4ZjctOThjZjczODVmMTdkXkEyXkFqcGc@._V1_SX300.jpg",
+          "plot": "Amanda lives in LA and is a movie trailer editor. Iris lives in Surrey and is a journalist. The two decide to swap houses for two weeks at Christmas - both trying to forget their troubled love lives, until love finds them anyways."
+        },
+        {
+          "position": 5,
+          "imdb_id": "tt1067106",
+          "title": "A Christmas Carol",
+          "year": "2009",
+          "type": "movie",
+          "poster": "https://m.media-amazon.com/images/M/MV5BMTM1MTI5ODU4MV5BMl5BanBnXkFtZTcwNTYyNTU4Mg@@._V1_SX300.jpg",
+          "plot": "Ebenezer Scrooge, a miserly old moneylender, is visited by three Christmas spirits on Christmas Eve. Scrooge embarks on a journey of self-redemption to mend his miserly ways"
+        },
+        {
+          "position": 6,
+          "imdb_id": "tt0338348",
+          "title": "The Polar Express",
+          "year": "2004",
+          "type": "movie",
+          "poster": "https://m.media-amazon.com/images/M/MV5BMTM1NTU0NTE4MV5BMl5BanBnXkFtZTcwMTQ0MjEzMw@@._V1_SX300.jpg",
+          "plot": "On Christmas Eve, a young boy embarks on a magical adventure to the North Pole on the Polar Express, while learning about friendship, bravery, and the spirit of Christmas."
+        },
+        {
+          "position": 7,
+          "imdb_id": "tt4729430",
+          "title": "Klaus",
+          "year": "2019",
+          "type": "movie",
+          "poster": "https://m.media-amazon.com/images/M/MV5BZDA4ODhlMzctNGRmYi00NmViLTkxZGYtZjRkNGQ5YzYwYWVlXkEyXkFqcGc@._V1_SX300.jpg",
+          "plot": "A simple act of kindness always sparks another, even in a frozen, faraway place. When Smeerensburg's new postman, Jesper, befriends toymaker Klaus, their gifts melt an age-old feud and deliver a sleigh full of holiday traditions."
+        },
+        {
+          "position": 8,
+          "imdb_id": "tt8623904",
+          "title": "Last Christmas",
+          "year": "2019",
+          "type": "movie",
+          "poster": "https://m.media-amazon.com/images/M/MV5BY2NlNTMwYzgtZjI2Ny00ZWExLWE2NDUtNzFlYTQyMmY1NjkwXkEyXkFqcGc@._V1_SX300.jpg",
+          "plot": "Kate is a young woman subscribed to bad decisions. Working as an elf in a year-round Christmas store is not good for the wannabe singer. However, she meets Tom there. Her life takes a new turn--that seems too good to be true."
+        },
+        {
+          "position": 9,
+          "imdb_id": "tt0307987",
+          "title": "Bad Santa",
+          "year": "2003",
+          "type": "movie",
+          "poster": "https://m.media-amazon.com/images/M/MV5BMjA4Njg1MDcwN15BMl5BanBnXkFtZTYwMzAxNjM3._V1_SX300.jpg",
+          "plot": "A miserable conman and his partner pose as Santa and his Little Helper to rob department stores on Christmas Eve. But they run into problems when the conman befriends a troubled kid."
+        }
+      ]
+    },
+    {
+      "name": "Horror",
+      "description": "Horror and thrillers",
+      "movies": [
+        {
+          "position": 0,
+          "imdb_id": "tt7784604",
+          "title": "Hereditary",
+          "year": "2018",
+          "type": "movie",
+          "poster": "https://m.media-amazon.com/images/M/MV5BNTEyZGQwODctYWJjZi00NjFmLTg3YmEtMzlhNjljOGZhMWMyXkEyXkFqcGc@._V1_SX300.jpg",
+          "plot": "A grieving family is haunted by tragic and disturbing occurrences."
+        },
+        {
+          "position": 1,
+          "imdb_id": "tt1396484",
+          "title": "It",
+          "year": "2017",
+          "type": "movie",
+          "poster": "https://m.media-amazon.com/images/M/MV5BZGZmOTZjNzUtOTE4OS00OGM3LWJiNGEtZjk4Yzg2M2Q1YzYxXkEyXkFqcGc@._V1_SX300.jpg",
+          "plot": "In the summer of 1989, a group of bullied kids band together to destroy a shape-shifting monster, which disguises itself as a clown and preys on the children of Derry, their small Maine town."
+        },
+        {
+          "position": 2,
+          "imdb_id": "tt1591095",
+          "title": "Insidious",
+          "year": "2010",
+          "type": "movie",
+          "poster": "https://m.media-amazon.com/images/M/MV5BMTYyOTAxMDA0OF5BMl5BanBnXkFtZTcwNzgwNTc1NA@@._V1_SX300.jpg",
+          "plot": "A family looks to prevent evil spirits from trapping their comatose child in a realm called The Further."
+        },
+        {
+          "position": 3,
+          "imdb_id": "tt1457767",
+          "title": "The Conjuring",
+          "year": "2013",
+          "type": "movie",
+          "poster": "https://m.media-amazon.com/images/M/MV5BMTM3NjA1NDMyMV5BMl5BanBnXkFtZTcwMDQzNDMzOQ@@._V1_SX300.jpg",
+          "plot": "Paranormal investigators Ed and Lorraine Warren work to help a family terrorized by a dark presence in their farmhouse."
+        },
+        {
+          "position": 4,
+          "imdb_id": "tt2321549",
+          "title": "The Babadook",
+          "year": "2014",
+          "type": "movie",
+          "poster": "https://m.media-amazon.com/images/M/MV5BMTk0NzMzODc2NF5BMl5BanBnXkFtZTgwOTYzNTM1MzE@._V1_SX300.jpg",
+          "plot": "A single mother and her child fall into a deep well of paranoia when an eerie children's book titled \"Mister Babadook\" manifests in their home."
+        },
+        {
+          "position": 5,
+          "imdb_id": "tt7984734",
+          "title": "The Lighthouse",
+          "year": "2019",
+          "type": "movie",
+          "poster": "https://m.media-amazon.com/images/M/MV5BMTI4MjFhMjAtNmQxYi00N2IxLWJjMGEtYWY1YmU3OTQ0Zjk3XkEyXkFqcGc@._V1_SX300.jpg",
+          "plot": "Two lighthouse keepers try to maintain their sanity while living on a remote and mysterious New England island in the 1890s."
+        },
+        {
+          "position": 6,
+          "imdb_id": "tt0081505",
+          "title": "The Shining",
+          "year": "1980",
+          "type": "movie",
+          "poster": "https://m.media-amazon.com/images/M/MV5BNmM5ZThhY2ItOGRjOS00NzZiLWEwYTItNDgyMjFkOTgxMmRiXkEyXkFqcGc@._V1_SX300.jpg",
+          "plot": "A family heads to an isolated hotel for the winter, where a sinister presence influences the father into violence. At the same time, his psychic son sees horrifying forebodings from both the past and the future."
+        },
+        {
+          "position": 7,
+          "imdb_id": "tt0387564",
+          "title": "Saw",
+          "year": "2004",
+          "type": "movie",
+          "poster": "https://m.media-amazon.com/images/M/MV5BZTE5MzFlMTktMzBkOC00ZjMxLThmOTAtOGU3ZGEwZGRlNDdjXkEyXkFqcGc@._V1_SX300.jpg",
+          "plot": "Two men awaken to find themselves on the opposite sides of a dead body, each with specific instructions to kill the other, escape or face the consequences. These two are the latest contestants in Jigsaw's games."
+        },
+        {
+          "position": 8,
+          "imdb_id": "tt1179904",
+          "title": "Paranormal Activity",
+          "year": "2007",
+          "type": "movie",
+          "poster": "https://m.media-amazon.com/images/M/MV5BMjY1NjcxODQ4MV5BMl5BanBnXkFtZTcwMzUxNjM4Mg@@._V1_SX300.jpg",
+          "plot": "After moving into a suburban home, a couple becomes increasingly disturbed by a nightly demonic presence."
+        },
+        {
+          "position": 9,
+          "imdb_id": "tt6644200",
+          "title": "A Quiet Place",
+          "year": "2018",
+          "type": "movie",
+          "poster": "https://m.media-amazon.com/images/M/MV5BMjI0MDMzNTQ0M15BMl5BanBnXkFtZTgwMTM5NzM3NDM@._V1_SX300.jpg",
+          "plot": "A family struggles for survival in a world invaded by blind alien creatures with ultra-sensitive hearing."
+        }
+      ]
+    },
+    {
+      "name": "Comedy",
+      "description": "Comedy movies",
+      "movies": [
+        {
+          "position": 0,
+          "imdb_id": "tt1675434",
+          "title": "The Intouchables",
+          "year": "2011",
+          "type": "movie",
+          "poster": "https://m.media-amazon.com/images/M/MV5BMTYxNDA3MDQwNl5BMl5BanBnXkFtZTcwNTU4Mzc1Nw@@._V1_SX300.jpg",
+          "plot": "After he becomes a quadriplegic from a paragliding accident, an aristocrat hires a young man from the projects to be his caregiver."
+        },
+        {
+          "position": 1,
+          "imdb_id": "tt0110475",
+          "title": "The Mask",
+          "year": "1994",
+          "type": "movie",
+          "poster": "https://m.media-amazon.com/images/M/MV5BNGNmNjI0ZmMtMzI5MC00ZjUyLWFlZDEtYjUyMGZlN2E3N2E2XkEyXkFqcGc@._V1_SX300.jpg",
+          "plot": "Bank clerk Stanley Ipkiss is transformed into a manic superhero when he wears a mysterious mask."
+        },
+        {
+          "position": 2,
+          "imdb_id": "tt0315327",
+          "title": "Bruce Almighty",
+          "year": "2003",
+          "type": "movie",
+          "poster": "https://m.media-amazon.com/images/M/MV5BZWM2ZjA2OTctZmRhMy00ZDIzLTkwZGQtYTRlNmQwZWZmMDBlXkEyXkFqcGc@._V1_SX300.jpg",
+          "plot": "A whiny news reporter is given the chance to step into God's shoes."
+        },
+        {
+          "position": 3,
+          "imdb_id": "tt1119646",
+          "title": "The Hangover",
+          "year": "2009",
+          "type": "movie",
+          "poster": "https://m.media-amazon.com/images/M/MV5BNDI2MzBhNzgtOWYyOS00NDM2LWE0OGYtOGQ0M2FjMTI2NTllXkEyXkFqcGc@._V1_SX300.jpg",
+          "plot": "Three buddies wake up from a bachelor party in Las Vegas with no memory of the previous night and the bachelor missing. They must make their way around the city in order to find their friend in time for his wedding."
+        },
+        {
+          "position": 4,
+          "imdb_id": "tt11286314",
+          "title": "Don't Look Up",
+          "year": "2021",
+          "type": "movie",
+          "poster": "https://m.media-amazon.com/images/M/MV5BMjhhNWFjNzctYTJjOS00MDc0LThiNjItZmM0ZDVmMWViY2UzXkEyXkFqcGc@._V1_SX300.jpg",
+          "plot": "Two low-level astronomers must go on a giant media tour to warn humankind of an approaching comet that will destroy planet Earth."
+        },
+        {
+          "position": 5,
+          "imdb_id": "tt1645170",
+          "title": "The Dictator",
+          "year": "2012",
+          "type": "movie",
+          "poster": "https://m.media-amazon.com/images/M/MV5BM2IwMDM3ZmQtNjQ3NS00OTFiLWI5YzEtYWE3YjI5NTk3YzkwXkEyXkFqcGc@._V1_SX300.jpg",
+          "plot": "The heroic story of a dictator who risked his life to ensure that democracy would never come to the country he so lovingly oppressed."
+        },
+        {
+          "position": 6,
+          "imdb_id": "tt0829482",
+          "title": "Superbad",
+          "year": "2007",
+          "type": "movie",
+          "poster": "https://m.media-amazon.com/images/M/MV5BNjk0MzdlZGEtNTRkOC00ZDRiLWJkYjAtMzUzYTRiNzk1YTViXkEyXkFqcGc@._V1_SX300.jpg",
+          "plot": "Two co-dependent high school seniors are forced to deal with separation anxiety after their plan to stage a booze-soaked party goes awry."
+        },
+        {
+          "position": 7,
+          "imdb_id": "tt1723121",
+          "title": "We're the Millers",
+          "year": "2013",
+          "type": "movie",
+          "poster": "https://m.media-amazon.com/images/M/MV5BNDQ0NWI1ZGEtY2NlMy00MWYyLTk4NGEtMTY5MmQ4YTcyY2E0XkEyXkFqcGc@._V1_SX300.jpg",
+          "plot": "A veteran pot dealer creates a fake family as part of his plan to move a huge shipment of weed into the U.S. from Mexico."
+        },
+        {
+          "position": 8,
+          "imdb_id": "tt0264464",
+          "title": "Catch Me If You Can",
+          "year": "2002",
+          "type": "movie",
+          "poster": "https://m.media-amazon.com/images/M/MV5BMTY5MzYzNjc5NV5BMl5BanBnXkFtZTYwNTUyNTc2._V1_SX300.jpg",
+          "plot": "Barely 17 yet, Frank is a skilled forger who has passed as a doctor, lawyer and pilot. FBI agent Carl becomes obsessed with tracking down the con man, who only revels in the pursuit."
+        },
+        {
+          "position": 9,
+          "imdb_id": "tt1156398",
+          "title": "Zombieland",
+          "year": "2009",
+          "type": "movie",
+          "poster": "https://m.media-amazon.com/images/M/MV5BMTU5MDg0NTQ1N15BMl5BanBnXkFtZTcwMjA4Mjg3Mg@@._V1_SX300.jpg",
+          "plot": "A shy student trying to reach his family in Ohio, a gun-toting bruiser in search of the last Twinkie and a pair of sisters striving to get to an amusement park join forces in a trek across a zombie-filled America."
+        }
+      ]
+    },
+    {
+      "name": "Drama",
+      "description": "Drama films",
+      "movies": [
+        {
+          "position": 0,
+          "imdb_id": "tt0111161",
+          "title": "The Shawshank Redemption",
+          "year": "1994",
+          "type": "movie",
+          "poster": "https://m.media-amazon.com/images/M/MV5BMDAyY2FhYjctNDc5OS00MDNlLThiMGUtY2UxYWVkNGY2ZjljXkEyXkFqcGc@._V1_SX300.jpg",
+          "plot": "A banker convicted of uxoricide forms a friendship over a quarter century with a hardened convict, while maintaining his innocence and trying to remain hopeful through simple compassion."
+        },
+        {
+          "position": 1,
+          "imdb_id": "tt0109830",
+          "title": "Forrest Gump",
+          "year": "1994",
+          "type": "movie",
+          "poster": "https://m.media-amazon.com/images/M/MV5BNDYwNzVjMTItZmU5YS00YjQ5LTljYjgtMjY2NDVmYWMyNWFmXkEyXkFqcGc@._V1_SX300.jpg",
+          "plot": "The history of the United States from the 1950s to the '70s unfolds from the perspective of an Alabama man with an IQ of 75, who yearns to be reunited with his childhood sweetheart."
+        },
+        {
+          "position": 2,
+          "imdb_id": "tt0120689",
+          "title": "The Green Mile",
+          "year": "1999",
+          "type": "movie",
+          "poster": "https://m.media-amazon.com/images/M/MV5BMTUxMzQyNjA5MF5BMl5BanBnXkFtZTYwOTU2NTY3._V1_SX300.jpg",
+          "plot": "A death row guard learns that a gentle giant in his charge possesses a mysterious gift."
+        },
+        {
+          "position": 3,
+          "imdb_id": "tt0137523",
+          "title": "Fight Club",
+          "year": "1999",
+          "type": "movie",
+          "poster": "https://m.media-amazon.com/images/M/MV5BOTgyOGQ1NDItNGU3Ny00MjU3LTg2YWEtNmEyYjBiMjI1Y2M5XkEyXkFqcGc@._V1_SX300.jpg",
+          "plot": "An insomniac office worker and a devil-may-care soap maker form an underground fight club that evolves into much more."
+        },
+        {
+          "position": 4,
+          "imdb_id": "tt0180093",
+          "title": "Requiem for a Dream",
+          "year": "2000",
+          "type": "movie",
+          "poster": "https://m.media-amazon.com/images/M/MV5BN2ZlMjIzZjctYzA2My00ZWYyLWI4ZjctMGI2NWYyNzFiZjAwXkEyXkFqcGc@._V1_SX300.jpg",
+          "plot": "The drug-induced utopias of four Coney Island people are shattered when their addictions run deep."
+        },
+        {
+          "position": 5,
+          "imdb_id": "tt0108052",
+          "title": "Schindler's List",
+          "year": "1993",
+          "type": "movie",
+          "poster": "https://m.media-amazon.com/images/M/MV5BNjM1ZDQxYWUtMzQyZS00MTE1LWJmZGYtNGUyNTdlYjM3ZmVmXkEyXkFqcGc@._V1_SX300.jpg",
+          "plot": "In German-occupied Poland during World War II, industrialist Oskar Schindler gradually becomes concerned for his Jewish workforce after witnessing their persecution by the Nazis."
+        },
+        {
+          "position": 6,
+          "imdb_id": "tt7286456",
+          "title": "Joker",
+          "year": "2019",
+          "type": "movie",
+          "poster": "https://m.media-amazon.com/images/M/MV5BNzY3OWQ5NDktNWQ2OC00ZjdlLThkMmItMDhhNDk3NTFiZGU4XkEyXkFqcGc@._V1_SX300.jpg",
+          "plot": "Arthur Fleck, a party clown and a failed stand-up comedian, leads an impoverished life with his ailing mother. However, when society shuns him and brands him as a freak, he decides to embrace the life of chaos in Gotham City."
+        },
+        {
+          "position": 7,
+          "imdb_id": "tt0172495",
+          "title": "Gladiator",
+          "year": "2000",
+          "type": "movie",
+          "poster": "https://m.media-amazon.com/images/M/MV5BYWQ4YmNjYjEtOWE1Zi00Y2U4LWI4NTAtMTU0MjkxNWQ1ZmJiXkEyXkFqcGc@._V1_SX300.jpg",
+          "plot": "A former Roman General sets out to exact vengeance against the corrupt emperor who murdered his family and sent him into slavery."
+        },
+        {
+          "position": 8,
+          "imdb_id": "tt0169547",
+          "title": "American Beauty",
+          "year": "1999",
+          "type": "movie",
+          "poster": "https://m.media-amazon.com/images/M/MV5BMDI1MDE0OTMtMmI2MS00Yjc2LTg2MTItMWExYTg5NzA1OGUzXkEyXkFqcGc@._V1_SX300.jpg",
+          "plot": "A sexually frustrated suburban father has a mid-life crisis after becoming infatuated with his daughter's best friend."
+        },
+        {
+          "position": 9,
+          "imdb_id": "tt0118799",
+          "title": "Life Is Beautiful",
+          "year": "1997",
+          "type": "movie",
+          "poster": "https://m.media-amazon.com/images/M/MV5BZTBhOGYzZjQtYzE0Mi00MGIwLWE0MWYtNzMxNTM2OTFkM2NjXkEyXkFqcGc@._V1_SX300.jpg",
+          "plot": "When an open-minded Jewish waiter and his son become victims of the Holocaust, he uses a perfect mixture of will, humor and imagination to protect his son from the dangers around their camp."
+        }
+      ]
+    },
+    {
+      "name": "Action",
+      "description": "Action and adventure",
+      "movies": [
+        {
+          "position": 0,
+          "imdb_id": "tt2911666",
+          "title": "John Wick",
+          "year": "2014",
+          "type": "movie",
+          "poster": "https://m.media-amazon.com/images/M/MV5BMTU2NjA1ODgzMF5BMl5BanBnXkFtZTgwMTM2MTI4MjE@._V1_SX300.jpg",
+          "plot": "John Wick is a former hitman grieving the loss of his true love. When his home is broken into, robbed, and his dog killed, he is forced to return to action to exact revenge."
+        },
+        {
+          "position": 1,
+          "imdb_id": "tt0468569",
+          "title": "The Dark Knight",
+          "year": "2008",
+          "type": "movie",
+          "poster": "https://m.media-amazon.com/images/M/MV5BMTMxNTMwODM0NF5BMl5BanBnXkFtZTcwODAyMTk2Mw@@._V1_SX300.jpg",
+          "plot": "When a menace known as the Joker wreaks havoc and chaos on the people of Gotham, Batman, James Gordon and Harvey Dent must work together to put an end to the madness."
+        },
+        {
+          "position": 2,
+          "imdb_id": "tt1229238",
+          "title": "Mission: Impossible - Ghost Protocol",
+          "year": "2011",
+          "type": "movie",
+          "poster": "https://m.media-amazon.com/images/M/MV5BMTY4MTUxMjQ5OV5BMl5BanBnXkFtZTcwNTUyMzg5Ng@@._V1_SX300.jpg",
+          "plot": "The IMF is shut down when it's implicated in the bombing of the Kremlin, causing Ethan Hunt and his new team to go rogue to clear their organization's name."
+        },
+        {
+          "position": 3,
+          "imdb_id": "tt0133093",
+          "title": "The Matrix",
+          "year": "1999",
+          "type": "movie",
+          "poster": "https://m.media-amazon.com/images/M/MV5BN2NmN2VhMTQtMDNiOS00NDlhLTliMjgtODE2ZTY0ODQyNDRhXkEyXkFqcGc@._V1_SX300.jpg",
+          "plot": "When a beautiful stranger leads computer hacker Neo to a forbidding underworld, he discovers the shocking truth--the life he knows is the elaborate deception of an evil cyber-intelligence."
+        },
+        {
+          "position": 4,
+          "imdb_id": "tt0103064",
+          "title": "Terminator 2: Judgment Day",
+          "year": "1991",
+          "type": "movie",
+          "poster": "https://m.media-amazon.com/images/M/MV5BNGMyMGNkMDUtMjc2Ni00NWFlLTgyODEtZTY2MzBiZTg0OWZiXkEyXkFqcGc@._V1_SX300.jpg",
+          "plot": "A cyborg from the future, identical to the one who failed to kill Sarah Connor, must now protect her ten-year-old son John from an even more advanced and powerful cyborg."
+        },
+        {
+          "position": 5,
+          "imdb_id": "tt1392190",
+          "title": "Mad Max: Fury Road",
+          "year": "2015",
+          "type": "movie",
+          "poster": "https://m.media-amazon.com/images/M/MV5BZDRkODJhOTgtOTc1OC00NTgzLTk4NjItNDgxZDY4YjlmNDY2XkEyXkFqcGc@._V1_SX300.jpg",
+          "plot": "In a post-apocalyptic wasteland, a woman rebels against a tyrannical ruler in search for her homeland with the aid of a group of female prisoners, a psychotic worshipper and a drifter named Max."
+        },
+        {
+          "position": 6,
+          "imdb_id": "tt0047388",
+          "title": "The Raid",
+          "year": "1954",
+          "type": "movie",
+          "poster": "https://m.media-amazon.com/images/M/MV5BYTRmZjMzZGMtOWJiOC00OTg2LWExZTQtN2RkZmYxNDczYjJhXkEyXkFqcGc@._V1_SX300.jpg",
+          "plot": "A group of Confederate prisoners escape to Canada and plan to rob the banks and set fire to the small town of Saint Albans, Vermont. To get the lay of the land, their leader spends a few days in the town and finds he is getting dr..."
+        },
+        {
+          "position": 7,
+          "imdb_id": "tt1375666",
+          "title": "Inception",
+          "year": "2010",
+          "type": "movie",
+          "poster": "https://m.media-amazon.com/images/M/MV5BMjAxMzY3NjcxNF5BMl5BanBnXkFtZTcwNTI5OTM0Mw@@._V1_SX300.jpg",
+          "plot": "A thief who steals corporate secrets through the use of dream-sharing technology is given the inverse task of planting an idea into the mind of a CEO, but his tragic past may doom the project and his team to disaster."
+        },
+        {
+          "position": 8,
+          "imdb_id": "tt0095016",
+          "title": "Die Hard",
+          "year": "1988",
+          "type": "movie",
+          "poster": "https://m.media-amazon.com/images/M/MV5BMGNlYmM1NmQtYWExMS00NmRjLTg5ZmEtMmYyYzJkMzljYWMxXkEyXkFqcGc@._V1_SX300.jpg",
+          "plot": "A New York City cop, John McClane, tries to save his estranged wife and several others taken hostage by terrorists during a Christmas Eve party at the Nakatomi Plaza Skyscraper in Los Angeles, California."
+        },
+        {
+          "position": 9,
+          "imdb_id": "tt0293662",
+          "title": "The Transporter",
+          "year": "2002",
+          "type": "movie",
+          "poster": "https://m.media-amazon.com/images/M/MV5BMTk2NDc2MDAxN15BMl5BanBnXkFtZTYwNDc1NDY2._V1_SX300.jpg",
+          "plot": "Frank Martin, who \"transports\" packages for unknown clients, is asked to move a package that soon begins moving, and complications arise."
+        }
+      ]
+    },
+    {
+      "name": "Romance",
+      "description": "Romantic films",
+      "movies": [
+        {
+          "position": 0,
+          "imdb_id": "tt0120338",
+          "title": "Titanic",
+          "year": "1997",
+          "type": "movie",
+          "poster": "https://m.media-amazon.com/images/M/MV5BYzYyN2FiZmUtYWYzMy00MzViLWJkZTMtOGY1ZjgzNWMwN2YxXkEyXkFqcGc@._V1_SX300.jpg",
+          "plot": "A seventeen-year-old aristocrat falls in love with a kind but poor artist aboard the luxurious, ill-fated R.M.S. Titanic."
+        },
+        {
+          "position": 1,
+          "imdb_id": "tt0332280",
+          "title": "The Notebook",
+          "year": "2004",
+          "type": "movie",
+          "poster": "https://m.media-amazon.com/images/M/MV5BZjE0ZjgzMzYtMTAxYi00NGMzLThmZDktNzFlMzA2MWRmYWQ0XkEyXkFqcGc@._V1_SX300.jpg",
+          "plot": "An elderly man reads to a woman with dementia the story of two young lovers whose romance is threatened by the difference in their respective social classes."
+        },
+        {
+          "position": 2,
+          "imdb_id": "tt0414387",
+          "title": "Pride & Prejudice",
+          "year": "2005",
+          "type": "movie",
+          "poster": "https://m.media-amazon.com/images/M/MV5BMTA1NDQ3NTcyOTNeQTJeQWpwZ15BbWU3MDA0MzA4MzE@._V1_SX300.jpg",
+          "plot": "When Elizabeth Bennet meets the handsome Mr. Darcy, she believes he is the last man she could ever marry, but as their lives become intertwined, she finds herself captivated by the man she has sworn to hate forever."
+        },
+        {
+          "position": 3,
+          "imdb_id": "tt3783958",
+          "title": "La La Land",
+          "year": "2016",
+          "type": "movie",
+          "poster": "https://m.media-amazon.com/images/M/MV5BMzUzNDM2NzM2MV5BMl5BanBnXkFtZTgwNTM3NTg4OTE@._V1_SX300.jpg",
+          "plot": "When Sebastian, a pianist, and Mia, an actress, follow their passion and achieve success in their respective fields, they find themselves torn between their love for each other and their careers."
+        },
+        {
+          "position": 4,
+          "imdb_id": "tt2674426",
+          "title": "Me Before You",
+          "year": "2016",
+          "type": "movie",
+          "poster": "https://m.media-amazon.com/images/M/MV5BMTQ2NjE4NDE2NV5BMl5BanBnXkFtZTgwOTcwNDE5NzE@._V1_SX300.jpg",
+          "plot": "A girl in a small town forms an unlikely bond with a recently-paralyzed man she's taking care of."
+        },
+        {
+          "position": 6,
+          "imdb_id": "tt1798709",
+          "title": "Her",
+          "year": "2013",
+          "type": "movie",
+          "poster": "https://m.media-amazon.com/images/M/MV5BMjA1Nzk0OTM2OF5BMl5BanBnXkFtZTgwNjU2NjEwMDE@._V1_SX300.jpg",
+          "plot": "In the near future, a lonely writer develops an unlikely relationship with an operating system designed to meet his every need."
+        },
+        {
+          "position": 7,
+          "imdb_id": "tt0046250",
+          "title": "Roman Holiday",
+          "year": "1953",
+          "type": "movie",
+          "poster": "https://m.media-amazon.com/images/M/MV5BMGE5MTA2NDUtYTQ3Yi00YzM4LWJlODItNDE1ZTRjYjY0M2E5XkEyXkFqcGc@._V1_SX300.jpg",
+          "plot": "A bored and sheltered princess escapes her guardians and falls in love with an American newsman in Rome."
+        },
+        {
+          "position": 8,
+          "imdb_id": "tt0112471",
+          "title": "Before Sunrise",
+          "year": "1995",
+          "type": "movie",
+          "poster": "https://m.media-amazon.com/images/M/MV5BZDZhZmI1ZTUtYWI3NC00NTMwLTk3NWMtNDc0OGNjM2I0ZjlmXkEyXkFqcGc@._V1_SX300.jpg",
+          "plot": "A young man and woman meet on a train in Europe, and wind up spending one evening together in Vienna. Unfortunately, both know that this will probably be their only night together."
+        },
+        {
+          "position": 9,
+          "imdb_id": "tt0314331",
+          "title": "Love Actually",
+          "year": "2003",
+          "type": "movie",
+          "poster": "https://m.media-amazon.com/images/M/MV5BYWRlZjcwYTgtYWJkOS00MGYwLTk3Y2ItNmU4NTg5Nzg2YTQ2XkEyXkFqcGc@._V1_SX300.jpg",
+          "plot": "Follows the lives of eight very different couples in dealing with their love lives in various loosely interrelated tales all set during a frantic month before Christmas in London, England."
+        }
+      ]
+    },
+    {
+      "name": "Sci-Fi",
+      "description": "Science fiction and fantasy",
+      "movies": [
+        {
+          "position": 0,
+          "imdb_id": "tt0816692",
+          "title": "Interstellar",
+          "year": "2014",
+          "type": "movie",
+          "poster": "https://m.media-amazon.com/images/M/MV5BYzdjMDAxZGItMjI2My00ODA1LTlkNzItOWFjMDU5ZDJlYWY3XkEyXkFqcGc@._V1_SX300.jpg",
+          "plot": "When Earth becomes uninhabitable in the future, a farmer and ex-NASA pilot, Joseph Cooper, is tasked to pilot a spacecraft, along with a team of researchers, to find a new planet for humans."
+        },
+        {
+          "position": 1,
+          "imdb_id": "tt1375666",
+          "title": "Inception",
+          "year": "2010",
+          "type": "movie",
+          "poster": "https://m.media-amazon.com/images/M/MV5BMjAxMzY3NjcxNF5BMl5BanBnXkFtZTcwNTI5OTM0Mw@@._V1_SX300.jpg",
+          "plot": "A thief who steals corporate secrets through the use of dream-sharing technology is given the inverse task of planting an idea into the mind of a CEO, but his tragic past may doom the project and his team to disaster."
+        },
+        {
+          "position": 2,
+          "imdb_id": "tt0133093",
+          "title": "The Matrix",
+          "year": "1999",
+          "type": "movie",
+          "poster": "https://m.media-amazon.com/images/M/MV5BN2NmN2VhMTQtMDNiOS00NDlhLTliMjgtODE2ZTY0ODQyNDRhXkEyXkFqcGc@._V1_SX300.jpg",
+          "plot": "When a beautiful stranger leads computer hacker Neo to a forbidding underworld, he discovers the shocking truth--the life he knows is the elaborate deception of an evil cyber-intelligence."
+        },
+        {
+          "position": 3,
+          "imdb_id": "tt0087182",
+          "title": "Dune",
+          "year": "1984",
+          "type": "movie",
+          "poster": "https://m.media-amazon.com/images/M/MV5BMGJlMGM3NDAtOWNhMy00MWExLWI2MzEtMDQ0ZDIzZDY5ZmQ2XkEyXkFqcGc@._V1_SX300.jpg",
+          "plot": "A Duke's son leads desert warriors against the galactic emperor and his father's evil nemesis to free their desert world from the emperor's rule."
+        },
+        {
+          "position": 4,
+          "imdb_id": "tt0499549",
+          "title": "Avatar",
+          "year": "2009",
+          "type": "movie",
+          "poster": "https://m.media-amazon.com/images/M/MV5BMDEzMmQwZjctZWU2My00MWNlLWE0NjItMDJlYTRlNGJiZjcyXkEyXkFqcGc@._V1_SX300.jpg",
+          "plot": "A paraplegic Marine dispatched to the moon Pandora on a unique mission becomes torn between following his orders and protecting the world he feels is his home."
+        },
+        {
+          "position": 5,
+          "imdb_id": "tt1856101",
+          "title": "Blade Runner 2049",
+          "year": "2017",
+          "type": "movie",
+          "poster": "https://m.media-amazon.com/images/M/MV5BNzA1Njg4NzYxOV5BMl5BanBnXkFtZTgwODk5NjU3MzI@._V1_SX300.jpg",
+          "plot": "Young Blade Runner K's discovery of a long-buried secret leads him to track down former Blade Runner Rick Deckard, who's been missing for thirty years."
+        },
+        {
+          "position": 6,
+          "imdb_id": "tt0076759",
+          "title": "Star Wars: Episode IV - A New Hope",
+          "year": "1977",
+          "type": "movie",
+          "poster": "https://m.media-amazon.com/images/M/MV5BOGUwMDk0Y2MtNjBlNi00NmRiLTk2MWYtMGMyMDlhYmI4ZDBjXkEyXkFqcGc@._V1_SX300.jpg",
+          "plot": "Luke Skywalker joins forces with a Jedi Knight, a cocky pilot, a Wookiee and two droids to save the galaxy from the Empire's world-destroying battle station, while also attempting to rescue Princess Leia from the mysterious Darth ..."
+        },
+        {
+          "position": 7,
+          "imdb_id": "tt0088763",
+          "title": "Back to the Future",
+          "year": "1985",
+          "type": "movie",
+          "poster": "https://m.media-amazon.com/images/M/MV5BZmM3ZjE0NzctNjBiOC00MDZmLTgzMTUtNGVlOWFlOTNiZDJiXkEyXkFqcGc@._V1_SX300.jpg",
+          "plot": "Marty McFly, a 17-year-old high school student, is accidentally sent 30 years into the past in a time-traveling DeLorean invented by his close friend, the maverick scientist Doc Brown."
+        },
+        {
+          "position": 8,
+          "imdb_id": "tt2543164",
+          "title": "Arrival",
+          "year": "2016",
+          "type": "movie",
+          "poster": "https://m.media-amazon.com/images/M/MV5BMTExMzU0ODcxNDheQTJeQWpwZ15BbWU4MDE1OTI4MzAy._V1_SX300.jpg",
+          "plot": "Linguist Louise Banks leads a team of investigators when gigantic spaceships touch down around the world. As nations teeter on the verge of global war, Banks and her crew must find a way to communicate with the extraterrestrial vi..."
+        },
+        {
+          "position": 9,
+          "imdb_id": "tt0120907",
+          "title": "eXistenZ",
+          "year": "1999",
+          "type": "movie",
+          "poster": "https://m.media-amazon.com/images/M/MV5BZjk3MGRhN2EtN2IyYi00NjFkLWFmNTUtNWI3MzZiYjI2ZjRkXkEyXkFqcGc@._V1_SX300.jpg",
+          "plot": "A game designer on the run from assassins must play her latest virtual reality creation with a marketing trainee to determine if the game has been damaged."
+        }
+      ]
+    },
+    {
+      "name": "Documentary",
+      "description": "Documentary films",
+      "movies": [
+        {
+          "position": 0,
+          "imdb_id": "tt5895028",
+          "title": "13th",
+          "year": "2016",
+          "type": "movie",
+          "poster": "https://m.media-amazon.com/images/M/MV5BMjAwMjU5NTAzOF5BMl5BanBnXkFtZTgwMjQwODQxMDI@._V1_SX300.jpg",
+          "plot": "An in-depth look at the prison system in the United States and how it reveals the nation's history of racial inequality."
+        },
+        {
+          "position": 1,
+          "imdb_id": "tt11464826",
+          "title": "The Social Dilemma",
+          "year": "2020",
+          "type": "movie",
+          "poster": "https://m.media-amazon.com/images/M/MV5BNGQyY2E1M2EtZTkzNy00YjYyLWFjMGQtNTI1OGE4Yjc4MTZiXkEyXkFqcGc@._V1_SX300.jpg",
+          "plot": "Explores the dangerous human impact of social networking; tech experts sound the alarm on their own creations."
+        },
+        {
+          "position": 2,
+          "imdb_id": "tt2125608",
+          "title": "Searching for Sugar Man",
+          "year": "2012",
+          "type": "movie",
+          "poster": "https://m.media-amazon.com/images/M/MV5BMjA5Nzc2NDUyN15BMl5BanBnXkFtZTcwNjQwMjc5Nw@@._V1_SX300.jpg",
+          "plot": "Two South Africans set out to discover what happened to their unlikely musical hero, the mysterious 1970s rock n roller, Rodriguez."
+        },
+        {
+          "position": 3,
+          "imdb_id": "tt0795176",
+          "title": "Planet Earth",
+          "year": "2006",
+          "type": "series",
+          "poster": "https://m.media-amazon.com/images/M/MV5BY2NjNDUzOTgtMDFmNC00ZGQ4LWE5MDctMzczNGVlOGU1N2MyXkEyXkFqcGc@._V1_SX300.jpg",
+          "plot": "A documentary series on the wildlife found on Earth. Each episode covers a different habitat: deserts, mountains, deep oceans, shallow seas, forests, caves, polar regions, fresh water, plains and jungles. Narrated by David Attenbo..."
+        },
+        {
+          "position": 4,
+          "imdb_id": "tt0081846",
+          "title": "Cosmos",
+          "year": "1980",
+          "type": "series",
+          "poster": "https://m.media-amazon.com/images/M/MV5BOTA5MWFhMzAtOWU1OS00Yjk4LTlkNGItNGI3N2VkNzcyNGU2XkEyXkFqcGc@._V1_SX300.jpg",
+          "plot": "Astronomer Carl Sagan leads us on an engaging guided tour of the various elements and cosmological theories of the universe."
+        },
+        {
+          "position": 5,
+          "imdb_id": "tt1645089",
+          "title": "Inside Job",
+          "year": "2010",
+          "type": "movie",
+          "poster": "https://m.media-amazon.com/images/M/MV5BMTQ3MjkyODA2Nl5BMl5BanBnXkFtZTcwNzQxMTU4Mw@@._V1_SX300.jpg",
+          "plot": "Takes a closer look at what brought about the 2008 financial meltdown."
+        },
+        {
+          "position": 6,
+          "imdb_id": "tt7775622",
+          "title": "Free Solo",
+          "year": "2018",
+          "type": "movie",
+          "poster": "https://m.media-amazon.com/images/M/MV5BMjA2YTAxMzMtNzA2Mi00NTcyLTg4NzUtODIxYzFiYzdiNWNlXkEyXkFqcGc@._V1_SX300.jpg",
+          "plot": "Alex Honnold faces the biggest challenge of his career, climbing El Capitan in Yosemite National Park. He pursues it Free Solo, which means climbing without a rope and alone."
+        },
+        {
+          "position": 7,
+          "imdb_id": "tt6333060",
+          "title": "Icarus",
+          "year": "2017",
+          "type": "movie",
+          "poster": "https://m.media-amazon.com/images/M/MV5BNGE4M2MxOWUtYmY2ZC00ZWYxLWIxZTAtNTNjYTZmYmUyOGY2XkEyXkFqcGc@._V1_SX300.jpg",
+          "plot": "When Bryan sets out to uncover the truth about doping in sports, a chance meeting with a Russian scientist transforms his story from a personal experiment into a geopolitical thriller."
+        },
+        {
+          "position": 8,
+          "imdb_id": "tt8420184",
+          "title": "The Last Dance",
+          "year": "2020",
+          "type": "series",
+          "poster": "https://m.media-amazon.com/images/M/MV5BOTQyYmQ1N2UtYjFkNS00NzgyLTk5YTUtYjExMDdjOTA3MGU2XkEyXkFqcGc@._V1_SX300.jpg",
+          "plot": "Led by Michael Jordan, the 1990s Chicago Bulls establish themselves as one of the most notable dynasties in sports history."
+        },
+        {
+          "position": 9,
+          "imdb_id": "tt9253866",
+          "title": "Our Planet",
+          "year": "2019–2023",
+          "type": "series",
+          "poster": "https://m.media-amazon.com/images/M/MV5BZDE1NzlkNWMtNzFiMC00ZTgxLTgyMmItOTU5OGI2NWQ4MDMxXkEyXkFqcGc@._V1_SX300.jpg",
+          "plot": "Explores and unravels the mystery of how and why animals migrate, showing some of the most dramatic and compelling stories in the natural world through spectacular and innovative cinematography."
+        }
+      ]
+    },
+    {
+      "name": "Anime",
+      "description": "Anime and animation",
+      "movies": [
+        {
+          "position": 0,
+          "imdb_id": "tt0245429",
+          "title": "Spirited Away",
+          "year": "2001",
+          "type": "movie",
+          "poster": "https://m.media-amazon.com/images/M/MV5BNTEyNmEwOWUtYzkyOC00ZTQ4LTllZmUtMjk0Y2YwOGUzYjRiXkEyXkFqcGc@._V1_SX300.jpg",
+          "plot": "During her family's move to the suburbs, a sullen 10-year-old girl wanders into a world ruled by gods, witches and spirits, and where humans are changed into beasts."
+        },
+        {
+          "position": 1,
+          "imdb_id": "tt0096283",
+          "title": "My Neighbor Totoro",
+          "year": "1988",
+          "type": "movie",
+          "poster": "https://m.media-amazon.com/images/M/MV5BYWM3MDE3YjEtMzIzZC00ODE5LTgxNTItNmUyMTBkM2M2NmNiXkEyXkFqcGc@._V1_SX300.jpg",
+          "plot": "When two girls move to the country to be near their ailing mother, they have adventures with the wondrous forest spirits who live nearby."
+        },
+        {
+          "position": 2,
+          "imdb_id": "tt6033368",
+          "title": "Your Name",
+          "year": "2015",
+          "type": "movie",
+          "poster": "https://m.media-amazon.com/images/M/MV5BYzY1OWZiN2YtMWU3My00M2YyLWI1M2EtNTljMTMwMzM5NDQ0XkEyXkFqcGc@._V1_SX300.jpg",
+          "plot": "Ibe Riki and Riko Takeo are preparing for a wedding ceremony."
+        },
+        {
+          "position": 3,
+          "imdb_id": "tt0119698",
+          "title": "Princess Mononoke",
+          "year": "1997",
+          "type": "movie",
+          "poster": "https://m.media-amazon.com/images/M/MV5BNjAzODViNGEtMjBkYi00N2U5LWJjNjAtY2U0MGJhZTEwOTU0XkEyXkFqcGc@._V1_SX300.jpg",
+          "plot": "While seeking to cure himself of a curse, young warrior Ashitaka stumbles into a conflict between the people of Iron Town and Princess Mononoke, a girl raised by wolves, who will stop at nothing to prevent the destruction of her h..."
+        },
+        {
+          "position": 4,
+          "imdb_id": "tt0094625",
+          "title": "Akira",
+          "year": "1988",
+          "type": "movie",
+          "poster": "https://m.media-amazon.com/images/M/MV5BYWUxMGRhZDQtMTBmMi00N2IxLWE5NmYtMDMyMWExODAwNWYzXkEyXkFqcGc@._V1_SX300.jpg",
+          "plot": "A secret military project endangers Neo-Tokyo when it turns a teenage biker gang member into a rampaging psychic psychopath who can only be stopped by his best friend."
+        },
+        {
+          "position": 5,
+          "imdb_id": "tt1219827",
+          "title": "Ghost in the Shell",
+          "year": "2017",
+          "type": "movie",
+          "poster": "https://m.media-amazon.com/images/M/MV5BNzBkNjdjZTctNjdhOS00NmIyLTlkNjQtY2EwNGMwYmZjNTIxXkEyXkFqcGc@._V1_SX300.jpg",
+          "plot": "In the near future, Major Mira Killian is the first of her kind: A human saved from a terrible crash, who is cyber-enhanced to be a perfect soldier devoted to stopping the world's most dangerous criminals."
+        },
+        {
+          "position": 6,
+          "imdb_id": "tt0347149",
+          "title": "Howl's Moving Castle",
+          "year": "2004",
+          "type": "movie",
+          "poster": "https://m.media-amazon.com/images/M/MV5BMTY1OTg0MjE3MV5BMl5BanBnXkFtZTcwNTUxMTkyMQ@@._V1_SX300.jpg",
+          "plot": "When an unconfident young woman is cursed with an old body by a spiteful witch, her only chance of breaking the spell lies with a self-indulgent yet insecure young wizard and his companions in his legged, walking castle."
+        },
+        {
+          "position": 7,
+          "imdb_id": "tt9426210",
+          "title": "Weathering with You",
+          "year": "2019",
+          "type": "movie",
+          "poster": "https://m.media-amazon.com/images/M/MV5BMmJiYWI4ZjktMzgyZS00MjBiLThmOTYtZWJmOTUzOTFkMTFiXkEyXkFqcGc@._V1_SX300.jpg",
+          "plot": "Set during a period of exceptionally rainy weather, high-school boy Hodaka Morishima runs away from his troubled rural home to Tokyo and befriends an orphan girl who can manipulate the weather."
+        },
+        {
+          "position": 8,
+          "imdb_id": "tt0095327",
+          "title": "Grave of the Fireflies",
+          "year": "1988",
+          "type": "movie",
+          "poster": "https://m.media-amazon.com/images/M/MV5BNTY5MmE2OGMtN2IxNC00MDY4LTkwMGEtZDUzOTYyNWE0ZTNjXkEyXkFqcGc@._V1_SX300.jpg",
+          "plot": "A young boy and his little sister struggle to survive in Japan during World War II."
+        },
+        {
+          "position": 9,
+          "imdb_id": "tt0156887",
+          "title": "Perfect Blue",
+          "year": "1997",
+          "type": "movie",
+          "poster": "https://m.media-amazon.com/images/M/MV5BMzAwNDIzMzEtZDZkNC00ZDQ4LTk3ZDMtZjVhMTU2YzgzZTZiXkEyXkFqcGc@._V1_SX300.jpg",
+          "plot": "A pop singer gives up her career to become an actress, but she slowly goes insane when she starts being stalked by an obsessed fan and what seems to be a ghost of her past."
+        }
+      ]
+    },
+    {
+      "name": "Classic",
+      "description": "Classic cinema",
+      "movies": [
+        {
+          "position": 0,
+          "imdb_id": "tt0068646",
+          "title": "The Godfather",
+          "year": "1972",
+          "type": "movie",
+          "poster": "https://m.media-amazon.com/images/M/MV5BNGEwYjgwOGQtYjg5ZS00Njc1LTk2ZGEtM2QwZWQ2NjdhZTE5XkEyXkFqcGc@._V1_SX300.jpg",
+          "plot": "The aging patriarch of an organized crime dynasty transfers control of his clandestine empire to his reluctant son."
+        },
+        {
+          "position": 1,
+          "imdb_id": "tt0034583",
+          "title": "Casablanca",
+          "year": "1942",
+          "type": "movie",
+          "poster": "https://m.media-amazon.com/images/M/MV5BNWEzN2U1YTYtYTQyMS00NTVkLWE2NGQtZWFlMmM0MDNjMmRiXkEyXkFqcGc@._V1_SX300.jpg",
+          "plot": "A cynical expatriate American cafe owner struggles to decide whether or not to help his former lover and her fugitive husband escape the Nazis in French Morocco."
+        },
+        {
+          "position": 2,
+          "imdb_id": "tt0050083",
+          "title": "12 Angry Men",
+          "year": "1957",
+          "type": "movie",
+          "poster": "https://m.media-amazon.com/images/M/MV5BYjE4NzdmOTYtYjc5Yi00YzBiLWEzNDEtNTgxZGQ2MWVkN2NiXkEyXkFqcGc@._V1_SX300.jpg",
+          "plot": "The jury in a New York City murder trial is frustrated by a single member whose skeptical caution forces them to more carefully consider the evidence before jumping to a hasty verdict."
+        },
+        {
+          "position": 3,
+          "imdb_id": "tt0033467",
+          "title": "Citizen Kane",
+          "year": "1941",
+          "type": "movie",
+          "poster": "https://m.media-amazon.com/images/M/MV5BYjk1ZDJlMmUtOWQ0Zi00MDM5LTk1OGYtODczNjFmMGYwZGVkXkEyXkFqcGc@._V1_SX300.jpg",
+          "plot": "Following the death of publishing tycoon Charles Foster Kane, reporters scramble to uncover the meaning of his final utterance: 'Rosebud.'"
+        },
+        {
+          "position": 4,
+          "imdb_id": "tt0046250",
+          "title": "Roman Holiday",
+          "year": "1953",
+          "type": "movie",
+          "poster": "https://m.media-amazon.com/images/M/MV5BMGE5MTA2NDUtYTQ3Yi00YzM4LWJlODItNDE1ZTRjYjY0M2E5XkEyXkFqcGc@._V1_SX300.jpg",
+          "plot": "A bored and sheltered princess escapes her guardians and falls in love with an American newsman in Rome."
+        },
+        {
+          "position": 5,
+          "imdb_id": "tt0021749",
+          "title": "City Lights",
+          "year": "1931",
+          "type": "movie",
+          "poster": "https://m.media-amazon.com/images/M/MV5BYmMwZDIyZWUtODVhYS00MDRmLTg0N2ItMzU5MGZhN2IxNmZjXkEyXkFqcGc@._V1_SX300.jpg",
+          "plot": "With the aid of a wealthy erratic tippler, a dewy-eyed tramp who has fallen in love with a sightless flower girl accumulates money to be able to help her medically."
+        },
+        {
+          "position": 6,
+          "imdb_id": "tt0054215",
+          "title": "Psycho",
+          "year": "1960",
+          "type": "movie",
+          "poster": "https://m.media-amazon.com/images/M/MV5BYjZhMzFiZjItODA3ZC00MmRhLWIzMGYtMmVjOWUwYTA3MTRjXkEyXkFqcGc@._V1_SX300.jpg",
+          "plot": "A secretary on the run for embezzlement takes refuge at a secluded California motel owned by a repressed man and his overbearing mother."
+        },
+        {
+          "position": 7,
+          "imdb_id": "tt0047478",
+          "title": "Seven Samurai",
+          "year": "1954",
+          "type": "movie",
+          "poster": "https://m.media-amazon.com/images/M/MV5BZjliMWExOTMtZDQ3ZS00NWU3LWIyN2EtMjllNzk3ZTNlYzg4XkEyXkFqcGc@._V1_SX300.jpg",
+          "plot": "Farmers from a village exploited by bandits hire a veteran samurai for protection, and he gathers six other samurai to join him."
+        },
+        {
+          "position": 8,
+          "imdb_id": "tt0031381",
+          "title": "Gone with the Wind",
+          "year": "1939",
+          "type": "movie",
+          "poster": "https://m.media-amazon.com/images/M/MV5BYmYxZTE3YzMtYmE2Yy00NmFlLTkzYTAtYTAzN2IzNDFkN2E0XkEyXkFqcGc@._V1_SX300.jpg",
+          "plot": "A sheltered and manipulative Southern belle and a roguish profiteer face off in a turbulent romance as the society around them crumbles with the end of slavery and is rebuilt during the Civil War and Reconstruction periods."
+        },
+        {
+          "position": 9,
+          "imdb_id": "tt0053291",
+          "title": "Some Like It Hot",
+          "year": "1959",
+          "type": "movie",
+          "poster": "https://m.media-amazon.com/images/M/MV5BZTllZDYyNjEtY2RmMS00NmJhLWI4ODAtMTQ0NWFiZTJhZjA0XkEyXkFqcGc@._V1_SX300.jpg",
+          "plot": "After two male musicians witness a mob hit, they flee the state in an all-female band disguised as women, but further complications set in."
+        }
+      ]
+    },
+    {
+      "name": "Family",
+      "description": "Family-friendly movies",
+      "movies": [
+        {
+          "position": 0,
+          "imdb_id": "tt0110357",
+          "title": "The Lion King",
+          "year": "1994",
+          "type": "movie",
+          "poster": "https://m.media-amazon.com/images/M/MV5BZGRiZDZhZjItM2M3ZC00Y2IyLTk3Y2MtMWY5YjliNDFkZTJlXkEyXkFqcGc@._V1_SX300.jpg",
+          "plot": "Lion prince Simba and his father are targeted by his bitter uncle, who wants to ascend the throne himself."
+        },
+        {
+          "position": 1,
+          "imdb_id": "tt0114709",
+          "title": "Toy Story",
+          "year": "1995",
+          "type": "movie",
+          "poster": "https://m.media-amazon.com/images/M/MV5BZTA3OWVjOWItNjE1NS00NzZiLWE1MjgtZDZhMWI1ZTlkNzYwXkEyXkFqcGc@._V1_SX300.jpg",
+          "plot": "A cowboy doll is profoundly jealous when a new spaceman action figure supplants him as the top toy in a boy's bedroom. When circumstances separate them from their owner, the duo have to put aside their differences to return to him."
+        },
+        {
+          "position": 2,
+          "imdb_id": "tt1049413",
+          "title": "Up",
+          "year": "2009",
+          "type": "movie",
+          "poster": "https://m.media-amazon.com/images/M/MV5BNmI1ZTc5MWMtMDYyOS00ZDc2LTkzOTAtNjQ4NWIxNjYyNDgzXkEyXkFqcGc@._V1_SX300.jpg",
+          "plot": "78-year-old Carl Fredricksen travels to South America in his house equipped with balloons, inadvertently taking a young stowaway."
+        },
+        {
+          "position": 3,
+          "imdb_id": "tt0126029",
+          "title": "Shrek",
+          "year": "2001",
+          "type": "movie",
+          "poster": "https://m.media-amazon.com/images/M/MV5BN2FkMTRkNTUtYTI0NC00ZjI4LWI5MzUtMDFmOGY0NmU2OGY1XkEyXkFqcGc@._V1_SX300.jpg",
+          "plot": "A mean lord exiles fairytale creatures to the swamp of a grumpy ogre, who must go on a quest and rescue a princess for the lord in order to get his land back."
+        },
+        {
+          "position": 4,
+          "imdb_id": "tt2294629",
+          "title": "Frozen",
+          "year": "2013",
+          "type": "movie",
+          "poster": "https://m.media-amazon.com/images/M/MV5BMTQ1MjQwMTE5OF5BMl5BanBnXkFtZTgwNjk3MTcyMDE@._V1_SX300.jpg",
+          "plot": "Fearless optimist Anna teams up with rugged mountain man Kristoff and his loyal reindeer Sven in an epic journey to find Anna's sister Elsa, whose icy powers have trapped the kingdom of Arendelle in eternal winter."
+        },
+        {
+          "position": 5,
+          "imdb_id": "tt0382932",
+          "title": "Ratatouille",
+          "year": "2007",
+          "type": "movie",
+          "poster": "https://m.media-amazon.com/images/M/MV5BMTMzODU0NTkxMF5BMl5BanBnXkFtZTcwMjQ4MzMzMw@@._V1_SX300.jpg",
+          "plot": "A rat who can cook makes an unusual alliance with a young kitchen worker at a famous Paris restaurant."
+        },
+        {
+          "position": 6,
+          "imdb_id": "tt1109624",
+          "title": "Paddington",
+          "year": "2014",
+          "type": "movie",
+          "poster": "https://m.media-amazon.com/images/M/MV5BMTAxOTMwOTkwNDZeQTJeQWpwZ15BbWU4MDEyMTI1NjMx._V1_SX300.jpg",
+          "plot": "A young Peruvian bear travels to London in search of a home. Finding himself lost and alone at Paddington Station, he meets the kindly Brown family, who offer him a temporary haven."
+        },
+        {
+          "position": 7,
+          "imdb_id": "tt0096283",
+          "title": "My Neighbor Totoro",
+          "year": "1988",
+          "type": "movie",
+          "poster": "https://m.media-amazon.com/images/M/MV5BYWM3MDE3YjEtMzIzZC00ODE5LTgxNTItNmUyMTBkM2M2NmNiXkEyXkFqcGc@._V1_SX300.jpg",
+          "plot": "When two girls move to the country to be near their ailing mother, they have adventures with the wondrous forest spirits who live nearby."
+        },
+        {
+          "position": 8,
+          "imdb_id": "tt0266543",
+          "title": "Finding Nemo",
+          "year": "2003",
+          "type": "movie",
+          "poster": "https://m.media-amazon.com/images/M/MV5BMTc5NjExNTA5OV5BMl5BanBnXkFtZTYwMTQ0ODY2._V1_SX300.jpg",
+          "plot": "After his son is captured in the Great Barrier Reef and taken to Sydney, a timid clownfish sets out on a journey to bring him home."
+        },
+        {
+          "position": 9,
+          "imdb_id": "tt4729430",
+          "title": "Klaus",
+          "year": "2019",
+          "type": "movie",
+          "poster": "https://m.media-amazon.com/images/M/MV5BZDA4ODhlMzctNGRmYi00NmViLTkxZGYtZjRkNGQ5YzYwYWVlXkEyXkFqcGc@._V1_SX300.jpg",
+          "plot": "A simple act of kindness always sparks another, even in a frozen, faraway place. When Smeerensburg's new postman, Jesper, befriends toymaker Klaus, their gifts melt an age-old feud and deliver a sleigh full of holiday traditions."
+        }
+      ]
+    },
+    {
+      "name": "Top IMDb",
+      "description": "Top-rated on IMDb",
+      "movies": [
+        {
+          "position": 0,
+          "imdb_id": "tt0111161",
+          "title": "The Shawshank Redemption",
+          "year": "1994",
+          "type": "movie",
+          "poster": "https://m.media-amazon.com/images/M/MV5BMDAyY2FhYjctNDc5OS00MDNlLThiMGUtY2UxYWVkNGY2ZjljXkEyXkFqcGc@._V1_SX300.jpg",
+          "plot": "A banker convicted of uxoricide forms a friendship over a quarter century with a hardened convict, while maintaining his innocence and trying to remain hopeful through simple compassion."
+        },
+        {
+          "position": 1,
+          "imdb_id": "tt0068646",
+          "title": "The Godfather",
+          "year": "1972",
+          "type": "movie",
+          "poster": "https://m.media-amazon.com/images/M/MV5BNGEwYjgwOGQtYjg5ZS00Njc1LTk2ZGEtM2QwZWQ2NjdhZTE5XkEyXkFqcGc@._V1_SX300.jpg",
+          "plot": "The aging patriarch of an organized crime dynasty transfers control of his clandestine empire to his reluctant son."
+        },
+        {
+          "position": 2,
+          "imdb_id": "tt0468569",
+          "title": "The Dark Knight",
+          "year": "2008",
+          "type": "movie",
+          "poster": "https://m.media-amazon.com/images/M/MV5BMTMxNTMwODM0NF5BMl5BanBnXkFtZTcwODAyMTk2Mw@@._V1_SX300.jpg",
+          "plot": "When a menace known as the Joker wreaks havoc and chaos on the people of Gotham, Batman, James Gordon and Harvey Dent must work together to put an end to the madness."
+        },
+        {
+          "position": 3,
+          "imdb_id": "tt0071562",
+          "title": "The Godfather Part II",
+          "year": "1974",
+          "type": "movie",
+          "poster": "https://m.media-amazon.com/images/M/MV5BMDIxMzBlZDktZjMxNy00ZGI4LTgxNDEtYWRlNzRjMjJmOGQ1XkEyXkFqcGc@._V1_SX300.jpg",
+          "plot": "The early life and career of Vito Corleone in 1920s New York City is portrayed, while his son, Michael, expands and tightens his grip on the family crime syndicate."
+        },
+        {
+          "position": 4,
+          "imdb_id": "tt0050083",
+          "title": "12 Angry Men",
+          "year": "1957",
+          "type": "movie",
+          "poster": "https://m.media-amazon.com/images/M/MV5BYjE4NzdmOTYtYjc5Yi00YzBiLWEzNDEtNTgxZGQ2MWVkN2NiXkEyXkFqcGc@._V1_SX300.jpg",
+          "plot": "The jury in a New York City murder trial is frustrated by a single member whose skeptical caution forces them to more carefully consider the evidence before jumping to a hasty verdict."
+        },
+        {
+          "position": 5,
+          "imdb_id": "tt0108052",
+          "title": "Schindler's List",
+          "year": "1993",
+          "type": "movie",
+          "poster": "https://m.media-amazon.com/images/M/MV5BNjM1ZDQxYWUtMzQyZS00MTE1LWJmZGYtNGUyNTdlYjM3ZmVmXkEyXkFqcGc@._V1_SX300.jpg",
+          "plot": "In German-occupied Poland during World War II, industrialist Oskar Schindler gradually becomes concerned for his Jewish workforce after witnessing their persecution by the Nazis."
+        },
+        {
+          "position": 6,
+          "imdb_id": "tt0167260",
+          "title": "The Lord of the Rings: The Return of the King",
+          "year": "2003",
+          "type": "movie",
+          "poster": "https://m.media-amazon.com/images/M/MV5BMTZkMjBjNWMtZGI5OC00MGU0LTk4ZTItODg2NWM3NTVmNWQ4XkEyXkFqcGc@._V1_SX300.jpg",
+          "plot": "Gandalf and Aragorn lead the World of Men against Sauron's army to draw his gaze from Frodo and Sam as they approach Mount Doom with the One Ring."
+        },
+        {
+          "position": 7,
+          "imdb_id": "tt0110912",
+          "title": "Pulp Fiction",
+          "year": "1994",
+          "type": "movie",
+          "poster": "https://m.media-amazon.com/images/M/MV5BYTViYTE3ZGQtNDBlMC00ZTAyLTkyODMtZGRiZDg0MjA2YThkXkEyXkFqcGc@._V1_SX300.jpg",
+          "plot": "The lives of two mob hitmen, a boxer, a gangster and his wife, and a pair of diner bandits intertwine in four tales of violence and redemption."
+        },
+        {
+          "position": 8,
+          "imdb_id": "tt0060196",
+          "title": "The Good, the Bad and the Ugly",
+          "year": "1966",
+          "type": "movie",
+          "poster": "https://m.media-amazon.com/images/M/MV5BMWM5ZjQxM2YtNDlmYi00ZDNhLWI4MWUtN2VkYjBlMTY1ZTkwXkEyXkFqcGc@._V1_SX300.jpg",
+          "plot": "A bounty-hunting scam joins two men in an uneasy alliance against a third in a race to find a fortune in gold buried in a remote cemetery."
+        },
+        {
+          "position": 9,
+          "imdb_id": "tt0137523",
+          "title": "Fight Club",
+          "year": "1999",
+          "type": "movie",
+          "poster": "https://m.media-amazon.com/images/M/MV5BOTgyOGQ1NDItNGU3Ny00MjU3LTg2YWEtNmEyYjBiMjI1Y2M5XkEyXkFqcGc@._V1_SX300.jpg",
+          "plot": "An insomniac office worker and a devil-may-care soap maker form an underground fight club that evolves into much more."
+        }
+      ]
+    }
+  ]
+}
