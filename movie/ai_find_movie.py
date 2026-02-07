@@ -1,4 +1,5 @@
 import json
+import logging
 from typing import Optional
 
 from anthropic import Anthropic
@@ -7,6 +8,8 @@ from django.conf import settings
 from .dataclasses import AiMovie
 from .errors import AiResponseError
 from .system_prompts import find_movie_system_prompt, recommendations_system_prompt, top_movies_system_prompt
+
+logger = logging.getLogger(__name__)
 
 
 class FindMovieAiClient:
@@ -38,7 +41,10 @@ class FindMovieAiClient:
                 messages=self._build_messages(user_prompt),
             )
         except Exception as exc:
+            logger.exception('AI request failed: %s', exc)
             raise Exception(f'Error while finding movies: {exc}') from exc
+        raw_text = response.content[0].text if response.content else ''
+        logger.info('AI response: raw_prefix=%r', raw_text[:500] if raw_text else '')
         return self._parse_response(response)
 
     def count_tokens(self, user_prompt: str) -> int:
@@ -89,6 +95,12 @@ class FindMovieAiClient:
             raise
 
         except Exception as exc:
+            raw_preview = getattr(response, 'content', None)
+            if raw_preview and len(raw_preview) > 0:
+                raw_preview = getattr(raw_preview[0], 'text', str(raw_preview))[:500]
+            else:
+                raw_preview = str(response)[:500]
+            logger.warning('AI parse failed: exc=%s raw_preview=%r', exc, raw_preview)
             raise AiResponseError(f'Failed to parse AI response: {exc}') from exc
 
     @property
