@@ -306,6 +306,37 @@ class MovieRepositoryTests(TestCase):
         created_movie = Movie.objects.get(imdb_id='tt000002')
         self.assertEqual(new_entry.id, created_movie.id)
 
+    @patch.object(MovieRepository, 'get_movie_from_omdb_by_expression')
+    def test_search_movies_in_omdb_skips_db_when_omdb_returns_no_imdb_id(self, mock_get_movie):
+        omdb_no_imdb = OmdbMovie(
+            title='Unknown',
+            imdb_id='',
+            year='2024',
+            type='movie',
+            runtime='',
+            plot='',
+            awards='',
+            poster='',
+            metascore='',
+            imdb_rating='',
+            imdb_votes='',
+            total_seasons='',
+            genres=[],
+            directors=[],
+            writers=[],
+            actors=[],
+            countries=[],
+            languages=[],
+            ratings=[],
+        )
+        mock_get_movie.return_value = omdb_no_imdb
+        user = get_user_model().objects.create_user(email='noid@test.test', password='pass')
+        results = self.repository.search_movies_in_omdb(['Unknown'], initiator_id=user.id)
+        self.assertEqual(len(results), 1)
+        self.assertEqual(results[0].title, 'Unknown')
+        self.assertEqual(results[0].id, 0)
+        self.assertFalse(Movie.objects.filter(title='Unknown').exists())
+
 
 class MovieServiceTests(TestCase):
     def test_service_delegates_to_repository(self):
