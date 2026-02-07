@@ -184,8 +184,11 @@ class MovieRepository:
             )
             if not movie_instance:
                 omdb_movie = self.get_movie_from_omdb_by_expression(title)
-                saved_movie = self._create_movie_in_db(omdb_movie)
-                omdb_movie.id = saved_movie.id
+                if omdb_movie.imdb_id:
+                    saved_movie = self._create_movie_in_db(omdb_movie)
+                    omdb_movie.id = saved_movie.id
+                else:
+                    omdb_movie.id = 0  # OMDB didn't return imdb_id, skip DB (not-null constraint)
             else:
                 omdb_movie = OmdbMovie(
                     id=movie_instance.id,

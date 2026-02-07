@@ -66,6 +66,19 @@ This builds the application container, applies migrations, and runs the developm
 
 > The Compose file targets `Dockerfile.dev`, which mirrors the development workflow (`runserver`). The base `Dockerfile` now boots the production-ready ASGI stack (Gunicorn + Uvicorn worker) and is suitable for Render or any other deployment target.
 
+### Running tests: why Docker on Windows is slow
+On **Windows**, tests run inside the container (`docker compose exec web ...`) can be **10–50x slower** than on Ubuntu (e.g. 15 s on Linux vs several minutes in Docker on Windows). Cause: the app is mounted with `.:/app` from the Windows filesystem; every Python import and file read goes through the Windows → WSL2/Hyper-V → Linux layer, so I/O is very slow.
+
+**Recommendation:** run tests **on the host** (Poetry) with only the DB in Docker — same result, ~15 s.
+
+1. Start the DB (and optionally the app): `docker compose up -d`
+2. Point the app at the local DB: set `DB_HOST=localhost` and `DB_PORT=5433`. Ensure `DB_USER` / `DB_PASSWORD` / `DB_NAME` match your Postgres (default in `docker-compose.yml`: `postgres` / `postgres` / `postgres`). If your `.env` overrides `POSTGRES_*`, the container may use different credentials.
+3. Run tests: `poetry run coverage run -m pytest && poetry run coverage report -m --fail-under=100`
+
+On Windows (PowerShell) you can use the helper script: `.\scripts\run-tests-local.ps1` (sets `DB_HOST=localhost`, `DB_PORT=5433`, and default postgres credentials for the run).
+
+Use `USE_DOCKER=1 make test` / `make coverage` only when you explicitly need the same environment as in the container (e.g. CI parity).
+
 ### Makefile shortcuts
 A `Makefile` is included for common workflows:
 ```bash

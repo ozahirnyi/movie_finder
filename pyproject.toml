@@ -91,9 +91,11 @@ DJANGO_SETTINGS_MODULE = "movie_finder_django.settings"
 pythonpath = ["."]
 python_files = ["test_*.py", "*_tests.py", "tests.py"]
 testpaths = ["auth_app", "movie", "collection", "throttling"]
+addopts = "--reuse-db"
 
 [tool.coverage.run]
 source = ["auth_app", "movie", "collection", "throttling", "movie_finder_django"]
+omit = ["*/migrations/*", "movie_finder_django/settings.py"]
 
 [tool.coverage.report]
 fail_under = 100
