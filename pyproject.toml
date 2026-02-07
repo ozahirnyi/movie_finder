@@ -95,7 +95,7 @@ addopts = "--reuse-db"
 
 [tool.coverage.run]
 source = ["auth_app", "movie", "collection", "throttling", "movie_finder_django"]
-omit = ["*/migrations/*"]
+omit = ["*/migrations/*", "movie_finder_django/settings.py"]
 
 [tool.coverage.report]
 fail_under = 100
