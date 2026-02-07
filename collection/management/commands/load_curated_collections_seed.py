@@ -7,10 +7,17 @@ from pathlib import Path
 
 from django.core.management.base import BaseCommand
 from django.db import transaction
+from django.db.models import Count
 
 from auth_app.models import User
 from collection.models import Collection, CollectionMovie
 from movie.models import Movie
+
+# Empty curated collections from migration 0005 (Ukrainian names). Remove them so only English ones with movies remain.
+CURATED_UKRAINIAN_NAMES = frozenset({
+    'Новорічна', 'Хорор', 'Комедія', 'Драма', 'Бойовик', 'Романтика',
+    'Фантастика', 'Документальні', 'Аніме', 'Класика', 'Для всієї родини', 'Топ IMDb',
+})
 
 
 def load_seed_data():
@@ -38,11 +45,19 @@ class Command(BaseCommand):
             for coll_data in data.get('collections', []):
                 name = coll_data.get('name', '')
                 description = coll_data.get('description', '')
+                design = (coll_data.get('design') or '').strip()
                 coll, created = Collection.objects.get_or_create(
                     owner=owner,
                     name=name,
-                    defaults={'description': description, 'is_public': True},
+                    defaults={
+                        'description': description,
+                        'is_public': True,
+                        'design': design,
+                    },
                 )
+                if not created and design and coll.design != design:
+                    coll.design = design
+                    coll.save(update_fields=['design'])
                 n_movies = 0
                 for m in coll_data.get('movies', []):
                     imdb_id = (m.get('imdb_id') or '').strip()
@@ -65,4 +80,14 @@ class Command(BaseCommand):
                     )
                     n_movies += 1
                 self.stdout.write(f'{name}: {n_movies} movies')
+            # Remove empty Ukrainian-named collections from 0005 so only English ones with movies remain.
+            empty_ukrainian = (
+                Collection.objects.filter(owner=owner, name__in=CURATED_UKRAINIAN_NAMES)
+                .annotate(n_movies=Count('collection_movies'))
+                .filter(n_movies=0)
+            )
+            deleted = empty_ukrainian.count()
+            empty_ukrainian.delete()
+            if deleted:
+                self.stdout.write(f'Removed {deleted} empty Ukrainian-named collection(s).')
         self.stdout.write(self.style.SUCCESS('Done.'))

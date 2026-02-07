@@ -43,7 +43,7 @@ class Command(BaseCommand):
         out_path = Path(__file__).resolve().parent.parent.parent / 'curated_collections_seed.json'
         result = {'collections': []}
 
-        for name, description, titles in COLLECTIONS:
+        for name, description, design, titles in COLLECTIONS:
             movies = []
             for position, title in enumerate(titles, start=0):
                 data = _fetch_omdb_movie(title, api_url, api_key)
@@ -65,6 +65,7 @@ class Command(BaseCommand):
             result['collections'].append({
                 'name': name,
                 'description': description,
+                'design': design,
                 'movies': movies,
             })
             self.stdout.write(f'{name}: {len(movies)} movies')

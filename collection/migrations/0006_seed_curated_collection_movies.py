@@ -40,10 +40,15 @@ def seed_collection_movies(apps, schema_editor):
     for coll_data in data.get('collections', []):
         name = coll_data.get('name', '')
         description = coll_data.get('description', '')
+        design = (coll_data.get('design') or '').strip()
         coll, _ = Collection.objects.get_or_create(
             owner=owner,
             name=name,
-            defaults={'description': description, 'is_public': True},
+            defaults={
+                'description': description,
+                'is_public': True,
+                'design': design,
+            },
         )
         for m in coll_data.get('movies', []):
             imdb_id = (m.get('imdb_id') or '').strip()

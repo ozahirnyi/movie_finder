@@ -1,9 +1,12 @@
-# Titles for curated collections. Run build_curated_collections_seed once to fetch from OMDb and write curated_collections_seed.json.
+# Titles and design for curated collections. Design values match frontend (CreateCollectionModal):
+# action, brain, comedy, drama, fantasy, horror, lupa, mystery, romance, scifi.
+# Run build_curated_collections_seed once to fetch from OMDb and write curated_collections_seed.json.
 
 COLLECTIONS = [
     (
         'New Year',
         'Holiday and New Year movies',
+        'action',
         [
             'Home Alone',
             'Home Alone 2: Lost in New York',
@@ -20,6 +23,7 @@ COLLECTIONS = [
     (
         'Horror',
         'Horror and thrillers',
+        'horror',
         [
             'Hereditary',
             'It',
@@ -36,6 +40,7 @@ COLLECTIONS = [
     (
         'Comedy',
         'Comedy movies',
+        'comedy',
         [
             'The Intouchables',
             'The Mask',
@@ -52,6 +57,7 @@ COLLECTIONS = [
     (
         'Drama',
         'Drama films',
+        'drama',
         [
             'The Shawshank Redemption',
             'Forrest Gump',
@@ -68,6 +74,7 @@ COLLECTIONS = [
     (
         'Action',
         'Action and adventure',
+        'action',
         [
             'John Wick',
             'The Dark Knight',
@@ -84,6 +91,7 @@ COLLECTIONS = [
     (
         'Romance',
         'Romantic films',
+        'romance',
         [
             'Titanic',
             'The Notebook',
@@ -100,6 +108,7 @@ COLLECTIONS = [
     (
         'Sci-Fi',
         'Science fiction and fantasy',
+        'scifi',
         [
             'Interstellar',
             'Inception',
@@ -116,6 +125,7 @@ COLLECTIONS = [
     (
         'Documentary',
         'Documentary films',
+        'brain',
         [
             '13th',
             'The Social Dilemma',
@@ -132,6 +142,7 @@ COLLECTIONS = [
     (
         'Anime',
         'Anime and animation',
+        'fantasy',
         [
             'Spirited Away',
             'My Neighbor Totoro',
@@ -148,6 +159,7 @@ COLLECTIONS = [
     (
         'Classic',
         'Classic cinema',
+        'drama',
         [
             'The Godfather',
             'Casablanca',
@@ -164,6 +176,7 @@ COLLECTIONS = [
     (
         'Family',
         'Family-friendly movies',
+        'fantasy',
         [
             'The Lion King',
             'Toy Story',
@@ -180,6 +193,7 @@ COLLECTIONS = [
     (
         'Top IMDb',
         'Top-rated on IMDb',
+        'lupa',
         [
             'The Shawshank Redemption',
             'The Godfather',

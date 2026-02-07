@@ -3,6 +3,7 @@
     {
       "name": "New Year",
       "description": "Holiday and New Year movies",
+      "design": "action",
       "movies": [
         {
           "position": 0,
@@ -99,6 +100,7 @@
     {
       "name": "Horror",
       "description": "Horror and thrillers",
+      "design": "horror",
       "movies": [
         {
           "position": 0,
@@ -195,6 +197,7 @@
     {
       "name": "Comedy",
       "description": "Comedy movies",
+      "design": "comedy",
       "movies": [
         {
           "position": 0,
@@ -291,6 +294,7 @@
     {
       "name": "Drama",
       "description": "Drama films",
+      "design": "drama",
       "movies": [
         {
           "position": 0,
@@ -387,6 +391,7 @@
     {
       "name": "Action",
       "description": "Action and adventure",
+      "design": "action",
       "movies": [
         {
           "position": 0,
@@ -483,6 +488,7 @@
     {
       "name": "Romance",
       "description": "Romantic films",
+      "design": "romance",
       "movies": [
         {
           "position": 0,
@@ -570,6 +576,7 @@
     {
       "name": "Sci-Fi",
       "description": "Science fiction and fantasy",
+      "design": "scifi",
       "movies": [
         {
           "position": 0,
@@ -666,6 +673,7 @@
     {
       "name": "Documentary",
       "description": "Documentary films",
+      "design": "brain",
       "movies": [
         {
           "position": 0,
@@ -762,6 +770,7 @@
     {
       "name": "Anime",
       "description": "Anime and animation",
+      "design": "fantasy",
       "movies": [
         {
           "position": 0,
@@ -858,6 +867,7 @@
     {
       "name": "Classic",
       "description": "Classic cinema",
+      "design": "drama",
       "movies": [
         {
           "position": 0,
@@ -954,6 +964,7 @@
     {
       "name": "Family",
       "description": "Family-friendly movies",
+      "design": "fantasy",
       "movies": [
         {
           "position": 0,
@@ -1050,6 +1061,7 @@
     {
       "name": "Top IMDb",
       "description": "Top-rated on IMDb",
+      "design": "lupa",
       "movies": [
         {
           "position": 0,
