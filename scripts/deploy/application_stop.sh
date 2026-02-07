@@ -16,9 +16,9 @@ if [ -f /home/ec2-user/movie_finder/docker-compose.lightsail.yml ]; then
     echo "Stopping existing containers..."
     cd /home/ec2-user/movie_finder
     if [ -f docker-compose.monitoring.yml ]; then
-      docker compose -f docker-compose.lightsail.yml -f docker-compose.monitoring.yml down || true
+      docker-compose -f docker-compose.lightsail.yml -f docker-compose.monitoring.yml down || true
     else
-      docker compose -f docker-compose.lightsail.yml down || true
+      docker-compose -f docker-compose.lightsail.yml down || true
     fi
     echo "✅ Containers stopped"
 else

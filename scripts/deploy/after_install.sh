@@ -110,14 +110,14 @@ chmod 600 .env
 
 # Build Docker images
 echo "Building Docker images..."
-docker compose -f docker-compose.lightsail.yml build
+docker-compose -f docker-compose.lightsail.yml build
 
 # Run database migrations
 echo "Running database migrations..."
-docker compose -f docker-compose.lightsail.yml run --rm web poetry run python manage.py migrate --noinput
+docker-compose -f docker-compose.lightsail.yml run --rm web poetry run python manage.py migrate --noinput
 
 # Collect static files
 echo "Collecting static files..."
-docker compose -f docker-compose.lightsail.yml run --rm web poetry run python manage.py collectstatic --noinput
+docker-compose -f docker-compose.lightsail.yml run --rm web poetry run python manage.py collectstatic --noinput
 
 echo "After Install completed successfully"

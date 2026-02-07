@@ -268,6 +268,25 @@ class FindMovieAiTests(APITestCase):
         mock_ai.assert_called_once()
         mock_search.assert_called_once()
 
+    @patch('movie.views.logging.getLogger')
+    @patch('movie.views.MovieService.search_movies_in_omdb')
+    @patch('movie.views.MovieService.get_movies_from_ai')
+    def test_ai_search_logs_and_reraises_on_service_error(self, mock_ai, mock_search, mock_get_logger):
+        mock_ai.side_effect = RuntimeError('AI service down')
+        mock_logger = mock_get_logger.return_value
+
+        response = self.client.post(
+            reverse('movies_ai_search'),
+            data={'expression': 'something'},
+            format='json',
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_500_INTERNAL_SERVER_ERROR)
+        mock_logger.exception.assert_called_once()
+        pos_args = mock_logger.exception.call_args[0]
+        self.assertIn('movies/ai/search failed', pos_args[0])
+        self.assertIn('AI service down', str(pos_args[1]))
+
 
 class FindMovieFiltersTests(APITestCase):
     @classmethod

@@ -41,6 +41,17 @@ jobs:
           git archive --format=tar.gz HEAD > deployment.tar.gz
           
           echo "Deployment package created: $(ls -lh deployment.tar.gz)"
+          echo "Verifying monitoring files are in the bundle (for Grafana/Loki logs on prod)..."
+          tar -tzf deployment.tar.gz | grep -E '^docker-compose\.monitoring\.yml$|^monitoring/' | head -20
+          if ! tar -tzf deployment.tar.gz | grep -q '^docker-compose\.monitoring\.yml$'; then
+            echo "ERROR: docker-compose.monitoring.yml missing from bundle - logs will not work on prod"
+            exit 1
+          fi
+          if ! tar -tzf deployment.tar.gz | grep -q '^monitoring/'; then
+            echo "ERROR: monitoring/ directory missing from bundle - logs will not work on prod"
+            exit 1
+          fi
+          echo "Monitoring files present in bundle."
 
       - name: Upload to S3
         run: |

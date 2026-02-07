@@ -43,7 +43,8 @@
 Якщо на інстансі є `docker-compose.monitoring.yml` (його додано в репо), після деплою CodeDeploy сам піднімає і app, і моніторинг:
 
 - у `application_start.sh` викликається  
-  `docker compose -f docker-compose.lightsail.yml -f docker-compose.monitoring.yml up -d`.
+  `docker-compose -f docker-compose.lightsail.yml -f docker-compose.monitoring.yml up -d`.
+- Скрипти деплою використовують `docker-compose` (v1) для сумісності з інстансом. У CI перед завантаженням бандлу перевіряється наявність `docker-compose.monitoring.yml` та каталогу `monitoring/`, щоб логи на проді гарантовано працювали після деплою.
 
 Якщо моніторинг не потрібен — видаліть або перейменуйте `docker-compose.monitoring.yml` на інстансі; тоді стартуватиме лише `docker-compose.lightsail.yml`.
 
@@ -70,7 +71,7 @@ GRAFANA_ROOT_URL=https://grafana.yourdomain.com   # якщо є домен і re
 Після зміни перезапустіть контейнери:
 
 ```bash
-docker compose -f docker-compose.lightsail.yml -f docker-compose.monitoring.yml up -d
+docker-compose -f docker-compose.lightsail.yml -f docker-compose.monitoring.yml up -d
 ```
 
 ### 4. Доставка на прод
@@ -129,10 +130,10 @@ docker compose -f docker-compose.lightsail.yml -f docker-compose.monitoring.yml 
 
 ```bash
 # Тільки додаток
-docker compose -f docker-compose.lightsail.yml up -d
+docker-compose -f docker-compose.lightsail.yml up -d
 
 # Додаток + моніторинг
-docker compose -f docker-compose.lightsail.yml -f docker-compose.monitoring.yml up -d
+docker-compose -f docker-compose.lightsail.yml -f docker-compose.monitoring.yml up -d
 ```
 
 Перевірка метрик:

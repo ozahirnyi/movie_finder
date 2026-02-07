@@ -5,9 +5,15 @@ echo "===== Validate Service Hook ====="
 
 cd /home/ec2-user/movie_finder
 
-# Check if containers are running
+# Use same compose set as application_start.sh
+COMPOSE_FILES="-f docker-compose.lightsail.yml"
+if [ -f docker-compose.monitoring.yml ]; then
+  COMPOSE_FILES="-f docker-compose.lightsail.yml -f docker-compose.monitoring.yml"
+fi
+
+# Check if main app containers (web, db) are running
 echo "Validating Docker containers..."
-if ! docker compose -f docker-compose.lightsail.yml ps | grep -q "Up"; then
+if ! docker-compose $COMPOSE_FILES ps | grep -q "Up"; then
     echo "ERROR: Containers are not running!"
     exit 1
 fi
@@ -34,5 +40,5 @@ done
 
 echo "❌ Health check failed after $MAX_RETRIES attempts"
 echo "Container logs:"
-docker compose -f docker-compose.lightsail.yml logs --tail=50 web
+docker-compose $COMPOSE_FILES logs --tail=50 web
 exit 1

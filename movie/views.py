@@ -1,3 +1,5 @@
+import logging
+
 from django.db import IntegrityError
 from django.db.models import Case, Count, Max, Value, When
 from django_filters.rest_framework import DjangoFilterBackend
@@ -164,6 +166,7 @@ class MoviesAiSearchView(APIView):
         responses={status.HTTP_200_OK: MovieSerializer(many=True)},
     )
     def post(self, request, *args, **kwargs):
+        logger = logging.getLogger(__name__)
         input_serializer = FindMovieAiSearchViewRequestSerializer(data=request.data)
         input_serializer.is_valid(raise_exception=True)
         user_repository = UserRepository()
@@ -173,14 +176,20 @@ class MoviesAiSearchView(APIView):
         except AiSearchLimitExceeded:
             ai_search_limit_hit_total.labels(tier_code=request.user.account_tier.code).inc()
             raise AiSearchLimitError
-        movie_service = MovieService()
-        ai_movies = movie_service.get_movies_from_ai(input_serializer.data.get('expression'))
-        omdb_movies = movie_service.search_movies_in_omdb([movie.title for movie in ai_movies], self.request.user.id)
-        ai_scores = {movie.title.lower(): movie.match_score for movie in ai_movies}
-        for movie in omdb_movies:
-            movie.match_score = ai_scores.get(movie.title.lower(), 0)
-        serialized_movies = MovieSerializer(omdb_movies, many=True)
-        return Response(serialized_movies.data, status=status.HTTP_200_OK)
+        try:
+            movie_service = MovieService()
+            ai_movies = movie_service.get_movies_from_ai(input_serializer.data.get('expression'))
+            omdb_movies = movie_service.search_movies_in_omdb(
+                [movie.title for movie in ai_movies], self.request.user.id
+            )
+            ai_scores = {movie.title.lower(): movie.match_score for movie in ai_movies}
+            for movie in omdb_movies:
+                movie.match_score = ai_scores.get(movie.title.lower(), 0)
+            serialized_movies = MovieSerializer(omdb_movies, many=True)
+            return Response(serialized_movies.data, status=status.HTTP_200_OK)
+        except Exception as exc:
+            logger.exception('movies/ai/search failed: %s', exc)
+            raise
 
 
 class WatchLaterCreateView(CreateAPIView):
