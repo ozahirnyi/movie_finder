@@ -213,11 +213,11 @@ LOGGING = {
     },
     'root': {
         'handlers': ['console'],
-        'level': 'INFO',
+        'level': 'ERROR',
     },
     'loggers': {
-        'django.request': {'level': 'WARNING'},
-        'django.security': {'level': 'WARNING'},
+        'django.request': {'level': 'ERROR'},
+        'django.security': {'level': 'ERROR'},
     },
 }
 

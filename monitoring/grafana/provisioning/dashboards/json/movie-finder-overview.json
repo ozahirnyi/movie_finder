@@ -4,7 +4,22 @@
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
   "id": null,
-  "links": [],
+  "links": [
+    {
+      "asDropdown": false,
+      "icon": "dashboard",
+      "includeVars": false,
+      "keepTime": true,
+      "tags": [],
+      "targetBlank": false,
+      "title": "Movie Finder Logs",
+      "tooltip": "Open Logs dashboard",
+      "type": "dashboards",
+      "dashboards": [
+        { "uid": "movie-finder-logs", "title": "Movie Finder Logs" }
+      ]
+    }
+  ],
   "liveNow": false,
   "panels": [
     {
