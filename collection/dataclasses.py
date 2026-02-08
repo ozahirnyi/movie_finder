@@ -29,6 +29,7 @@ class CollectionMovieDTO:
     poster: str | None
     year: str | None
     description: str | None
+    imdb_rating: str | None = None
 
 
 @dataclass(slots=True)

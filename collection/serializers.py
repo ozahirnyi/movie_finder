@@ -10,6 +10,7 @@ class CollectionMovieSerializer(serializers.Serializer):
     poster = serializers.CharField(allow_null=True, allow_blank=True)
     year = serializers.CharField(allow_null=True, allow_blank=True)
     description = serializers.CharField(allow_null=True, allow_blank=True)
+    imdb_rating = serializers.CharField(allow_null=True, allow_blank=True)
 
 
 class CollectionMoviePreviewSerializer(serializers.Serializer):

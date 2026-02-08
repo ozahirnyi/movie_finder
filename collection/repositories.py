@@ -155,6 +155,7 @@ class CollectionRepository:
                 poster=relation.movie.poster,
                 year=relation.movie.year,
                 description=relation.movie.plot,
+                imdb_rating=relation.movie.imdb_rating or None,
             )
             for relation in base_qs
         ]
