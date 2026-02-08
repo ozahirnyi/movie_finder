@@ -20,6 +20,8 @@ OMDB_API_KEY = env('OMDB_API_KEY', default='omdb_api_key')
 MOVIE_SEARCH_PROVIDER = env('MOVIE_SEARCH_PROVIDER', default='omdb')
 
 ANTHROPIC_API_KEY = env('ANTHROPIC_API_KEY', default='anthropic_api_key')
+# AI search (find movie by description): stronger model = better adherence to "last N years" etc.
+ANTHROPIC_AI_SEARCH_MODEL = env('ANTHROPIC_AI_SEARCH_MODEL', default='claude-opus-4-20250514')
 MAX_PROMPT_TOKENS_LENGTH = 1000
 
 SECRET_KEY = env('DJANGO_KEY', default='fallback_secret')

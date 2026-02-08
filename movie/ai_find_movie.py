@@ -113,6 +113,10 @@ class FindMovieAiClient:
 class SearchFindMovieAiClient(FindMovieAiClient):
     SYSTEM_PROMPT = find_movie_system_prompt
 
+    def __init__(self, *, model: str | None = None, **kwargs) -> None:
+        model = model or getattr(settings, 'ANTHROPIC_AI_SEARCH_MODEL', FindMovieAiClient.DEFAULT_MODEL)
+        super().__init__(model=model, **kwargs)
+
 
 class RecommendationFindMovieAiClient(FindMovieAiClient):
     SYSTEM_PROMPT = recommendations_system_prompt

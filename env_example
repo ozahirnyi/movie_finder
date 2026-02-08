@@ -1,6 +1,8 @@
 DEBUG=False
 DJANGO_KEY=change_me
 ANTHROPIC_API_KEY=
+# AI search model: claude-opus-4-20250514 (stronger, better at date constraints) or claude-sonnet-4-20250514 (cheaper)
+# ANTHROPIC_AI_SEARCH_MODEL=claude-opus-4-20250514
 IMDB_API_KEY=
 # Movie search: omdb = OMDb search (?s=), imdb = CollectAPI. On error we fall back to DB search.
 MOVIE_SEARCH_PROVIDER=omdb
@@ -25,3 +27,7 @@ METRICS_ENABLED=True
 # GRAFANA_ADMIN_USER=admin
 # GRAFANA_ADMIN_PASSWORD=
 # GRAFANA_ROOT_URL=http://localhost:3000   # on prod: https://grafana.moviefinder.cc
+
+# ClickUp (optional; for quick task creation via scripts/clickup_create_task.py)
+# CLICKUP_API_KEY=pk_xxxx
+# CLICKUP_LIST_ID=123456   # optional; script can use first list in workspace
