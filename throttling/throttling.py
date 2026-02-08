@@ -31,31 +31,33 @@ class ForwardedForBaseThrottle(SimpleRateThrottle):
         return f'throttle_forwarded_{client_ip}'
 
 
+# AI search: tuned for several users per IP (e.g. household) with tier limits; still caps abuse per IP/UA.
 class AiSearchUaThrottle(UaBaseThrottle):
     scope = 'ai_search_ua'
-    rate = '2/day'
+    rate = '40/day'  # one user's tier (e.g. 30) per browser; was 2/day
 
 
 class AiSearchIpThrottle(IpBaseThrottle):
     scope = 'ai_search_ip'
-    rate = '6/day'
+    rate = '100/day'  # e.g. 3 users x ~30 tier; was 6/day
 
 
 class AiSearchForwardedThrottle(ForwardedForBaseThrottle):
     scope = 'ai_search_forwarded'
-    rate = '6/day'
+    rate = '100/day'  # same as IP when behind proxy
 
 
+# Regular search: allow several users per IP without hitting throttle.
 class RegularSearchUaThrottle(UaBaseThrottle):
     scope = 'regular_search_ua'
-    rate = '10/day'
+    rate = '30/day'  # was 10/day
 
 
 class RegularSearchIpThrottle(IpBaseThrottle):
     scope = 'regular_search_ip'
-    rate = '20/day'
+    rate = '60/day'  # was 20/day
 
 
 class RegularSearchForwardedThrottle(ForwardedForBaseThrottle):
     scope = 'regular_search_forwarded'
-    rate = '20/day'
+    rate = '60/day'  # was 20/day
