@@ -55,7 +55,7 @@ Authoritative playbook for coding agents collaborating on the Movie Finder API. 
   - Always run `make lint` yourself before requesting review or a handoff.
   - `make format` enforces Ruff formatting (single quotes, 4-space indentation, max line length 150).
 - **Type hints:** Where practical, maintain existing typing; new services/helpers should include return type annotations.
-- **Pre-commit:** Run `pre-commit install` if you need local hooks (optional but encouraged).
+- **Pre-commit:** Run `pre-commit install` so hooks run before each commit. Hooks: ruff (+ format), migration checks, **pytest**. Before any commit or push, run `pre-commit run --all-files` (or rely on the installed hook); do not commit or push without passing pre-commit, including tests.
 
 ---
 
@@ -71,7 +71,7 @@ Authoritative playbook for coding agents collaborating on the Movie Finder API. 
 - Keep every DTO/dataclass definition consolidated in `movie/dataclasses.py`; don't scatter DTOs across repositories or services.
 - Persisted data access belongs in the repository layer (`movie/repositories.py`); strive to minimise query counts (use batching, `select_related`, `prefetch_related`, in-memory aggregation when viable).
 - Document noteworthy behaviour changes in `CHANGELOG.md` if it exists; otherwise provide context in the pull request description.
-- Before declaring a task done, ensure `make lint` and `make coverage` both pass and explicitly ask the user for approval to create a commit.
+- Before any commit or push, run pre-commit (which includes lint, format, migration checks, and tests): `pre-commit run --all-files`. Before declaring a task done, ensure `make lint` and `make coverage` both pass and explicitly ask the user for approval to create a commit.
 
 ---
 

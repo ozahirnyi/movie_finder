@@ -195,6 +195,56 @@ class MovieRepository:
             logger.exception('OMDB request failed: title=%r error=%s', title, e)
             raise Exception(f'Error while getting movies from OMDB: {e}')
 
+    def get_movie_from_omdb_by_id(self, imdb_id: str) -> OmdbMovie | None:
+        """Fetch full movie details by IMDb ID (OMDb ?i=). Use when we have id from search to avoid duplicate rows."""
+
+        def _replace_not_available(value):
+            if isinstance(value, dict):
+                return {key: _replace_not_available(val) for key, val in value.items()}
+            if isinstance(value, list):
+                return [_replace_not_available(item) for item in value]
+            if isinstance(value, str) and value.strip().upper() == 'N/A':
+                return None
+            return value
+
+        if not (imdb_id and imdb_id.strip()):
+            return None
+        try:
+            response = requests.get(
+                f'{settings.OMDB_API_URL}?i={quote_plus(imdb_id.strip())}&apikey={settings.OMDB_API_KEY}',
+                headers={'content-type': 'application/json'},
+                timeout=30,
+            )
+            response.raise_for_status()
+            data = _replace_not_available(response.json())
+            if data.get('Response') == 'False' or data.get('Error'):
+                return None
+            return OmdbMovie(
+                title=data.get('Title'),
+                year=data.get('Year'),
+                released_date=datetime.strptime(data['Released'], '%d %b %Y').date() if data.get('Released') else None,
+                runtime=data.get('Runtime'),
+                genres=[Genre(name=name.strip()) for name in (data.get('Genre') or '').split(',') if name.strip()],
+                directors=[Director(full_name=name.strip()) for name in (data.get('Director') or '').split(',') if name.strip()],
+                writers=[Writer(full_name=name.strip()) for name in (data.get('Writer') or '').split(',') if name.strip()],
+                actors=[Actor(full_name=name.strip()) for name in (data.get('Actors') or '').split(',') if name.strip()],
+                plot=data.get('Plot'),
+                languages=[Language(name=name.strip()) for name in (data.get('Language') or '').split(',') if name.strip()],
+                countries=[Country(name=name.strip()) for name in (data.get('Country') or '').split(',') if name.strip()],
+                awards=data.get('Awards'),
+                poster=data.get('Poster'),
+                ratings=[Rating(source=r.get('Source'), value=r.get('Value')) for r in (data.get('Ratings') or []) if r],
+                metascore=data.get('Metascore'),
+                imdb_rating=data.get('imdbRating'),
+                imdb_votes=data.get('imdbVotes'),
+                imdb_id=data.get('imdbID'),
+                type=data.get('Type'),
+                total_seasons=data.get('totalSeasons'),
+            )
+        except Exception as e:
+            logger.warning('OMDB request by id failed: imdb_id=%r error=%s', imdb_id, e)
+            return None
+
     def _create_movie_in_db(self, omdb_movie: OmdbMovie) -> Movie:
         def _normalize_char(value: str | None) -> str:
             return value or ''
@@ -219,73 +269,108 @@ class MovieRepository:
             )
             if created:
                 if omdb_movie.genres:
-                    genres = [Genre.objects.get_or_create(name=genre.name)[0] for genre in omdb_movie.genres]
+                    genres = [Genre.objects.get_or_create(name=g.name)[0] for g in omdb_movie.genres]
                     movie_instance.genres.set(genres)
                 if omdb_movie.actors:
-                    actors = [Actor.objects.get_or_create(full_name=actor.full_name)[0] for actor in omdb_movie.actors]
+                    actors = [Actor.objects.get_or_create(full_name=a.full_name)[0] for a in omdb_movie.actors]
                     movie_instance.actors.set(actors)
                 if omdb_movie.directors:
-                    directors_list = [Director.objects.get_or_create(full_name=director.full_name)[0] for director in omdb_movie.directors]
+                    directors_list = [Director.objects.get_or_create(full_name=d.full_name)[0] for d in omdb_movie.directors]
                     movie_instance.directors.set(directors_list)
                 if omdb_movie.ratings:
-                    ratings = [Rating(source=rating.source, value=rating.value, movie_id=movie_instance.id) for rating in omdb_movie.ratings]
+                    ratings = [Rating(source=r.source, value=r.value, movie_id=movie_instance.id) for r in omdb_movie.ratings]
                     Rating.objects.bulk_create(ratings)
                 if omdb_movie.languages:
-                    languages = [Language.objects.get_or_create(name=language.name)[0] for language in omdb_movie.languages]
+                    languages = [Language.objects.get_or_create(name=lang.name)[0] for lang in omdb_movie.languages]
                     movie_instance.languages.set(languages)
                 if omdb_movie.countries:
-                    countries = [Country.objects.get_or_create(name=country.name)[0] for country in omdb_movie.countries]
+                    countries = [Country.objects.get_or_create(name=c.name)[0] for c in omdb_movie.countries]
                     movie_instance.countries.set(countries)
                 if omdb_movie.writers:
-                    writers = [Writer.objects.get_or_create(full_name=writer.full_name)[0] for writer in omdb_movie.writers]
+                    writers = [Writer.objects.get_or_create(full_name=w.full_name)[0] for w in omdb_movie.writers]
                     movie_instance.writers.set(writers)
             return movie_instance
+
+    def search_movies_in_omdb_from_imdb_list(self, imdb_movies: list[ImdbMovie], initiator_id: int) -> list[OmdbMovie]:
+        """Resolve ImdbMovie list (from OMDb search) to OmdbMovie with DB lookup by imdb_id first. Avoids duplicates."""
+        search_results = []
+        for imdb_item in imdb_movies:
+            if imdb_item.imdb_id and imdb_item.imdb_id.strip():
+                movie_instance = (
+                    Movie.objects.filter(imdb_id=imdb_item.imdb_id.strip())
+                    .with_is_liked(initiator_id)
+                    .with_is_watch_later(initiator_id)
+                    .with_likes_count()
+                    .with_watch_later_count()
+                    .first()
+                )
+                if movie_instance:
+                    search_results.append(self._movie_to_omdb_dto(movie_instance))
+                    continue
+                omdb_movie = self.get_movie_from_omdb_by_id(imdb_item.imdb_id.strip())
+                if omdb_movie and omdb_movie.imdb_id:
+                    saved_movie = self._create_movie_in_db(omdb_movie)
+                    omdb_movie.id = saved_movie.id
+                    search_results.append(omdb_movie)
+                continue
+            # No imdb_id: fall back to title lookup (e.g. from AI search)
+            omdb_movie = self._resolve_one_by_title(imdb_item.title, initiator_id)
+            if omdb_movie:
+                search_results.append(omdb_movie)
+        return search_results
+
+    def _movie_to_omdb_dto(self, movie_instance: Movie) -> OmdbMovie:
+        return OmdbMovie(
+            id=movie_instance.id,
+            title=movie_instance.title,
+            year=movie_instance.year,
+            released_date=movie_instance.released_date,
+            runtime=movie_instance.runtime,
+            genres=[GenreDTO(g.name) for g in movie_instance.genres.all()],
+            directors=[DirectorDTO(d.full_name) for d in movie_instance.directors.all()],
+            writers=[WriterDTO(w.full_name) for w in movie_instance.writers.all()],
+            actors=[ActorDTO(a.full_name) for a in movie_instance.actors.all()],
+            plot=movie_instance.plot,
+            languages=[LanguageDTO(lang.name) for lang in movie_instance.languages.all()],
+            countries=[CountryDTO(c.name) for c in movie_instance.countries.all()],
+            awards=movie_instance.awards,
+            poster=movie_instance.poster,
+            ratings=[RatingDTO(r.source, r.value) for r in movie_instance.movie_ratings.all()],
+            metascore=movie_instance.metascore,
+            imdb_rating=movie_instance.imdb_rating,
+            imdb_votes=movie_instance.imdb_votes,
+            imdb_id=movie_instance.imdb_id,
+            type=movie_instance.type,
+            total_seasons=movie_instance.total_seasons,
+        )
+
+    def _resolve_one_by_title(self, title: str, initiator_id: int) -> OmdbMovie | None:
+        movie_instance = (
+            Movie.objects.filter(title=title)
+            .with_is_liked(initiator_id)
+            .with_is_watch_later(initiator_id)
+            .with_likes_count()
+            .with_watch_later_count()
+            .first()
+        )
+        if movie_instance:
+            return self._movie_to_omdb_dto(movie_instance)
+        omdb_movie = self.get_movie_from_omdb_by_expression(title)
+        if omdb_movie is None:
+            return None
+        if omdb_movie.imdb_id:
+            saved_movie = self._create_movie_in_db(omdb_movie)
+            omdb_movie.id = saved_movie.id
+            return omdb_movie
+        omdb_movie.id = 0
+        return omdb_movie
 
     def search_movies_in_omdb(self, movie_titles: list[str], initiator_id: int) -> list[OmdbMovie]:
         search_results = []
         for title in movie_titles:
-            movie_instance = (
-                Movie.objects.filter(title=title)
-                .with_is_liked(initiator_id)
-                .with_is_watch_later(initiator_id)
-                .with_likes_count()
-                .with_watch_later_count()
-                .first()
-            )
-            if not movie_instance:
-                omdb_movie = self.get_movie_from_omdb_by_expression(title)
-                if omdb_movie is None:
-                    continue
-                if omdb_movie.imdb_id:
-                    saved_movie = self._create_movie_in_db(omdb_movie)
-                    omdb_movie.id = saved_movie.id
-                else:
-                    omdb_movie.id = 0  # OMDB didn't return imdb_id, skip DB (not-null constraint)
-            else:
-                omdb_movie = OmdbMovie(
-                    id=movie_instance.id,
-                    title=movie_instance.title,
-                    year=movie_instance.year,
-                    released_date=movie_instance.released_date,
-                    runtime=movie_instance.runtime,
-                    genres=[GenreDTO(genre.name) for genre in movie_instance.genres.all()],
-                    directors=[DirectorDTO(director.full_name) for director in movie_instance.directors.all()],
-                    writers=[WriterDTO(writer.full_name) for writer in movie_instance.writers.all()],
-                    actors=[ActorDTO(actor.full_name) for actor in movie_instance.actors.all()],
-                    plot=movie_instance.plot,
-                    languages=[LanguageDTO(language.name) for language in movie_instance.languages.all()],
-                    countries=[CountryDTO(country.name) for country in movie_instance.countries.all()],
-                    awards=movie_instance.awards,
-                    poster=movie_instance.poster,
-                    ratings=[RatingDTO(source=rating.source, value=rating.value) for rating in movie_instance.movie_ratings.all()],
-                    metascore=movie_instance.metascore,
-                    imdb_rating=movie_instance.imdb_rating,
-                    imdb_votes=movie_instance.imdb_votes,
-                    imdb_id=movie_instance.imdb_id,
-                    type=movie_instance.type,
-                    total_seasons=movie_instance.total_seasons,
-                )
-            search_results.append(omdb_movie)
+            omdb_movie = self._resolve_one_by_title(title, initiator_id)
+            if omdb_movie:
+                search_results.append(omdb_movie)
         return search_results
 
 

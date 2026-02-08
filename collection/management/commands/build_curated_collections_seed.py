@@ -2,6 +2,7 @@
 Fetch OMDb once per title from curated_collections_data and write
 collection/curated_collections_seed.json. Run once, commit the JSON; migration 0006 reads it.
 """
+
 import json
 import time
 from pathlib import Path
@@ -53,21 +54,25 @@ class Command(BaseCommand):
                 imdb_id = (data.get('imdbID') or '').strip()
                 if not imdb_id:
                     continue
-                movies.append({
-                    'position': position,
-                    'imdb_id': imdb_id,
-                    'title': data.get('Title') or title,
-                    'year': data.get('Year') or '',
-                    'type': data.get('Type') or 'movie',
-                    'poster': data.get('Poster') or '',
-                    'plot': data.get('Plot') or '',
-                })
-            result['collections'].append({
-                'name': name,
-                'description': description,
-                'design': design,
-                'movies': movies,
-            })
+                movies.append(
+                    {
+                        'position': position,
+                        'imdb_id': imdb_id,
+                        'title': data.get('Title') or title,
+                        'year': data.get('Year') or '',
+                        'type': data.get('Type') or 'movie',
+                        'poster': data.get('Poster') or '',
+                        'plot': data.get('Plot') or '',
+                    }
+                )
+            result['collections'].append(
+                {
+                    'name': name,
+                    'description': description,
+                    'design': design,
+                    'movies': movies,
+                }
+            )
             self.stdout.write(f'{name}: {len(movies)} movies')
 
         out_path.write_text(json.dumps(result, indent=2, ensure_ascii=False), encoding='utf-8')

@@ -2,8 +2,18 @@ from django.contrib import admin, messages
 from django.shortcuts import redirect
 from django.urls import path
 
-from .models import TopMovie
+from .models import Movie, TopMovie
 from .services import TopMoviesService
+
+
+@admin.register(Movie)
+class MovieAdmin(admin.ModelAdmin):
+    list_display = ('id', 'title', 'imdb_id', 'year', 'type', 'imdb_rating', 'created_at')
+    list_filter = ('type', 'year')
+    search_fields = ('title', 'imdb_id')
+    readonly_fields = ('created_at', 'updated_at')
+    filter_horizontal = ('genres', 'actors', 'directors', 'countries', 'languages', 'writers')
+    ordering = ('-created_at',)
 
 
 @admin.register(TopMovie)

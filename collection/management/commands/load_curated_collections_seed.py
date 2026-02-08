@@ -2,6 +2,7 @@
 Load curated collections and movies from collection/curated_collections_seed.json.
 Idempotent (get_or_create). Use on prod when migration 0006 already ran but seed did not apply.
 """
+
 import json
 from pathlib import Path
 
@@ -14,10 +15,22 @@ from collection.models import Collection, CollectionMovie
 from movie.models import Movie
 
 # Empty curated collections from migration 0005 (Ukrainian names). Remove them so only English ones with movies remain.
-CURATED_UKRAINIAN_NAMES = frozenset({
-    'Новорічна', 'Хорор', 'Комедія', 'Драма', 'Бойовик', 'Романтика',
-    'Фантастика', 'Документальні', 'Аніме', 'Класика', 'Для всієї родини', 'Топ IMDb',
-})
+CURATED_UKRAINIAN_NAMES = frozenset(
+    {
+        'Новорічна',
+        'Хорор',
+        'Комедія',
+        'Драма',
+        'Бойовик',
+        'Романтика',
+        'Фантастика',
+        'Документальні',
+        'Аніме',
+        'Класика',
+        'Для всієї родини',
+        'Топ IMDb',
+    }
+)
 
 
 def load_seed_data():

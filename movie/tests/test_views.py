@@ -59,10 +59,10 @@ class FinderTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertFalse(LikeMovie.objects.filter(user=self.user, movie=self.movie).exists())
 
-    @patch('movie.views.MovieService.search_movies_in_omdb')
+    @patch('movie.views.MovieService.search_movies_in_omdb_from_imdb_list')
     @patch('movie.views.MovieService.get_movies_from_imdb')
-    def test_find_movie(self, mock_imdb, mock_search_omdb):
-        mock_imdb.return_value = [
+    def test_find_movie(self, mock_imdb, mock_search_from_list):
+        imdb_list = [
             ImdbMovie(
                 title='Shrek',
                 imdb_id='tt0126029',
@@ -71,7 +71,8 @@ class FinderTests(APITestCase):
                 type='movie',
             ),
         ]
-        mock_search_omdb.return_value = [
+        mock_imdb.return_value = imdb_list
+        mock_search_from_list.return_value = [
             OmdbMovie(title='Shrek', imdb_id='tt0126029', genres=[GenreDTO(name='Animation')], id=self.movie.id),
         ]
 
@@ -85,7 +86,7 @@ class FinderTests(APITestCase):
         self.assertEqual(response.data[0]['title'], 'Shrek')
         self.assertEqual(response.data[0]['id'], self.movie.id)
         mock_imdb.assert_called_once_with('Shrek')
-        mock_search_omdb.assert_called_once()
+        mock_search_from_list.assert_called_once_with(imdb_list, self.user.id)
 
     def test_create_watch_later(self):
         response = self.client.post(reverse('watch_later_create'), data={'movie': self.movie.id})
@@ -372,6 +373,17 @@ class FindMovieFiltersTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         imdb_ids = [movie['imdb_id'] for movie in response.data['results']]
         self.assertEqual(imdb_ids, sorted(imdb_ids))
+
+    def test_sorting_by_imdb_rating(self):
+        response = self._get_movies({'ordering': 'imdb_rating'})
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        ratings = [movie['imdb_rating'] for movie in response.data['results']]
+        self.assertEqual(ratings, sorted(ratings))
+        response_desc = self._get_movies({'ordering': '-imdb_rating'})
+        self.assertEqual(response_desc.status_code, status.HTTP_200_OK)
+        ratings_desc = [movie['imdb_rating'] for movie in response_desc.data['results']]
+        self.assertEqual(ratings_desc, sorted(ratings_desc, reverse=True))
 
 
 class MovieModelRepresentationTests(APITestCase):

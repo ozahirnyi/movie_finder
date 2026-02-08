@@ -28,8 +28,10 @@ ssh -i "o:\projects\movie_finder\LightsailDefaultKey-eu-central-1.pem" -o Strict
 ```
 
 **Examples:**
-- **Backend only (512 MB: Grafana off)** — run only app + db:  
-  `"cd /home/ec2-user/movie_finder && docker-compose -f docker-compose.lightsail.yml up -d"`
+- **Backend only (512 MB: Grafana off)** — app on 8000, nginx on host uses 80/443 and proxies to 8000:  
+  `"cd /home/ec2-user/movie_finder && docker-compose -f docker-compose.lightsail.yml up -d"`  
+  Without nginx (app directly on 80):  
+  `"cd /home/ec2-user/movie_finder && docker-compose -f docker-compose.lightsail.yml -f docker-compose.lightsail-direct.yml up -d"`
 - Start backend + Grafana (when instance has ≥1 GB RAM):  
   `"cd /home/ec2-user/movie_finder && docker-compose -f docker-compose.lightsail.yml -f docker-compose.monitoring.yml up -d"`
 - **Stop monitoring** (free RAM) — запускай **першим після ребуту**, щоб Grafana не піднялась:  
@@ -60,7 +62,7 @@ To fetch deploy logs without typing the full SSH command:
 
 0. **Спочатку вимкнути Grafana** (звільнити пам’ять), потім уже pull/build:
    `"cd /home/ec2-user/movie_finder && docker-compose -f docker-compose.lightsail.yml -f docker-compose.monitoring.yml down 2>/dev/null; docker-compose -f docker-compose.lightsail.yml up -d"`
-   (Якщо моніторинг не був запущений — просто підніме тільки backend.)
+   (Якщо моніторинг не був запущений — підніме backend на 8000; nginx на 80/443.)
 1. **Pull latest code:**
    `"cd /home/ec2-user/movie_finder && git fetch origin main && git reset --hard origin/main"`
 2. **Rebuild app image (if code changed):**
@@ -68,10 +70,12 @@ To fetch deploy logs without typing the full SSH command:
    (Uses cache: only changed layers rebuild. Use `build --no-cache web` only when dependencies or Dockerfile changed.)
 3. **Migrations + static (if needed):**
    `"cd /home/ec2-user/movie_finder && docker-compose -f docker-compose.lightsail.yml run --rm web poetry run python manage.py migrate --noinput && docker-compose -f docker-compose.lightsail.yml run --rm web poetry run python manage.py collectstatic --noinput"`
-4. **Restart backend only:**
+4. **Restart backend only** (app on 8000, nginx на 80):
    `"cd /home/ec2-user/movie_finder && docker-compose -f docker-compose.lightsail.yml up -d"`
 
-Після ребуту інстансу: спочатку крок 0 (щоб Grafana не піднімалась і не забивала пам’ять), потім 1–4.
+**Після ребуту інстансу:** спочатку крок 0 (щоб Grafana/observability не піднімались і не забивали пам’ять), потім 1–4. Не запускай `docker-compose.monitoring.yml` на 512 MB — інстанс зависає.
+
+**Логи:** при роботі тільки `docker-compose.lightsail.yml` (web + db) усі stdout/stderr контейнера `web` пишуться в Docker (драйвер json-file). Перегляд: `docker-compose -f docker-compose.lightsail.yml logs --tail=200 web` або з grep по error (див. Error logs вище). Ротація логів за замовчуванням — логи зберігаються, поки не перезапустиш контейнер або не спрацює ротація.
 
 If you upgrade to ≥1 GB RAM and want Grafana again, use `-f docker-compose.monitoring.yml` in step 4 and start with both compose files.
 

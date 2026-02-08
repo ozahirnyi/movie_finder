@@ -1,7 +1,8 @@
-FROM python:3.12-slim
+# Use linux/arm64 for ARM hosts (e.g. Windows ARM, Apple Silicon); use linux/amd64 on x86
+FROM --platform=linux/arm64 python:3.12-slim
 
 RUN apt-get update \
-    && apt-get install -y curl \
+    && apt-get install -y curl git \
     && rm -rf /var/lib/apt/lists/*
 
 RUN curl -sSL https://install.python-poetry.org | python3 - --version 2.1.4 \

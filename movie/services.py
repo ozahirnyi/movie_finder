@@ -59,6 +59,10 @@ class MovieService:
     def search_movies_in_omdb(self, movie_titles: list[str], initiator_id: int) -> list[OmdbMovie]:
         return self.movie_repository.search_movies_in_omdb(movie_titles, initiator_id)
 
+    def search_movies_in_omdb_from_imdb_list(self, imdb_movies: list[ImdbMovie], initiator_id: int) -> list[OmdbMovie]:
+        """Resolve search results by imdb_id first to avoid duplicate Movie rows."""
+        return self.movie_repository.search_movies_in_omdb_from_imdb_list(imdb_movies, initiator_id)
+
     def get_movies_from_ai(self, expression: str) -> list[AiMovie]:
         try:
             return self.ai_client.find_movies(expression)

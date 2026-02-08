@@ -50,12 +50,21 @@
 
 ### 2. Порти та доступ
 
-- **Grafana:** `http://<IP_інстансу>:3000`  
-  Логін за замовчуванням: `admin` / `admin` (при першому вході варто змінити пароль).
-- **Prometheus:** `http://<IP_інстансу>:9090`.
-- Loki/Promtail не мають публічних портів у зовнішній мережі; вони використовуються лише всередині Docker-мережі.
+**На проді завжди використовуйте домен і HTTPS** (як основний сайт — `https://moviefinder.cc`):
 
-У Lightsail у **Networking → Firewall** додайте правило для **TCP 3000** (Grafana); 9090 можна відкрити тільки якщо потрібен прямий доступ до Prometheus.
+- **Grafana (рекомендовано на проді):** `https://grafana.moviefinder.cc`  
+  Доступ по IP/HTTP (`http://<IP>:3000`) — лише для локальної перевірки; на проді Grafana має бути за nginx (або Cloudflare) з HTTPS і піддоменом.
+- **Prometheus:** за потреби — через той самий reverse proxy (наприклад `https://prometheus.moviefinder.cc`) або лише з внутрішньої мережі.
+- Loki/Promtail не мають публічних портів; вони використовуються лише всередині Docker-мережі.
+
+Щоб Grafana на проді була по **HTTPS і домену**:
+
+1. **DNS:** створити A-запис (або CNAME) для піддомена, наприклад `grafana.moviefinder.cc` → IP інстансу (або через Cloudflare Proxy).
+2. **Nginx на інстансі:** додати server для `grafana.moviefinder.cc` з SSL (сертифікат з Let's Encrypt або Cloudflare), `proxy_pass http://127.0.0.1:3000`.
+3. **Grafana:** у `.env` на інстансі задати `GRAFANA_ROOT_URL=https://grafana.moviefinder.cc`, щоб посилання в інтерфейсі були коректні.
+4. У Lightsail **Firewall** додати правило **TCP 3000** лише якщо потрібен прямий доступ ззовні; якщо доступ лише через nginx на 80/443 — порт 3000 можна не відкривати.
+
+Логін Grafana за замовчуванням: `admin` / `admin` (при першому вході варто змінити пароль).
 
 ### 3. Змінні оточення (опційно)
 
@@ -65,7 +74,7 @@
 # Grafana
 GRAFANA_ADMIN_USER=admin
 GRAFANA_ADMIN_PASSWORD=<надійний_пароль>
-GRAFANA_ROOT_URL=https://grafana.yourdomain.com   # якщо є домен і reverse proxy
+GRAFANA_ROOT_URL=https://grafana.moviefinder.cc   # обовʼязково на проді (домен + HTTPS)
 ```
 
 Після зміни перезапустіть контейнери:
@@ -84,16 +93,21 @@ docker-compose -f docker-compose.lightsail.yml -f docker-compose.monitoring.yml 
 
 **Що зробити на проді один раз:**
 
-- У **Lightsail → Networking → Firewall** додати правило **TCP 3000** (щоб відкрити Grafana ззовні, якщо потрібно).
-- На інстансі в `.env` задати `GRAFANA_ADMIN_PASSWORD=<сильний_пароль>` (і за бажанням `GRAFANA_ROOT_URL`), щоб не лишати логін admin/admin.
+- На інстансі в `.env` задати `GRAFANA_ADMIN_PASSWORD=<сильний_пароль>` і **`GRAFANA_ROOT_URL=https://grafana.moviefinder.cc`** (щоб Grafana була по HTTPS і домену, як основний сайт).
+- Налаштувати піддомен і HTTPS для Grafana (див. розділ «Порти та доступ» вище): DNS, nginx + SSL, потім Grafana буде доступна за `https://grafana.moviefinder.cc`.
+- У **Lightsail → Networking → Firewall** додати **TCP 3000** лише якщо потрібен прямий доступ до Grafana; при доступі тільки через nginx на 80/443 порт 3000 можна не відкривати.
 
 Архітектура образів не зафіксована (`platform` прибрано з compose), тому на Lightsail (amd64 чи arm64) Docker підбере відповідні образи.
 
 ---
 
-## Дашборд «Movie Finder Overview»
+## Дашборди
 
-Після першого входу в Grafana має з’явитися дашборд **Movie Finder** → **Movie Finder Overview** з панелями:
+Після першого входу в Grafana в папці **Movie Finder** з’являються два дашборди: **Movie Finder Overview** (метрики) і **Movie Finder Logs** (логи з Loki).
+
+### Дашборд «Movie Finder Overview»
+
+Панелі:
 
 1. **Request rate by endpoint** — RPS по ендпоінтах.
 2. **HTTP latency p95 by endpoint** — латентність (p95).
@@ -106,11 +120,21 @@ docker-compose -f docker-compose.lightsail.yml -f docker-compose.monitoring.yml 
 
 ---
 
-## Логи в Grafana (Loki)
+### Дашборд «Movie Finder Logs»
+
+Окремий дашборд для логів (Loki):
+
+1. **All container logs** — усі логи контейнерів (`{job="containerlogs"}`).
+2. **App / HTTP / errors** — логи, що містять HTTP-запити, Traceback, Exception, Error (зручно для web-контейнера).
+3. **Errors and exceptions only** — тільки рядки з error, exception, traceback, 500, failed.
+
+Діапазон часу за замовчуванням — остання година; refresh — 30 с. Можна змінити в time picker і додати власні LogQL-запити в Explore.
+
+### Логи в Explore (Loki)
 
 1. Відкрийте **Explore** (іконка компаса).
 2. Оберіть datasource **Loki**.
-3. У запросі можна фільтрувати по лейблу, наприклад: `{service="web"}` або `{container=~"movie_finder.*"}` (залежить від імен контейнерів у вашому compose).
+3. У запросі можна фільтрувати, наприклад: `{job="containerlogs"}` або `{job="containerlogs"} |= "500"`.
 
 Якщо контейнери пишуть логи в stdout/stderr, Promtail їх підхопить і відправить у Loki.
 

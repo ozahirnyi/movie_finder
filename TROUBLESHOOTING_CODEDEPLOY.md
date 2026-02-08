@@ -22,9 +22,49 @@ message: "CodeDeploy agent was not able to receive the lifecycle event.
 
 ### Крок 1: Підключіться до Lightsail Instance
 
+З ключем (якщо використовуєте `.pem`):
+
+```bash
+ssh -i /path/to/LightsailDefaultKey-eu-central-1.pem ec2-user@3.75.113.52
+```
+
+Або без ключа в команді (якщо ключ прописаний в `~/.ssh/config`):
+
 ```bash
 ssh ec2-user@3.75.113.52
 ```
+
+**Отримати логи останнього деплою без інтерактивного входу** (запустити локально):
+
+```bash
+# Linux/macOS/Git Bash
+./scripts/deploy/fetch-deploy-logs.sh /path/to/LightsailDefaultKey-eu-central-1.pem 3.75.113.52
+```
+
+```powershell
+# PowerShell (замініть шлях до ключа та IP якщо потрібно)
+ssh -i "O:\path\to\LightsailDefaultKey-eu-central-1.pem" ec2-user@3.75.113.52 "sudo tail -250 /var/log/aws/codedeploy-agent/codedeploy-agent.log"
+```
+
+---
+
+## Проблема: AccessDeniedException при poll / "Wait for deployment" падає
+
+### Симптоми
+- У GitHub Actions крок **Wait for deployment** завершується з exit code 1.
+- У логах на інстансі (`/var/log/aws/codedeploy-agent/codedeploy-agent.log`):
+  - `Aws::CodeDeployCommand::Errors::AccessDeniedException`
+  - `Error polling for host commands`
+  - `Cannot reach InstanceService`
+
+### Причина
+IAM role (або credentials), прив’язана до Lightsail/EC2 інстансу, **не має прав** на виклик CodeDeploy API (агент не може отримувати команди деплою).
+
+### Рішення
+1. Переконайтеся, що до інстансу прив’язана IAM role для CodeDeploy (наприклад `LightsailCodeDeployInstanceRole`).
+2. Додайте до цієї ролі managed policy **AmazonEC2RoleforAWSCodeDeploy** (або еквівалент з дозволами для CodeDeploy agent).
+3. У AWS Console: EC2 → Instance → Security → IAM role; або IAM → Roles → обрана роль → Attach policies → `AmazonEC2RoleforAWSCodeDeploy`.
+4. Після зміни ролі зачекайте 1–2 хв і перезапустіть деплой або агент: `sudo service codedeploy-agent restart`.
 
 ### Крок 2: Перевірте статус CodeDeploy Agent
 

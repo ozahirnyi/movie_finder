@@ -22,7 +22,7 @@ class EntryPointTests(SimpleTestCase):
         self.assertEqual(response.status_code, 200)
         self.assertTrue(
             response.get('Content-Type', '').startswith('text/plain') and 'charset=utf-8' in response.get('Content-Type', ''),
-            msg=f"Content-Type should be text/plain with charset=utf-8, got {response.get('Content-Type')}",
+            msg=f'Content-Type should be text/plain with charset=utf-8, got {response.get("Content-Type")}',
         )
         self.assertIn(b'movie_finder', response.content)
 

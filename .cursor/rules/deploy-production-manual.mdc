@@ -1,0 +1,18 @@
+---
+description: Production deploy is manual only (CI broken); always update prod via SSH yourself
+alwaysApply: true
+---
+
+# Production deploy
+
+**CI/CD deploy does not work at the moment.** Do not rely on CodeDeploy or GitHub Actions for production updates.
+
+When changes need to be on production (after push to main or when the user asks to deploy):
+
+1. **Update prod yourself** via SSH to the Lightsail instance: pull latest code, then rebuild/restart as needed.
+2. Use the steps in **.cursor/skills/connect-to-lightsail-instance/SKILL.md** under "Manual deploy (use while CI is broken)".
+3. **Always stop Grafana first** (frees RAM): run `docker-compose -f ... -f docker-compose.monitoring.yml down` then `docker-compose -f docker-compose.lightsail.yml up -d` before doing pull/rebuild. On 512 MB, run only `docker-compose.lightsail.yml` for all `up -d`.
+4. After an instance reboot, run the “Stop monitoring” command from the skill **first** so Grafana does not start and fill memory, then proceed with deploy steps.
+5. When the user reports an error, try to SSH and run the **Error logs** command from the same skill; Docker keeps logs until rotation so recent errors are usually still there.
+
+Connection: `ssh -i "o:\projects\movie_finder\LightsailDefaultKey-eu-central-1.pem" -o StrictHostKeyChecking=accept-new ec2-user@3.75.113.52` (host may change).

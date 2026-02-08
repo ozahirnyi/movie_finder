@@ -117,7 +117,7 @@ class MoviesListView(ListAPIView):
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
     filterset_class = MovieFilter
     search_fields = ['title']
-    ordering_fields = ['imdb_id', 'title', 'genre', 'year', 'likes_count']
+    ordering_fields = ['imdb_id', 'title', 'genre', 'year', 'likes_count', 'imdb_rating']
     ordering = ['imdb_id']
 
     def get_queryset(self):
@@ -147,7 +147,7 @@ class MoviesSearchView(APIView):
         input_serializer.is_valid(raise_exception=True)
         movie_service = MovieService()
         imdb_movies = movie_service.get_movies_from_imdb(input_serializer.data.get('expression'))
-        omdb_movies = movie_service.search_movies_in_omdb([movie.title for movie in imdb_movies], self.request.user.id)
+        omdb_movies = movie_service.search_movies_in_omdb_from_imdb_list(imdb_movies, self.request.user.id)
         serialized_movies = MovieSerializer(omdb_movies, many=True)
         return Response(serialized_movies.data, status=status.HTTP_200_OK)
 
@@ -222,7 +222,7 @@ class WatchLaterListView(ListAPIView):
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
     filterset_class = WatchLaterFilter
     search_fields = ['title']
-    ordering_fields = ['imdb_id', 'title', 'genre', 'year', 'added_at']
+    ordering_fields = ['imdb_id', 'title', 'genre', 'year', 'added_at', 'imdb_rating']
     ordering = ['-added_at']
 
     def get_queryset(self):

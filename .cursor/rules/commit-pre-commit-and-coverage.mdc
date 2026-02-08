@@ -1,0 +1,27 @@
+---
+description: Before every commit run pre-commit, ensure 100% test coverage and all tests pass
+alwaysApply: true
+---
+
+# Commit quality gate
+
+Before creating or recommending any commit or push in this project:
+
+1. **Run pre-commit** (lint, format, migration checks, tests):
+   ```bash
+   pre-commit run --all-files
+   ```
+   If Poetry is used and pre-commit is run via the venv: `poetry run pre-commit run --all-files`. Alternatively run the equivalents: `make lint`, `make format`, then tests.
+
+2. **Run tests with coverage** and ensure 100% coverage is maintained:
+   ```bash
+   make coverage
+   ```
+   or `poetry run pytest --cov ...` with the project's coverage threshold. The project enforces a 100% coverage threshold; the build must not regress.
+
+3. **Do not commit or push** until:
+   - Pre-commit passes (all hooks green).
+   - All tests pass.
+   - Coverage remains at 100% (no new uncovered lines).
+
+If hooks modify files (e.g. ruff --fix), stage those changes and run pre-commit again before committing.
