@@ -23,7 +23,7 @@ Authoritative playbook for coding agents collaborating on the Movie Finder API. 
    ```bash
    cp env_example .env
    ```
-   - Minimum required for local work: `DJANGO_KEY`, DB credentials, `IMDB_API_KEY`, `OMDB_API_KEY`, `ANTHROPIC_API_KEY`.
+   - Minimum required for local work: `DJANGO_KEY`, DB credentials, `IMDB_API_KEY`, `OMDB_API_KEY`, `OPENAI_API_KEY`.
 3. Start services:
    - Native: `poetry run python manage.py migrate && poetry run python manage.py runserver 0.0.0.0:8000`
    - Docker: `docker compose up --build`

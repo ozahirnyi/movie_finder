@@ -20,6 +20,14 @@ class CollectionViewTests(APITestCase):
         self.movie_one = Movie.objects.create(title='Movie One', imdb_id='tt010001', poster='poster-one.jpg')
         self.movie_two = Movie.objects.create(title='Movie Two', imdb_id='tt010002', poster='poster-two.jpg')
 
+    def test_create_collection_requires_auth(self):
+        response = self.client.post(
+            reverse('collections'),
+            data={'name': 'Unauth', 'description': '', 'design': 'grid', 'is_public': True, 'movie_ids': []},
+            format='json',
+        )
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
     def test_create_collection(self):
         self.client.force_authenticate(user=self.user)
         response = self.client.post(
@@ -65,6 +73,15 @@ class CollectionViewTests(APITestCase):
         collection.refresh_from_db()
         self.assertEqual(collection.name, 'Admin Edit')
         self.assertEqual(collection.design, 'list')
+
+    def test_list_collections_available_without_auth(self):
+        Collection.objects.create(owner=self.user, name='Public', description='', is_public=True)
+        Collection.objects.create(owner=self.user, name='Private', description='', is_public=False)
+
+        response = self.client.get(reverse('collections'))
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data['results']), 1)
+        self.assertEqual(response.data['results'][0]['name'], 'Public')
 
     def test_list_collections_filters_visibility(self):
         Collection.objects.create(owner=self.user, name='Public', description='', is_public=True)

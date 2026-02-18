@@ -17,7 +17,7 @@ class CollectionService:
     def list_collections(
         self,
         *,
-        viewer_id: int,
+        viewer_id: int | None,
         is_staff: bool,
         is_public: bool | None = None,
         owner_id: int | None = None,
@@ -161,8 +161,8 @@ class CollectionService:
             raise PermissionError('You do not have permissions to modify this collection.')
 
     @staticmethod
-    def _is_owner(*, viewer_id: int, owner_id: int) -> bool:
-        return viewer_id == owner_id
+    def _is_owner(*, viewer_id: int | None, owner_id: int) -> bool:
+        return viewer_id is not None and viewer_id == owner_id
 
     @staticmethod
     def _has_admin_access(*, is_staff: bool) -> bool:

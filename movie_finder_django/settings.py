@@ -19,9 +19,11 @@ OMDB_API_KEY = env('OMDB_API_KEY', default='omdb_api_key')
 # Movie search: 'omdb' = OMDb ?s= search, 'imdb' = CollectAPI imdbSearchByName. On provider error we fall back to DB search.
 MOVIE_SEARCH_PROVIDER = env('MOVIE_SEARCH_PROVIDER', default='omdb')
 
-ANTHROPIC_API_KEY = env('ANTHROPIC_API_KEY', default='anthropic_api_key')
-# AI search (find movie by description): stronger model = better adherence to "last N years" etc.
-ANTHROPIC_AI_SEARCH_MODEL = env('ANTHROPIC_AI_SEARCH_MODEL', default='claude-opus-4-20250514')
+OPENAI_API_KEY = env('OPENAI_API_KEY', default='')
+# AI search (find movie by description): gpt-5 for better adherence to date constraints
+OPENAI_AI_SEARCH_MODEL = env('OPENAI_AI_SEARCH_MODEL', default='gpt-5')
+# Top movies and recommendations: gpt-5-mini (cheaper, sufficient for simple JSON output)
+OPENAI_AI_MODEL = env('OPENAI_AI_MODEL', default='gpt-5-mini')
 MAX_PROMPT_TOKENS_LENGTH = 1000
 
 SECRET_KEY = env('DJANGO_KEY', default='fallback_secret')

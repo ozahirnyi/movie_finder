@@ -477,6 +477,21 @@ class RecommendedMoviesTests(APITestCase):
         mock_find_movies.assert_not_called()
         mock_search.assert_not_called()
 
+    @patch('movie.services.MovieRepository.search_movies_in_omdb', return_value=[])
+    @patch('movie.services.RecommendationFindMovieAiClient.find_movies')
+    def test_recommendations_fallback_when_ai_fails(self, mock_find_movies, _mock_search):
+        mock_find_movies.side_effect = Exception('API credit balance too low')
+        other_user = get_user_model().objects.create_user(email='other@test.com', password='strongpass')
+        popular = Movie.objects.create(title='Popular Fallback', imdb_id='tt8000003', year='2012')
+        LikeMovie.objects.create(user=other_user, movie=popular)
+
+        response = self.client.get(reverse('movies_recommendations'))
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertGreaterEqual(len(response.data), 1)
+        titles = [item['title'] for item in response.data]
+        self.assertIn('Popular Fallback', titles)
+
     @patch('movie.services.FindMovieAiClient.find_movies')
     def test_recommendations_fallback_to_popular(self, mock_find_movies):
         mock_find_movies.return_value = []

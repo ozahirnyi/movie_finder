@@ -42,7 +42,7 @@ Key variables (see `movie_finder_django/settings.py` for defaults):
 | `DB_NAME`, `DB_USER`, `DB_PASSWORD`, `DB_HOST`, `DB_PORT` | PostgreSQL connection settings (tests use `DB_TEST_NAME`).
 | `IMDB_API_KEY` | CollectAPI key for `/imdbSearchByName` and `/imdbSearchById` endpoints.
 | `OMDB_API_KEY` | OMDB API key for movie details.
-| `ANTHROPIC_API_KEY` | Anthropic Claude key for AI search (also used to count prompt tokens).
+| `OPENAI_API_KEY` | OpenAI API key for AI search, top movies, and recommendations.
 | `EMAIL_HOST_USER`, `EMAIL_HOST_PASSWORD` | Credentials for SMTP (default Gmail settings are configured).
 | `ALLOWED_HOSTS` | Comma-separated hosts the API should accept (defaults include localhost and `.onrender.com` for Render).
 | `CSRF_TRUSTED_ORIGINS` | Comma-separated HTTPS origins for browsers making CSRF-protected requests (set for custom domains).

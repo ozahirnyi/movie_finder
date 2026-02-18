@@ -19,10 +19,14 @@ from .services import CollectionService
 
 
 class CollectionListCreateView(GenericAPIView):
-    permission_classes = [permissions.IsAuthenticated]
     serializer_class = CollectionSerializer
     pagination_class = MoviesPagination
     service_class = CollectionService
+
+    def get_permissions(self):
+        if self.request.method == 'GET':
+            return [permissions.AllowAny()]
+        return [permissions.IsAuthenticated()]
 
     @extend_schema(
         parameters=[
@@ -97,10 +101,13 @@ class CollectionListCreateView(GenericAPIView):
             pagination.request = request
             limit = pagination.get_limit(request)
             offset = pagination.get_offset(request)
+        if subscribed is True and not request.user.is_authenticated:
+            return Response(status=status.HTTP_401_UNAUTHORIZED)
         try:
             ordering = request.query_params.get('ordering') or self._map_sort(request.query_params.get('sort'))
+            viewer_id = request.user.id if request.user.is_authenticated else None
             result = service.list_collections(
-                viewer_id=request.user.id,
+                viewer_id=viewer_id,
                 is_staff=bool(getattr(request.user, 'is_staff', False)),
                 is_public=is_public,
                 owner_id=owner_id_int,

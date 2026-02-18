@@ -1,9 +1,10 @@
 import json
 import logging
+from types import SimpleNamespace
 from typing import Optional
 
-from anthropic import Anthropic
 from django.conf import settings
+from openai import OpenAI
 
 from .dataclasses import AiMovie
 from .errors import AiResponseError
@@ -12,8 +13,19 @@ from .system_prompts import find_movie_system_prompt, recommendations_system_pro
 logger = logging.getLogger(__name__)
 
 
+def _count_tokens_openai(text: str, model: str) -> int:
+    """Count tokens for OpenAI models using tiktoken."""
+    try:
+        import tiktoken
+
+        encoding = tiktoken.encoding_for_model(model)
+        return len(encoding.encode(text))
+    except Exception:
+        return len(text) // 4
+
+
 class FindMovieAiClient:
-    DEFAULT_MODEL = 'claude-sonnet-4-20250514'
+    DEFAULT_MODEL = 'gpt-5-mini'
     DEFAULT_MAX_TOKENS = 2048
     SYSTEM_PROMPT: str | None = None
 
@@ -28,44 +40,31 @@ class FindMovieAiClient:
         self.system_prompt = resolved_prompt
         self.model = model or self.DEFAULT_MODEL
         self.max_tokens = max_tokens or self.DEFAULT_MAX_TOKENS
-        self._client: Optional[Anthropic] = None
+        self._client: Optional[OpenAI] = None
 
     def find_movies(self, user_prompt: str) -> list[AiMovie]:
         if self.count_tokens(user_prompt) > settings.MAX_PROMPT_TOKENS_LENGTH:
             return []
         try:
-            response = self.client.messages.create(
+            response = self.client.chat.completions.create(
                 model=self.model,
-                max_tokens=self.max_tokens,
-                system=self.system_prompt,
-                messages=self._build_messages(user_prompt),
+                max_completion_tokens=self.max_tokens,
+                messages=[
+                    {'role': 'system', 'content': self.system_prompt or ''},
+                    {'role': 'user', 'content': user_prompt},
+                ],
             )
         except Exception as exc:
             logger.exception('AI request failed: %s', exc)
             raise Exception(f'Error while finding movies: {exc}') from exc
-        raw_text = response.content[0].text if response.content else ''
+        raw_text = response.choices[0].message.content if response.choices else ''
         logger.info('AI response: raw_prefix=%r', raw_text[:500] if raw_text else '')
-        return self._parse_response(response)
+        wrapped = SimpleNamespace(content=[SimpleNamespace(text=raw_text or '[]')])
+        return self._parse_response(wrapped)
 
     def count_tokens(self, user_prompt: str) -> int:
-        response = self.client.messages.count_tokens(
-            model=self.model,
-            messages=self._build_messages(user_prompt),
-        )
-        return response.input_tokens
-
-    def _build_messages(self, user_prompt: str) -> list[dict[str, object]]:
-        return [
-            {
-                'role': 'user',
-                'content': [
-                    {
-                        'type': 'text',
-                        'text': user_prompt,
-                    },
-                ],
-            },
-        ]
+        full_text = (self.system_prompt or '') + '\n' + user_prompt
+        return _count_tokens_openai(full_text, self.model)
 
     @staticmethod
     def _parse_response(response) -> list[AiMovie]:
@@ -104,9 +103,9 @@ class FindMovieAiClient:
             raise AiResponseError(f'Failed to parse AI response: {exc}') from exc
 
     @property
-    def client(self) -> Anthropic:
+    def client(self) -> OpenAI:
         if self._client is None:
-            self._client = Anthropic(api_key=settings.ANTHROPIC_API_KEY)
+            self._client = OpenAI(api_key=settings.OPENAI_API_KEY)
         return self._client
 
 
@@ -114,13 +113,21 @@ class SearchFindMovieAiClient(FindMovieAiClient):
     SYSTEM_PROMPT = find_movie_system_prompt
 
     def __init__(self, *, model: str | None = None, **kwargs) -> None:
-        model = model or getattr(settings, 'ANTHROPIC_AI_SEARCH_MODEL', FindMovieAiClient.DEFAULT_MODEL)
+        model = model or getattr(settings, 'OPENAI_AI_SEARCH_MODEL', 'gpt-5')
         super().__init__(model=model, **kwargs)
 
 
 class RecommendationFindMovieAiClient(FindMovieAiClient):
     SYSTEM_PROMPT = recommendations_system_prompt
 
+    def __init__(self, *, model: str | None = None, **kwargs) -> None:
+        model = model or getattr(settings, 'OPENAI_AI_MODEL', 'gpt-5-mini')
+        super().__init__(model=model, **kwargs)
+
 
 class TopMoviesFindMovieAiClient(FindMovieAiClient):
     SYSTEM_PROMPT = top_movies_system_prompt
+
+    def __init__(self, *, model: str | None = None, **kwargs) -> None:
+        model = model or getattr(settings, 'OPENAI_AI_MODEL', 'gpt-5-mini')
+        super().__init__(model=model, **kwargs)

@@ -1,8 +1,10 @@
 DEBUG=False
 DJANGO_KEY=change_me
-ANTHROPIC_API_KEY=
-# AI search model: claude-opus-4-20250514 (stronger, better at date constraints) or claude-sonnet-4-20250514 (cheaper)
-# ANTHROPIC_AI_SEARCH_MODEL=claude-opus-4-20250514
+OPENAI_API_KEY=
+# AI search: gpt-5 (stronger, better at date constraints)
+# OPENAI_AI_SEARCH_MODEL=gpt-5
+# Top movies and recommendations: gpt-5-mini (cheaper)
+# OPENAI_AI_MODEL=gpt-5-mini
 IMDB_API_KEY=
 # Movie search: omdb = OMDb search (?s=), imdb = CollectAPI. On error we fall back to DB search.
 MOVIE_SEARCH_PROVIDER=omdb

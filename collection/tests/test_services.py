@@ -89,6 +89,10 @@ class CollectionServiceTests(TestCase):
         only_public = self.service.list_collections(viewer_id=self.owner.id, is_staff=False, is_public=True)
         self.assertEqual([collection.id for collection in only_public.items], [public_collection.id])
 
+        anonymous_view = self.service.list_collections(viewer_id=None, is_staff=False)
+        self.assertEqual([collection.id for collection in anonymous_view.items], [public_collection.id])
+        self.assertEqual(anonymous_view.total_count, 1)
+
     def test_list_collections_supports_search_and_ordering(self):
         alpha = self.service.create_collection(
             owner_id=self.owner.id,

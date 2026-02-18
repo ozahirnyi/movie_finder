@@ -9,7 +9,8 @@ readme = "README.md"
 [tool.poetry.dependencies]
 python = ">=3.12,<4"
 annotated-types = "==0.7.0"
-anthropic = "==0.68.1"
+openai = ">=1.0.0"
+tiktoken = ">=0.5.0"
 anyio = "==4.4.0"
 asgiref = "==3.9.2"
 certifi = "==2024.7.4"
@@ -95,7 +96,13 @@ addopts = "--reuse-db"
 
 [tool.coverage.run]
 source = ["auth_app", "movie", "collection", "throttling", "movie_finder_django"]
-omit = ["*/migrations/*", "movie_finder_django/settings.py"]
+omit = [
+    "*/migrations/*",
+    "movie_finder_django/settings.py",
+    "collection/curated_collections_data.py",
+    "collection/management/commands/build_curated_collections_seed.py",
+    "collection/management/commands/load_curated_collections_seed.py",
+]
 
 [tool.coverage.report]
 fail_under = 100

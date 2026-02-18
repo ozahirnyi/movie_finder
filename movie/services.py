@@ -117,8 +117,12 @@ class MovieRecommendationService:
 
         if activity_summary.has_activity:
             preference_prompt = self.prompt_service.build_prompt(activity_summary)
-            ai_movies = self.ai_client.find_movies(preference_prompt)
-            requested_titles = {movie.title for movie in ai_movies if movie.title}
+            try:
+                ai_movies = self.ai_client.find_movies(preference_prompt)
+                requested_titles = {movie.title for movie in ai_movies if movie.title}
+            except Exception as exc:
+                logger.warning('AI recommendations failed, falling back to popular: %s', exc)
+                requested_titles = set()
             if requested_titles:
                 omdb_movies = self.movie_repository.search_movies_in_omdb(list(requested_titles), user_context.id)
                 omdb_titles = {movie.title for movie in omdb_movies if movie.title}
@@ -178,8 +182,12 @@ class TopMoviesService:
         return self._refresh_top_movies(user_id)
 
     def _refresh_top_movies(self, user_id: int | None) -> list[MovieRecommendation]:
-        ai_movies = self.ai_client.find_movies(self.TOP_MOVIES_PROMPT)
-        requested_titles = [movie.title for movie in ai_movies if movie.title]
+        try:
+            ai_movies = self.ai_client.find_movies(self.TOP_MOVIES_PROMPT)
+            requested_titles = [movie.title for movie in ai_movies if movie.title]
+        except Exception as exc:
+            logger.warning('AI top movies failed, falling back to popular: %s', exc)
+            requested_titles = []
         top_movies: list[MovieRecommendation] = []
 
         if requested_titles:

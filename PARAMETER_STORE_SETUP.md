@@ -43,7 +43,7 @@ nano .env
 |---|----------------|------|----------|------|--------------|
 | 1 | `/movie-finder/production/DEBUG` | **String** | `False` | Django debug mode (завжди False в production) | ✅ |
 | 2 | `/movie-finder/production/DJANGO_KEY` | **SecureString** | `[згенеруйте: python3 -c "import secrets; print(secrets.token_urlsafe(50))"]` | Django secret key (мінімум 50 символів) | ✅ |
-| 3 | `/movie-finder/production/ANTHROPIC_API_KEY` | **SecureString** | `sk-ant-api03-...` | Anthropic Claude API key для AI пошуку | ✅ |
+| 3 | `/movie-finder/production/OPENAI_API_KEY` | **SecureString** | `sk-proj-...` | OpenAI API key для AI пошуку, top movies, recommendations | ✅ |
 | 4 | `/movie-finder/production/IMDB_API_KEY` | **SecureString** | `[ваш CollectAPI ключ]` | CollectAPI IMDB key для пошуку фільмів | ✅ |
 | 5 | `/movie-finder/production/OMDB_API_KEY` | **SecureString** | `[ваш OMDB ключ]` | OMDB API key для деталей фільмів | ✅ |
 | 6 | `/movie-finder/production/DB_NAME` | **String** | `movie_finder` | PostgreSQL database name | ✅ |

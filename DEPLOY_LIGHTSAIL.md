@@ -8,7 +8,7 @@
 
 - AWS акаунт з активним Lightsail
 - Домен (опціонально, але рекомендовано)
-- API ключі: `IMDB_API_KEY`, `OMDB_API_KEY`, `ANTHROPIC_API_KEY`
+- API ключі: `IMDB_API_KEY`, `OMDB_API_KEY`, `OPENAI_API_KEY`
 - SMTP credentials для email (Gmail або інший провайдер)
 
 ---
@@ -107,7 +107,7 @@ nano .env
 # Обов'язкові налаштування
 DEBUG=False
 DJANGO_KEY=<генеруйте_безпечний_ключ_мінімум_50_символів>
-ANTHROPIC_API_KEY=<ваш_anthropic_ключ>
+OPENAI_API_KEY=<ваш_openai_ключ>
 IMDB_API_KEY=<ваш_collectapi_ключ>
 OMDB_API_KEY=<ваш_omdb_ключ>
 
