@@ -284,6 +284,14 @@ class CollectionViewTests(APITestCase):
         self.assertEqual([movie['id'] for movie in response.data['results']], [self.movie_one.id, self.movie_two.id])
         self.assertIn('description', response.data['results'][0])
 
+    def test_collection_movies_endpoint_allows_public_without_auth(self):
+        collection = Collection.objects.create(owner=self.user, name='Public Movies', description='', is_public=True)
+        CollectionMovie.objects.create(collection=collection, movie=self.movie_one, position=0)
+
+        response = self.client.get(reverse('collection_movies', kwargs={'collection_id': collection.id}))
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual([movie['id'] for movie in response.data['results']], [self.movie_one.id])
+
     def test_collection_movies_private_requires_access(self):
         collection = Collection.objects.create(owner=self.other_user, name='Hidden', description='', is_public=False)
         CollectionMovie.objects.create(collection=collection, movie=self.movie_one, position=0)

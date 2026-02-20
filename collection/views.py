@@ -237,7 +237,7 @@ class CollectionDetailView(GenericAPIView):
 
 
 class CollectionMoviesView(GenericAPIView):
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.AllowAny]
     serializer_class = CollectionMovieSerializer
     pagination_class = MoviesPagination
     service_class = CollectionService
@@ -314,6 +314,8 @@ class CollectionMoviesView(GenericAPIView):
     )
     def get(self, request, *args, **kwargs):
         service = self.service_class()
+        viewer_id = request.user.id if request.user.is_authenticated else None
+        is_staff = bool(getattr(request.user, 'is_staff', False)) if request.user.is_authenticated else False
         pagination = self.pagination_class() if self.pagination_class else None
         limit = offset = None
         if pagination:
@@ -322,8 +324,8 @@ class CollectionMoviesView(GenericAPIView):
             offset = pagination.get_offset(request)
         try:
             result = service.list_collection_movies(
-                viewer_id=request.user.id,
-                is_staff=bool(getattr(request.user, 'is_staff', False)),
+                viewer_id=viewer_id,
+                is_staff=is_staff,
                 collection_id=self._get_collection_id(),
                 limit=limit,
                 offset=offset,
