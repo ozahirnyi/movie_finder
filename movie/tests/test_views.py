@@ -10,8 +10,7 @@ from rest_framework import status
 from rest_framework.test import APITestCase
 from rest_framework_simplejwt.tokens import RefreshToken
 
-from movie.dataclasses import AiMovie, ImdbMovie, MovieRecommendation, OmdbMovie
-from movie.dataclasses import Genre as GenreDTO
+from movie.dataclasses import AiMovie, Genre as GenreDTO, ImdbMovie, MovieRecommendation, OmdbMovie
 from movie.errors import AddLikeError
 from movie.models import Genre, LikeMovie, Movie, Rating, RecommendedMovie, WatchLaterMovie
 
@@ -247,6 +246,52 @@ class FindMovieAiTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_429_TOO_MANY_REQUESTS)
         mock_ai.assert_not_called()
         mock_search.assert_not_called()
+
+    @patch('movie.views.MovieService.search_movies_in_omdb_from_imdb_list')
+    @patch('movie.views.MovieService.get_movies_from_imdb')
+    @patch('movie.views.MovieService.search_movies_in_omdb')
+    @patch('movie.views.MovieService.get_movies_from_ai')
+    def test_ai_search_fallback_when_omdb_exact_match_fails(
+        self, mock_ai, mock_search, mock_get_imdb, mock_search_from_list
+    ):
+        mock_ai.return_value = [AiMovie(title='A Knight of the Seven Kingdoms', match_score=90)]
+        mock_search.return_value = []
+        mock_get_imdb.return_value = [ImdbMovie('Game of Thrones', 'tt0944947', '', '2011', 'series')]
+        movie = Movie.objects.create(
+            title='Game of Thrones',
+            imdb_id='tt0944947',
+            year='2011',
+            imdb_rating='9.2',
+            plot='Plot',
+        )
+        mock_search_from_list.return_value = [
+            OmdbMovie(
+                title=movie.title,
+                imdb_id=movie.imdb_id,
+                id=movie.id,
+                plot=movie.plot or '',
+                genres=[GenreDTO(name='Drama')],
+                directors=[],
+                writers=[],
+                actors=[],
+                ratings=[],
+                languages=[],
+                countries=[],
+            )
+        ]
+
+        response = self.client.post(
+            reverse('movies_ai_search'),
+            data={'expression': 'Лицар семи королівств'},
+            format='json',
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data), 1)
+        self.assertEqual(response.data[0]['title'], 'Game of Thrones')
+        mock_search.assert_called_once_with(['A Knight of the Seven Kingdoms'], self.user.id)
+        mock_get_imdb.assert_called()
+        mock_search_from_list.assert_called_once()
 
     @patch('movie.views.MovieService.search_movies_in_omdb')
     @patch('movie.views.MovieService.get_movies_from_ai')

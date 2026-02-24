@@ -180,12 +180,27 @@ class MoviesAiSearchView(APIView):
             raise AiSearchLimitError
         try:
             movie_service = MovieService()
-            ai_movies = movie_service.get_movies_from_ai(input_serializer.data.get('expression'))
+            expression = input_serializer.data.get('expression') or ''
+            ai_movies = movie_service.get_movies_from_ai(expression)
             titles_for_omdb = [m.title for m in ai_movies if m.title]
             omdb_movies = movie_service.search_movies_in_omdb(titles_for_omdb, self.request.user.id)
             ai_scores = {(m.title or '').lower(): m.match_score for m in ai_movies}
-            for movie in omdb_movies:
-                movie.match_score = ai_scores.get((movie.title or '').lower(), 0)
+            if not omdb_movies and expression:
+                fallback_queries = (titles_for_omdb[:3] if titles_for_omdb else []) + [expression]
+                for q in fallback_queries:
+                    if not q or not q.strip():
+                        continue
+                    imdb_list = movie_service.get_movies_from_imdb(q.strip())
+                    if imdb_list:
+                        omdb_movies = movie_service.search_movies_in_omdb_from_imdb_list(
+                            imdb_list[:10], self.request.user.id
+                        )
+                        for m in omdb_movies:
+                            m.match_score = ai_scores.get((m.title or '').lower(), 50)
+                        break
+            else:
+                for movie in omdb_movies:
+                    movie.match_score = ai_scores.get((movie.title or '').lower(), 0)
             serialized_movies = MovieSerializer(omdb_movies, many=True)
             return Response(serialized_movies.data, status=status.HTTP_200_OK)
         except Exception as exc:
