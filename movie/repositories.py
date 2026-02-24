@@ -154,7 +154,7 @@ class MovieRepository:
 
         try:
             response = requests.get(
-                f'{settings.OMDB_API_URL}?t={title}&apikey={settings.OMDB_API_KEY}',
+                f'{settings.OMDB_API_URL}?t={quote_plus(title)}&apikey={settings.OMDB_API_KEY}',
                 headers={'content-type': 'application/json'},
                 timeout=30,
             )
@@ -346,7 +346,7 @@ class MovieRepository:
 
     def _resolve_one_by_title(self, title: str, initiator_id: int) -> OmdbMovie | None:
         movie_instance = (
-            Movie.objects.filter(title=title)
+            Movie.objects.filter(title__iexact=title)
             .with_is_liked(initiator_id)
             .with_is_watch_later(initiator_id)
             .with_likes_count()
@@ -356,6 +356,10 @@ class MovieRepository:
         if movie_instance:
             return self._movie_to_omdb_dto(movie_instance)
         omdb_movie = self.get_movie_from_omdb_by_expression(title)
+        if omdb_movie is None:
+            imdb_list = self.get_movies_from_omdb_search(title)
+            if imdb_list and imdb_list[0].imdb_id:
+                omdb_movie = self.get_movie_from_omdb_by_id(imdb_list[0].imdb_id)
         if omdb_movie is None:
             return None
         if omdb_movie.imdb_id:

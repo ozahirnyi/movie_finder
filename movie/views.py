@@ -192,9 +192,7 @@ class MoviesAiSearchView(APIView):
                         continue
                     imdb_list = movie_service.get_movies_from_imdb(q.strip())
                     if imdb_list:
-                        omdb_movies = movie_service.search_movies_in_omdb_from_imdb_list(
-                            imdb_list[:10], self.request.user.id
-                        )
+                        omdb_movies = movie_service.search_movies_in_omdb_from_imdb_list(imdb_list[:10], self.request.user.id)
                         for m in omdb_movies:
                             m.match_score = ai_scores.get((m.title or '').lower(), 50)
                         break

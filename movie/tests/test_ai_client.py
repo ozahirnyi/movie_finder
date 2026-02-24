@@ -19,6 +19,11 @@ from movie.system_prompts import find_movie_system_prompt, recommendations_syste
 
 
 class FindMovieAiClientTests(SimpleTestCase):
+    def test_find_movie_prompt_requires_english_imdb_titles(self):
+        self.assertIn('English', find_movie_system_prompt)
+        self.assertIn('IMDb', find_movie_system_prompt)
+        self.assertIn('imdb.com', find_movie_system_prompt)
+
     def test_returns_empty_list_when_prompt_too_long(self):
         with patch.object(
             SearchFindMovieAiClient,

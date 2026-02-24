@@ -425,8 +425,44 @@ class MovieRepositoryTests(TestCase):
         created_movie = Movie.objects.get(imdb_id='tt000002')
         self.assertEqual(new_entry.id, created_movie.id)
 
+    @patch.object(MovieRepository, 'get_movie_from_omdb_by_id')
+    @patch.object(MovieRepository, 'get_movies_from_omdb_search')
     @patch.object(MovieRepository, 'get_movie_from_omdb_by_expression')
-    def test_search_movies_in_omdb_excludes_when_omdb_returns_none(self, mock_get_movie):
+    def test_search_movies_in_omdb_fallback_to_s_when_t_fails(self, mock_t, mock_s, mock_by_id):
+        mock_t.return_value = None
+        mock_s.return_value = [ImdbMovie('A Knight of the Seven Kingdoms', 'tt27497448', '', '2026', 'series')]
+        mock_by_id.return_value = OmdbMovie(
+            title='A Knight of the Seven Kingdoms',
+            imdb_id='tt27497448',
+            year='2026',
+            type='series',
+            runtime='',
+            plot='Plot',
+            awards='',
+            poster='',
+            metascore='',
+            imdb_rating='',
+            imdb_votes='',
+            total_seasons='1',
+            genres=[],
+            directors=[],
+            writers=[],
+            actors=[],
+            countries=[],
+            languages=[],
+            ratings=[],
+        )
+        user = get_user_model().objects.create_user(email='fallback@test.test', password='pass')
+        results = self.repository.search_movies_in_omdb(['A Knight of the Seven Kingdoms'], initiator_id=user.id)
+        self.assertEqual(len(results), 1)
+        self.assertEqual(results[0].title, 'A Knight of the Seven Kingdoms')
+        mock_t.assert_called_once()
+        mock_s.assert_called_once_with('A Knight of the Seven Kingdoms')
+        mock_by_id.assert_called_once_with('tt27497448')
+
+    @patch.object(MovieRepository, 'get_movies_from_omdb_search', return_value=[])
+    @patch.object(MovieRepository, 'get_movie_from_omdb_by_expression')
+    def test_search_movies_in_omdb_excludes_when_omdb_returns_none(self, mock_get_movie, mock_search):
         user = get_user_model().objects.create_user(email='skip@test.test', password='pass')
         valid = OmdbMovie(
             title='Found',

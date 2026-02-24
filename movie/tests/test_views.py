@@ -10,7 +10,8 @@ from rest_framework import status
 from rest_framework.test import APITestCase
 from rest_framework_simplejwt.tokens import RefreshToken
 
-from movie.dataclasses import AiMovie, Genre as GenreDTO, ImdbMovie, MovieRecommendation, OmdbMovie
+from movie.dataclasses import AiMovie, ImdbMovie, MovieRecommendation, OmdbMovie
+from movie.dataclasses import Genre as GenreDTO
 from movie.errors import AddLikeError
 from movie.models import Genre, LikeMovie, Movie, Rating, RecommendedMovie, WatchLaterMovie
 
@@ -251,9 +252,7 @@ class FindMovieAiTests(APITestCase):
     @patch('movie.views.MovieService.get_movies_from_imdb')
     @patch('movie.views.MovieService.search_movies_in_omdb')
     @patch('movie.views.MovieService.get_movies_from_ai')
-    def test_ai_search_fallback_when_omdb_exact_match_fails(
-        self, mock_ai, mock_search, mock_get_imdb, mock_search_from_list
-    ):
+    def test_ai_search_fallback_when_omdb_exact_match_fails(self, mock_ai, mock_search, mock_get_imdb, mock_search_from_list):
         mock_ai.return_value = [AiMovie(title='A Knight of the Seven Kingdoms', match_score=90)]
         mock_search.return_value = []
         mock_get_imdb.return_value = [ImdbMovie('Game of Thrones', 'tt0944947', '', '2011', 'series')]
