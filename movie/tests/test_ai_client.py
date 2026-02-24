@@ -24,6 +24,14 @@ class FindMovieAiClientTests(SimpleTestCase):
         self.assertIn('IMDb', find_movie_system_prompt)
         self.assertIn('imdb.com', find_movie_system_prompt)
 
+    def test_find_movie_prompt_forbids_empty_response(self):
+        self.assertIn('NEVER RETURN AN EMPTY ARRAY', find_movie_system_prompt)
+
+    def test_find_movie_prompt_handles_non_english_queries(self):
+        self.assertIn('Ukrainian', find_movie_system_prompt)
+        self.assertIn('translate the query to English', find_movie_system_prompt)
+        self.assertIn('щось типу', find_movie_system_prompt)
+
     def test_returns_empty_list_when_prompt_too_long(self):
         with patch.object(
             SearchFindMovieAiClient,
