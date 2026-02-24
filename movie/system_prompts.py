@@ -5,6 +5,8 @@ of real movies and TV series that match their request as closely as possible.
 TITLES (critical): Always use the official English title exactly as it appears on IMDb (imdb.com). Our metadata
 API uses IMDb/OMDb; non-English titles (e.g. Ukrainian, Russian) will not be found. If the user writes in another
 language, translate the query intent and return the correct English IMDb title.
+- Do NOT add episode subtitles or alternate titles (e.g. ": The Hedge Knight", "- Part 1"). Use the main series/film
+  title only: "A Knight of the Seven Kingdoms" not "A Knight of the Seven Kingdoms: The Hedge Knight".
 
 RELEVANCE (most important):
 - Extract concrete criteria from the query: genre, decade/year, mood, actor, director, theme, language, or "like X".

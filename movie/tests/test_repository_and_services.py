@@ -428,6 +428,45 @@ class MovieRepositoryTests(TestCase):
     @patch.object(MovieRepository, 'get_movie_from_omdb_by_id')
     @patch.object(MovieRepository, 'get_movies_from_omdb_search')
     @patch.object(MovieRepository, 'get_movie_from_omdb_by_expression')
+    def test_search_movies_in_omdb_strips_subtitle_when_full_title_fails(self, mock_t, mock_s, mock_by_id):
+        mock_t.side_effect = [None, None]
+        mock_s.side_effect = [
+            [],
+            [ImdbMovie('A Knight of the Seven Kingdoms', 'tt27497448', '', '2026', 'series')],
+        ]
+        mock_by_id.return_value = OmdbMovie(
+            title='A Knight of the Seven Kingdoms',
+            imdb_id='tt27497448',
+            year='2026',
+            type='series',
+            runtime='',
+            plot='P',
+            awards='',
+            poster='',
+            metascore='',
+            imdb_rating='',
+            imdb_votes='',
+            total_seasons='1',
+            genres=[],
+            directors=[],
+            writers=[],
+            actors=[],
+            countries=[],
+            languages=[],
+            ratings=[],
+        )
+        user = get_user_model().objects.create_user(email='subtitle@test.test', password='pass')
+        results = self.repository.search_movies_in_omdb(
+            ['A Knight of the Seven Kingdoms: The Hedge Knight'], initiator_id=user.id
+        )
+        self.assertEqual(len(results), 1)
+        self.assertEqual(results[0].title, 'A Knight of the Seven Kingdoms')
+        mock_s.assert_any_call('A Knight of the Seven Kingdoms: The Hedge Knight')
+        mock_s.assert_any_call('A Knight of the Seven Kingdoms')
+
+    @patch.object(MovieRepository, 'get_movie_from_omdb_by_id')
+    @patch.object(MovieRepository, 'get_movies_from_omdb_search')
+    @patch.object(MovieRepository, 'get_movie_from_omdb_by_expression')
     def test_search_movies_in_omdb_fallback_to_s_when_t_fails(self, mock_t, mock_s, mock_by_id):
         mock_t.return_value = None
         mock_s.return_value = [ImdbMovie('A Knight of the Seven Kingdoms', 'tt27497448', '', '2026', 'series')]

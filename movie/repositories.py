@@ -360,6 +360,14 @@ class MovieRepository:
             imdb_list = self.get_movies_from_omdb_search(title)
             if imdb_list and imdb_list[0].imdb_id:
                 omdb_movie = self.get_movie_from_omdb_by_id(imdb_list[0].imdb_id)
+        if omdb_movie is None and (':' in title or ' - ' in title):
+            main_title = title.split(':')[0].split(' - ')[0].strip()
+            if main_title and main_title != title:
+                omdb_movie = self.get_movie_from_omdb_by_expression(main_title)
+                if omdb_movie is None:
+                    imdb_list = self.get_movies_from_omdb_search(main_title)
+                    if imdb_list and imdb_list[0].imdb_id:
+                        omdb_movie = self.get_movie_from_omdb_by_id(imdb_list[0].imdb_id)
         if omdb_movie is None:
             return None
         if omdb_movie.imdb_id:
