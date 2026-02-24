@@ -1,12 +1,13 @@
 import json
 import logging
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
 from urllib.parse import quote_plus
 
 import requests
 from django.conf import settings
 from django.contrib.postgres.aggregates import ArrayAgg, JSONBAgg
-from django.db import transaction
+from django.db import close_old_connections, transaction
 from django.db.models import Case, Count, F, IntegerField, JSONField, Q, Value, When
 from django.db.models.functions import JSONObject
 from django.utils import timezone
@@ -293,31 +294,47 @@ class MovieRepository:
 
     def search_movies_in_omdb_from_imdb_list(self, imdb_movies: list[ImdbMovie], initiator_id: int) -> list[OmdbMovie]:
         """Resolve ImdbMovie list (from OMDb search) to OmdbMovie with DB lookup by imdb_id first. Avoids duplicates."""
-        search_results = []
-        for imdb_item in imdb_movies:
-            if imdb_item.imdb_id and imdb_item.imdb_id.strip():
-                movie_instance = (
-                    Movie.objects.filter(imdb_id=imdb_item.imdb_id.strip())
-                    .with_is_liked(initiator_id)
-                    .with_is_watch_later(initiator_id)
-                    .with_likes_count()
-                    .with_watch_later_count()
-                    .first()
-                )
-                if movie_instance:
-                    search_results.append(self._movie_to_omdb_dto(movie_instance))
-                    continue
-                omdb_movie = self.get_movie_from_omdb_by_id(imdb_item.imdb_id.strip())
-                if omdb_movie and omdb_movie.imdb_id:
-                    saved_movie = self._create_movie_in_db(omdb_movie)
-                    omdb_movie.id = saved_movie.id
-                    search_results.append(omdb_movie)
-                continue
-            # No imdb_id: fall back to title lookup (e.g. from AI search)
-            omdb_movie = self._resolve_one_by_title(imdb_item.title, initiator_id)
-            if omdb_movie:
-                search_results.append(omdb_movie)
-        return search_results
+        if not imdb_movies:
+            return []
+
+        def _resolve_imdb_item(imdb_item: ImdbMovie) -> OmdbMovie | None:
+            try:
+                if imdb_item.imdb_id and imdb_item.imdb_id.strip():
+                    movie_instance = (
+                        Movie.objects.filter(imdb_id=imdb_item.imdb_id.strip())
+                        .with_is_liked(initiator_id)
+                        .with_is_watch_later(initiator_id)
+                        .with_likes_count()
+                        .with_watch_later_count()
+                        .first()
+                    )
+                    if movie_instance:
+                        return self._movie_to_omdb_dto(movie_instance)
+                    omdb_movie = self.get_movie_from_omdb_by_id(imdb_item.imdb_id.strip())
+                    if omdb_movie and omdb_movie.imdb_id:
+                        saved_movie = self._create_movie_in_db(omdb_movie)
+                        omdb_movie.id = saved_movie.id
+                        return omdb_movie
+                    return None
+                return self._resolve_one_by_title(imdb_item.title, initiator_id)
+            except Exception as exc:
+                logger.warning('Parallel imdb-list resolve failed: title=%r error=%s', imdb_item.title, exc)
+                return None
+            finally:
+                close_old_connections()
+
+        max_workers = min(len(imdb_movies), 5)
+        results_by_index: dict[int, OmdbMovie] = {}
+
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            future_to_idx = {executor.submit(_resolve_imdb_item, item): i for i, item in enumerate(imdb_movies)}
+            for future in as_completed(future_to_idx):
+                idx = future_to_idx[future]
+                result = future.result()
+                if result:
+                    results_by_index[idx] = result
+
+        return [results_by_index[i] for i in sorted(results_by_index)]
 
     def _movie_to_omdb_dto(self, movie_instance: Movie) -> OmdbMovie:
         return OmdbMovie(
@@ -378,12 +395,30 @@ class MovieRepository:
         return omdb_movie
 
     def search_movies_in_omdb(self, movie_titles: list[str], initiator_id: int) -> list[OmdbMovie]:
-        search_results = []
-        for title in movie_titles:
-            omdb_movie = self._resolve_one_by_title(title, initiator_id)
-            if omdb_movie:
-                search_results.append(omdb_movie)
-        return search_results
+        if not movie_titles:
+            return []
+
+        def _resolve_safe(title: str) -> OmdbMovie | None:
+            try:
+                return self._resolve_one_by_title(title, initiator_id)
+            except Exception as exc:
+                logger.warning('Parallel OMDb resolve failed: title=%r error=%s', title, exc)
+                return None
+            finally:
+                close_old_connections()
+
+        max_workers = min(len(movie_titles), 5)
+        results_by_index: dict[int, OmdbMovie] = {}
+
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            future_to_idx = {executor.submit(_resolve_safe, title): i for i, title in enumerate(movie_titles)}
+            for future in as_completed(future_to_idx):
+                idx = future_to_idx[future]
+                result = future.result()
+                if result:
+                    results_by_index[idx] = result
+
+        return [results_by_index[i] for i in sorted(results_by_index)]
 
 
 class RecommendationRepository:
