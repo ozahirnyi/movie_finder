@@ -359,6 +359,10 @@ class MovieRepository:
             imdb_id=movie_instance.imdb_id,
             type=movie_instance.type,
             total_seasons=movie_instance.total_seasons,
+            likes_count=getattr(movie_instance, 'likes_count', 0),
+            is_liked=getattr(movie_instance, 'is_liked', False),
+            watch_later_count=getattr(movie_instance, 'watch_later_count', 0),
+            is_watch_later=getattr(movie_instance, 'is_watch_later', False),
         )
 
     def _resolve_one_by_title(self, title: str, initiator_id: int) -> OmdbMovie | None:

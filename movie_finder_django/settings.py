@@ -21,7 +21,7 @@ MOVIE_SEARCH_PROVIDER = env('MOVIE_SEARCH_PROVIDER', default='omdb')
 
 OPENAI_API_KEY = env('OPENAI_API_KEY', default='')
 # AI search (find movie by description): gpt-5 for better adherence to date constraints
-OPENAI_AI_SEARCH_MODEL = env('OPENAI_AI_SEARCH_MODEL', default='gpt-5')
+OPENAI_AI_SEARCH_MODEL = env('OPENAI_AI_SEARCH_MODEL', default='gpt-5-mini')
 # Top movies and recommendations: gpt-5-mini (cheaper, sufficient for simple JSON output)
 OPENAI_AI_MODEL = env('OPENAI_AI_MODEL', default='gpt-5-mini')
 MAX_PROMPT_TOKENS_LENGTH = 1000

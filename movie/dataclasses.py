@@ -62,6 +62,10 @@ class OmdbMovie:
     type: str | None = None
     total_seasons: str | None = None
     id: int | None = None
+    likes_count: int = 0
+    is_liked: bool = False
+    watch_later_count: int = 0
+    is_watch_later: bool = False
 
 
 @dataclass
