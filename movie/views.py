@@ -106,8 +106,8 @@ class MovieUnlikeView(GenericAPIView):
                 'likes_count',
                 '-imdb_rating',
                 'imdb_rating',
-                '-added_at',
-                'added_at',
+                '-created_at',
+                'created_at',
             ],
         ),
     ]
@@ -119,8 +119,8 @@ class MoviesListView(ListAPIView):
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
     filterset_class = MovieFilter
     search_fields = ['title']
-    ordering_fields = ['imdb_id', 'title', 'genre', 'year', 'likes_count', 'imdb_rating']
-    ordering = ['imdb_id']
+    ordering_fields = ['imdb_id', 'title', 'genre', 'year', 'likes_count', 'imdb_rating', 'created_at']
+    ordering = ['-created_at']
 
     def get_queryset(self):
         return (
