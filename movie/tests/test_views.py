@@ -152,6 +152,20 @@ class FinderTests(APITestCase):
         self.assertEqual(ratings['ratings_below_5'], 1)
         self.assertEqual(response.data['genres'][0]['count'], 1)
 
+    def test_watch_later_statistics_excludes_null_genres(self):
+        movie_with_genre = Movie.objects.create(title='Has Genre', imdb_id='tt9001', year='2020')
+        movie_with_genre.genres.add(Genre.objects.create(name='Drama'))
+        movie_no_genre = Movie.objects.create(title='No Genre', imdb_id='tt9002', year='2021')
+        WatchLaterMovie.objects.create(user=self.user, movie=movie_with_genre)
+        WatchLaterMovie.objects.create(user=self.user, movie=movie_no_genre)
+
+        response = self.client.get(reverse('watch_later_statistics'))
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        genre_names = [g['genre'] for g in response.data['genres']]
+        self.assertIn('Drama', genre_names)
+        self.assertNotIn(None, genre_names)
+
     def test_watch_later_filter_by_rating(self):
         high_rated = Movie.objects.create(title='Highly Rated', imdb_id='tt010001', imdb_rating='9.0')
         low_rated = Movie.objects.create(title='Low Rated', imdb_id='tt010002', imdb_rating='5.0')
@@ -556,7 +570,7 @@ class RecommendedMoviesTests(APITestCase):
         self.assertGreaterEqual(len(response.data), 2)
         self.assertEqual(response.data[0]['title'], 'Popular One')
         mock_find_movies.assert_not_called()
-        self.assertEqual(RecommendedMovie.objects.filter(user=fallback_user, recommendation_date=timezone.now().date()).count(), len(response.data))
+        self.assertEqual(RecommendedMovie.objects.filter(user=fallback_user, recommendation_date=timezone.now().date()).count(), 0)
 
 
 class TopMoviesViewTests(APITestCase):

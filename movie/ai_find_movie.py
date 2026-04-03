@@ -58,7 +58,8 @@ class FindMovieAiClient:
             logger.exception('AI request failed: %s', exc)
             raise Exception(f'Error while finding movies: {exc}') from exc
         raw_text = response.choices[0].message.content if response.choices else ''
-        logger.info('AI response: raw_prefix=%r', raw_text[:500] if raw_text else '')
+        finish_reason = response.choices[0].finish_reason if response.choices else 'no_choices'
+        logger.info('AI response: model=%s finish_reason=%s raw_prefix=%r', self.model, finish_reason, raw_text[:500] if raw_text else '')
         wrapped = SimpleNamespace(content=[SimpleNamespace(text=raw_text or '[]')])
         return self._parse_response(wrapped)
 
@@ -119,10 +120,20 @@ class SearchFindMovieAiClient(FindMovieAiClient):
 
 class RecommendationFindMovieAiClient(FindMovieAiClient):
     SYSTEM_PROMPT = recommendations_system_prompt
+    MAX_RETRIES = 2
 
     def __init__(self, *, model: str | None = None, **kwargs) -> None:
         model = model or getattr(settings, 'OPENAI_AI_MODEL', 'gpt-5-mini')
         super().__init__(model=model, **kwargs)
+
+    def find_movies(self, user_prompt: str) -> list[AiMovie]:
+        for attempt in range(self.MAX_RETRIES):
+            result = super().find_movies(user_prompt)
+            if result:
+                return result
+            if attempt < self.MAX_RETRIES - 1:
+                logger.warning('Recommendation AI returned empty (attempt %d/%d), retrying', attempt + 1, self.MAX_RETRIES)
+        return result
 
 
 class TopMoviesFindMovieAiClient(FindMovieAiClient):

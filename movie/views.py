@@ -281,6 +281,7 @@ class WatchLaterStatisticsView(GenericAPIView):
         )
         genres_stats = (
             WatchLaterMovie.objects.filter(user=self.request.user)
+            .exclude(movie__genres__name__isnull=True)
             .values('movie__genres__name')
             .annotate(count=Count('movie__genres'))
             .order_by('-count')

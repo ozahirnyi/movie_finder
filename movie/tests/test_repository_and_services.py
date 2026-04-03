@@ -456,9 +456,7 @@ class MovieRepositoryTests(TestCase):
             ratings=[],
         )
         user = get_user_model().objects.create_user(email='subtitle@test.test', password='pass')
-        results = self.repository.search_movies_in_omdb(
-            ['A Knight of the Seven Kingdoms: The Hedge Knight'], initiator_id=user.id
-        )
+        results = self.repository.search_movies_in_omdb(['A Knight of the Seven Kingdoms: The Hedge Knight'], initiator_id=user.id)
         self.assertEqual(len(results), 1)
         self.assertEqual(results[0].title, 'A Knight of the Seven Kingdoms')
         mock_s.assert_any_call('A Knight of the Seven Kingdoms: The Hedge Knight')

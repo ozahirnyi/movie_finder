@@ -47,7 +47,11 @@ class FindMovieAiClientTests(SimpleTestCase):
     @patch('movie.ai_find_movie.OpenAI')
     def test_parse_response_into_ai_movies(self, mock_openai, _):
         fake_response = SimpleNamespace(
-            choices=[SimpleNamespace(message=SimpleNamespace(content='[{"title": "Shrek", "match_score": 10}, {"title": "Shrek 2"}]'))]
+            choices=[
+                SimpleNamespace(
+                    message=SimpleNamespace(content='[{"title": "Shrek", "match_score": 10}, {"title": "Shrek 2"}]'), finish_reason='stop'
+                )
+            ]
         )
         fake_client = MagicMock()
         fake_client.chat.completions.create.return_value = fake_response
@@ -163,7 +167,7 @@ class FindMovieAiClientTests(SimpleTestCase):
                 '{"title": "Succession", "match_score": 92}]',
             ]
         )
-        fake_response = SimpleNamespace(choices=[SimpleNamespace(message=SimpleNamespace(content=json_text))])
+        fake_response = SimpleNamespace(choices=[SimpleNamespace(message=SimpleNamespace(content=json_text), finish_reason='stop')])
         fake_client = MagicMock()
         fake_client.chat.completions.create.return_value = fake_response
         mock_openai.return_value = fake_client
@@ -179,7 +183,9 @@ class FindMovieAiClientTests(SimpleTestCase):
     @patch('movie.ai_find_movie.OpenAI')
     def test_parse_response_handles_string_array_fallback(self, mock_openai, _):
         """Test parsing string array (fallback for backward compatibility)"""
-        fake_response = SimpleNamespace(choices=[SimpleNamespace(message=SimpleNamespace(content='["Dune", "Barbie", "Succession"]'))])
+        fake_response = SimpleNamespace(
+            choices=[SimpleNamespace(message=SimpleNamespace(content='["Dune", "Barbie", "Succession"]'), finish_reason='stop')]
+        )
         fake_client = MagicMock()
         fake_client.chat.completions.create.return_value = fake_response
         mock_openai.return_value = fake_client
@@ -201,7 +207,7 @@ class FindMovieAiClientTests(SimpleTestCase):
                 '{"title": "Inception", "match_score": 90}]',
             ]
         )
-        fake_response = SimpleNamespace(choices=[SimpleNamespace(message=SimpleNamespace(content=json_text))])
+        fake_response = SimpleNamespace(choices=[SimpleNamespace(message=SimpleNamespace(content=json_text), finish_reason='stop')])
         fake_client = MagicMock()
         fake_client.chat.completions.create.return_value = fake_response
         mock_openai.return_value = fake_client
@@ -217,7 +223,9 @@ class FindMovieAiClientTests(SimpleTestCase):
     @patch('movie.ai_find_movie.OpenAI')
     def test_parse_response_handles_string_array_recommendations_fallback(self, mock_openai, _):
         """Test parsing string array for RecommendationFindMovieAiClient (fallback for backward compatibility)"""
-        fake_response = SimpleNamespace(choices=[SimpleNamespace(message=SimpleNamespace(content='["The Matrix", "Inception"]'))])
+        fake_response = SimpleNamespace(
+            choices=[SimpleNamespace(message=SimpleNamespace(content='["The Matrix", "Inception"]'), finish_reason='stop')]
+        )
         fake_client = MagicMock()
         fake_client.chat.completions.create.return_value = fake_response
         mock_openai.return_value = fake_client
@@ -269,3 +277,21 @@ class FindMovieAiClientTests(SimpleTestCase):
         self.assertEqual(len(result), 2)
         self.assertEqual(result[0].title, 'Shrek')
         self.assertEqual(result[1].title, 'Barbie')
+
+    @patch.object(RecommendationFindMovieAiClient, 'count_tokens', return_value=10)
+    @patch('movie.ai_find_movie.OpenAI')
+    def test_recommendation_retries_on_empty_response(self, mock_openai, _):
+        empty_response = SimpleNamespace(choices=[SimpleNamespace(message=SimpleNamespace(content='[]'), finish_reason='stop')])
+        success_response = SimpleNamespace(
+            choices=[SimpleNamespace(message=SimpleNamespace(content='[{"title": "Inception", "match_score": 90}]'), finish_reason='stop')]
+        )
+        fake_client = MagicMock()
+        fake_client.chat.completions.create.side_effect = [empty_response, success_response]
+        mock_openai.return_value = fake_client
+
+        client = RecommendationFindMovieAiClient()
+        result = client.find_movies('test prompt')
+
+        self.assertEqual(len(result), 1)
+        self.assertEqual(result[0].title, 'Inception')
+        self.assertEqual(fake_client.chat.completions.create.call_count, 2)

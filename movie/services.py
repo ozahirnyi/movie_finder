@@ -131,8 +131,8 @@ class MovieRecommendationService:
 
         if not recommended_movies:
             recommended_movies = self.recommendation_repository.get_popular_movies(user_context.id)
-
-        self.recommendation_repository.replace_cached_recommendations(user_context.id, today, [movie.id for movie in recommended_movies])
+        else:
+            self.recommendation_repository.replace_cached_recommendations(user_context.id, today, [movie.id for movie in recommended_movies])
         return recommended_movies
 
 
