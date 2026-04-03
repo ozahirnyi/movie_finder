@@ -120,6 +120,7 @@ class SearchFindMovieAiClient(FindMovieAiClient):
 
 class RecommendationFindMovieAiClient(FindMovieAiClient):
     SYSTEM_PROMPT = recommendations_system_prompt
+    DEFAULT_MAX_TOKENS = 4096
     MAX_RETRIES = 2
 
     def __init__(self, *, model: str | None = None, **kwargs) -> None:
@@ -138,6 +139,7 @@ class RecommendationFindMovieAiClient(FindMovieAiClient):
 
 class TopMoviesFindMovieAiClient(FindMovieAiClient):
     SYSTEM_PROMPT = top_movies_system_prompt
+    DEFAULT_MAX_TOKENS = 4096
 
     def __init__(self, *, model: str | None = None, **kwargs) -> None:
         model = model or getattr(settings, 'OPENAI_AI_MODEL', 'gpt-5-mini')
