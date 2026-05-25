@@ -1,6 +1,7 @@
 from django.test import SimpleTestCase
 
-from movie.ai_resolve import (    normalize_title,
+from movie.ai_resolve import (
+    normalize_title,
     pick_best_imdb_candidate,
     title_similarity,
     title_variants,
