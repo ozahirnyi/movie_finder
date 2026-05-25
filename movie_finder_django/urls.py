@@ -10,10 +10,12 @@ from auth_app.views import (
 )
 from movie.views import (
     MovieLikeView,
+    MoviesAiSearchStreamView,
     MoviesAiSearchView,
     MoviesListView,
     MoviesRecommendationsView,
     MoviesSearchView,
+    MovieTrailerView,
     MovieUnlikeView,
     MovieView,
     StructuresListView,
@@ -66,7 +68,9 @@ movies_patterns = [
     path('movies/<int:id>/like/', MovieLikeView.as_view(), name='movie_like'),
     path('movies/<int:id>/unlike/', MovieUnlikeView.as_view(), name='movie_unlike'),
     path('movies/search/', MoviesSearchView.as_view(), name='movies_search'),
+    path('movies/trailer/', MovieTrailerView.as_view(), name='movie_trailer'),
     path('movies/ai/search/', MoviesAiSearchView.as_view(), name='movies_ai_search'),
+    path('movies/ai/search/stream/', MoviesAiSearchStreamView.as_view(), name='movies_ai_search_stream'),
     path('movies/recommendations/', MoviesRecommendationsView.as_view(), name='movies_recommendations'),
     path('movies/top/', TopMoviesView.as_view(), name='movies_top'),
     path('watch_later/', include(watch_later_patterns)),

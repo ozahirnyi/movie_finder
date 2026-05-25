@@ -16,6 +16,8 @@ IMDB_API_SEARCH_BY_IMDB_ID_URL = IMDB_API_URL + '/imdbSearchById'
 IMDB_API_KEY = env('IMDB_API_KEY', default='imdb_api_key')
 OMDB_API_URL = 'http://www.omdbapi.com'
 OMDB_API_KEY = env('OMDB_API_KEY', default='omdb_api_key')
+YOUTUBE_API_KEY = env('YOUTUBE_API_KEY', default='')
+TMDB_API_KEY = env('TMDB_API_KEY', default='')
 # Movie search: 'omdb' = OMDb ?s= search, 'imdb' = CollectAPI imdbSearchByName. On provider error we fall back to DB search.
 MOVIE_SEARCH_PROVIDER = env('MOVIE_SEARCH_PROVIDER', default='omdb')
 
@@ -45,7 +47,6 @@ ALLOWED_HOSTS = env.list('ALLOWED_HOSTS', default=DEFAULT_ALLOWED_HOSTS)
 if 'web' not in ALLOWED_HOSTS:
     ALLOWED_HOSTS = list(ALLOWED_HOSTS) + ['web']
 DEFAULT_CSRF_TRUSTED_ORIGINS = ['https://api.moviefinder.cc', 'https://moviefinder.cc', 'https://www.moviefinder.cc']
-CSRF_TRUSTED_ORIGINS = env.list('CSRF_TRUSTED_ORIGINS', default=DEFAULT_CSRF_TRUSTED_ORIGINS)
 
 # Cloudflare reverse proxy configuration
 # Trust X-Forwarded-Proto header from Cloudflare/Nginx
@@ -76,6 +77,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'corsheaders.middleware.CorsMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -83,7 +85,6 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'corsheaders.middleware.CorsMiddleware',
     'allauth.account.middleware.AccountMiddleware',
 ]
 if METRICS_ENABLED:
@@ -96,9 +97,33 @@ DEFAULT_CORS_ALLOWED_ORIGINS = [
     'https://www.moviefinder.cc',
     'https://api.moviefinder.cc',
 ]
-CORS_ALLOWED_ORIGINS = env.list('CORS_ALLOWED_ORIGINS', default=DEFAULT_CORS_ALLOWED_ORIGINS)
+_cors_raw = env.list('CORS_ALLOWED_ORIGINS', default=DEFAULT_CORS_ALLOWED_ORIGINS)
+CORS_ALLOWED_ORIGINS = [o.strip() for o in _cors_raw if isinstance(o, str) and o.strip()]
+if not CORS_ALLOWED_ORIGINS:
+    CORS_ALLOWED_ORIGINS = list(DEFAULT_CORS_ALLOWED_ORIGINS)
+
+# Next.js local dev (and optional alt port). Enable with DEBUG or INCLUDE_LOCAL_FRONTEND_CORS in .env.
+LOCAL_FRONTEND_ORIGINS = [
+    'http://localhost:3000',
+    'http://127.0.0.1:3000',
+    'http://localhost:3001',
+    'http://127.0.0.1:3001',
+]
+INCLUDE_LOCAL_FRONTEND_CORS = env.bool('INCLUDE_LOCAL_FRONTEND_CORS', default=False)
+if DEBUG or INCLUDE_LOCAL_FRONTEND_CORS:
+    CORS_ALLOWED_ORIGINS = list(dict.fromkeys(CORS_ALLOWED_ORIGINS + LOCAL_FRONTEND_ORIGINS))
+    if '*' not in ALLOWED_HOSTS:
+        ALLOWED_HOSTS = list(dict.fromkeys([*ALLOWED_HOSTS, '*']))
+
 CORS_ALLOW_ALL_ORIGINS = env.bool('CORS_ALLOW_ALL_ORIGINS', default=True)
 CORS_ALLOW_CREDENTIALS = True
+
+_csrf_raw = env.list('CSRF_TRUSTED_ORIGINS', default=DEFAULT_CSRF_TRUSTED_ORIGINS)
+CSRF_TRUSTED_ORIGINS = [o.strip() for o in _csrf_raw if isinstance(o, str) and o.strip()]
+if not CSRF_TRUSTED_ORIGINS:
+    CSRF_TRUSTED_ORIGINS = list(DEFAULT_CSRF_TRUSTED_ORIGINS)
+if DEBUG or INCLUDE_LOCAL_FRONTEND_CORS:
+    CSRF_TRUSTED_ORIGINS = list(dict.fromkeys(CSRF_TRUSTED_ORIGINS + LOCAL_FRONTEND_ORIGINS))
 
 TEMPLATES = [
     {

@@ -796,6 +796,34 @@ class MovieServiceTests(TestCase):
             self.assertEqual(result, [])
             mock_imdb_list.assert_called_once()
 
+    @patch.object(MovieRepository, 'resolve_ai_movies', return_value=[])
+    @patch.object(MovieRepository, 'search_movies_in_omdb_from_imdb_list')
+    @patch.object(MovieRepository, 'get_movies_from_omdb_search')
+    def test_resolve_ai_search_falls_back_to_search_provider(self, mock_search, mock_from_list, mock_resolve):
+        mock_search.return_value = [ImdbMovie('Game of Thrones', 'tt0944947', '', '2011', 'series')]
+        mock_from_list.return_value = [
+            OmdbMovie(
+                title='Game of Thrones',
+                imdb_id='tt0944947',
+                id=1,
+                plot='Plot',
+                genres=[],
+                directors=[],
+                writers=[],
+                actors=[],
+                ratings=[],
+                languages=[],
+                countries=[],
+            )
+        ]
+        service = MovieService()
+        ai_movies = [AiMovie(title='A Knight of the Seven Kingdoms', match_score=90)]
+        results = service.resolve_ai_search(ai_movies, initiator_id=1, expression='knight')
+        self.assertEqual(len(results), 1)
+        self.assertEqual(results[0].title, 'Game of Thrones')
+        mock_resolve.assert_called_once()
+        mock_from_list.assert_called_once()
+
     @patch.dict('django.conf.settings.__dict__', {'MOVIE_SEARCH_PROVIDER': 'omdb'}, clear=False)
     @patch.object(MovieRepository, 'get_movies_from_omdb_search', return_value=[ImdbMovie('Batman', 'tt0096895', '', '1989', 'movie')])
     def test_get_movies_from_imdb_uses_omdb_when_provider_omdb(self, mock_omdb_search):

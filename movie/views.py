@@ -1,7 +1,12 @@
+import json
 import logging
+from concurrent.futures import ThreadPoolExecutor
+from queue import Empty, Queue
+from threading import Thread
 
-from django.db import IntegrityError
+from django.db import IntegrityError, close_old_connections
 from django.db.models import Case, Count, Max, Value, When
+from django.http import StreamingHttpResponse
 from django_filters.rest_framework import DjangoFilterBackend
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework import generics, permissions, status
@@ -33,6 +38,7 @@ from .errors import AddLikeError, AiSearchLimitError
 from .filters import MovieFilter, WatchLaterFilter
 from .models import LikeMovie, Movie, WatchLaterMovie
 from .paginations import MoviesPagination
+from .renderers import STREAM_RENDERERS
 from .serializers import (
     EmptySerializer,
     FindMovieAiSearchViewRequestSerializer,
@@ -46,6 +52,76 @@ from .serializers import (
     WatchLaterStatisticsSerializer,
 )
 from .services import GenreService, MovieRecommendationService, MovieService, TopMoviesService
+from .trailer import lookup_trailer_video_id
+
+AI_STREAM_RESOLVE_MAX_WORKERS = 2
+AI_STREAM_RESOLVE_POLL_INTERVAL_SECONDS = 0.05
+
+
+def _consume_ai_search_quota(request):
+    user_repository = UserRepository()
+    try:
+        user_repository.consume_ai_search_quota(request.user)
+        ai_search_used_total.labels(tier_code=request.user.account_tier.code).inc()
+    except AiSearchLimitExceeded:
+        ai_search_limit_hit_total.labels(tier_code=request.user.account_tier.code).inc()
+        raise AiSearchLimitError
+
+
+def _stream_resolved_ai_movies(
+    movie_service,
+    expression: str,
+    initiator_id: int,
+    *,
+    max_workers: int = AI_STREAM_RESOLVE_MAX_WORKERS,
+    poll_interval_seconds: float = AI_STREAM_RESOLVE_POLL_INTERVAL_SECONDS,
+):
+    queue = Queue()
+    producer_done = object()
+
+    def produce_ai_movies():
+        try:
+            for index, ai_movie in enumerate(movie_service.stream_movies_from_ai(expression)):
+                queue.put((index, ai_movie))
+        except Exception as exc:
+            queue.put(exc)
+        finally:
+            queue.put(producer_done)
+
+    def resolve_safe(index, ai_movie):
+        try:
+            return index, ai_movie, movie_service.resolve_ai_movie(ai_movie, initiator_id)
+        except Exception as exc:
+            logging.getLogger(__name__).warning('AI streamed movie resolve failed: title=%r error=%s', ai_movie.title, exc)
+            return index, ai_movie, None
+        finally:
+            close_old_connections()
+
+    producer = Thread(target=produce_ai_movies, daemon=True)
+    producer.start()
+
+    pending = set()
+    producer_finished = False
+
+    with ThreadPoolExecutor(max_workers=max_workers) as executor:
+        while not producer_finished or pending:
+            try:
+                item = queue.get(timeout=poll_interval_seconds)
+            except Empty:
+                item = None
+
+            if item is producer_done:
+                producer_finished = True
+            elif isinstance(item, Exception):
+                raise item
+            elif item is not None:
+                index, ai_movie = item
+                pending.add(executor.submit(resolve_safe, index, ai_movie))
+
+            completed = {future for future in pending if future.done()}
+            for future in completed:
+                pending.remove(future)
+                yield future.result()
 
 
 class MovieView(RetrieveAPIView):
@@ -171,34 +247,15 @@ class MoviesAiSearchView(APIView):
         logger = logging.getLogger(__name__)
         input_serializer = FindMovieAiSearchViewRequestSerializer(data=request.data)
         input_serializer.is_valid(raise_exception=True)
-        user_repository = UserRepository()
         try:
-            user_repository.consume_ai_search_quota(request.user)
-            ai_search_used_total.labels(tier_code=request.user.account_tier.code).inc()
-        except AiSearchLimitExceeded:
-            ai_search_limit_hit_total.labels(tier_code=request.user.account_tier.code).inc()
-            raise AiSearchLimitError
+            _consume_ai_search_quota(request)
+        except AiSearchLimitError:
+            raise
         try:
             movie_service = MovieService()
             expression = input_serializer.data.get('expression') or ''
             ai_movies = movie_service.get_movies_from_ai(expression)
-            titles_for_omdb = [m.title for m in ai_movies if m.title]
-            omdb_movies = movie_service.search_movies_in_omdb(titles_for_omdb, self.request.user.id)
-            ai_scores = {(m.title or '').lower(): m.match_score for m in ai_movies}
-            if not omdb_movies and expression:
-                fallback_queries = (titles_for_omdb[:3] if titles_for_omdb else []) + [expression]
-                for q in fallback_queries:
-                    if not q or not q.strip():
-                        continue
-                    imdb_list = movie_service.get_movies_from_imdb(q.strip())
-                    if imdb_list:
-                        omdb_movies = movie_service.search_movies_in_omdb_from_imdb_list(imdb_list[:10], self.request.user.id)
-                        for m in omdb_movies:
-                            m.match_score = ai_scores.get((m.title or '').lower(), 50)
-                        break
-            else:
-                for movie in omdb_movies:
-                    movie.match_score = ai_scores.get((movie.title or '').lower(), 0)
+            omdb_movies = movie_service.resolve_ai_search(ai_movies, self.request.user.id, expression)
             serialized_movies = MovieSerializer(omdb_movies, many=True)
             return Response(serialized_movies.data, status=status.HTTP_200_OK)
         except Exception as exc:
@@ -207,6 +264,99 @@ class MoviesAiSearchView(APIView):
                 {'detail': str(exc)},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
+
+
+class MoviesAiSearchStreamView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+    renderer_classes = STREAM_RENDERERS
+
+    throttle_classes = [
+        AiSearchUaThrottle,
+        AiSearchIpThrottle,
+        AiSearchForwardedThrottle,
+    ]
+
+    @extend_schema(
+        request=FindMovieAiSearchViewRequestSerializer,
+        responses={(status.HTTP_200_OK, 'application/x-ndjson'): MovieSerializer(many=True)},
+    )
+    def post(self, request, *args, **kwargs):
+        logger = logging.getLogger(__name__)
+        input_serializer = FindMovieAiSearchViewRequestSerializer(data=request.data)
+        input_serializer.is_valid(raise_exception=True)
+
+        try:
+            _consume_ai_search_quota(request)
+        except AiSearchLimitError:
+            raise
+
+        expression = input_serializer.data.get('expression') or ''
+        initiator_id = request.user.id
+
+        def event_stream():
+            movie_service = MovieService()
+            ai_movies = []
+            resolved_count = 0
+            seen_imdb_ids: set[str] = set()
+
+            try:
+                for index, ai_movie, movie in _stream_resolved_ai_movies(
+                    movie_service,
+                    expression,
+                    initiator_id,
+                ):
+                    ai_movies.append(ai_movie)
+                    if not movie:
+                        continue
+                    imdb_id = (movie.imdb_id or '').strip()
+                    if imdb_id and imdb_id in seen_imdb_ids:
+                        continue
+                    if imdb_id:
+                        seen_imdb_ids.add(imdb_id)
+                    resolved_count += 1
+                    payload = MovieSerializer(movie).data
+                    yield json.dumps({'event': 'movie', 'index': index, 'data': payload}) + '\n'
+            except Exception as exc:
+                logger.exception('movies/ai/search/stream AI step failed: %s', exc)
+                yield json.dumps({'event': 'error', 'detail': str(exc)}) + '\n'
+                return
+
+            if resolved_count == 0 and expression:
+                fallback_queries = [movie.title for movie in ai_movies[:3] if movie.title] + [expression]
+                for query in fallback_queries:
+                    if not query or not query.strip():
+                        continue
+                    imdb_list = movie_service.get_movies_from_imdb(query.strip())
+                    if not imdb_list:
+                        continue
+                    fallback_movies = movie_service.search_movies_in_omdb_from_imdb_list(
+                        imdb_list[:10],
+                        initiator_id,
+                    )
+                    for index, movie in enumerate(fallback_movies):
+                        imdb_id = (movie.imdb_id or '').strip()
+                        if imdb_id and imdb_id in seen_imdb_ids:
+                            continue
+                        if imdb_id:
+                            seen_imdb_ids.add(imdb_id)
+                        movie.match_score = ai_movies[index].match_score if index < len(ai_movies) else 50
+                        resolved_count += 1
+                        payload = MovieSerializer(movie).data
+                        yield json.dumps({'event': 'movie', 'index': index, 'data': payload}) + '\n'
+                    break
+
+            yield json.dumps(
+                {
+                    'event': 'done',
+                    'requested': len(ai_movies),
+                    'resolved': resolved_count,
+                }
+            ) + '\n'
+
+        response = StreamingHttpResponse(event_stream(), content_type='application/x-ndjson')
+        response['Cache-Control'] = 'no-cache'
+        response['X-Accel-Buffering'] = 'no'
+        return response
 
 
 class WatchLaterCreateView(CreateAPIView):
@@ -343,3 +493,16 @@ class TopMoviesView(GenericAPIView):
         movies = top_movies_service.get_top_movies(user_id)
         serializer = self.get_serializer(movies, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class MovieTrailerView(APIView):
+    permission_classes = [permissions.AllowAny]
+
+    def get(self, request, *args, **kwargs):
+        title = request.query_params.get("title", "")
+        year = request.query_params.get("year")
+        imdb_id = request.query_params.get("imdb_id")
+        video_id = lookup_trailer_video_id(title, year, imdb_id)
+        if not video_id:
+            return Response({"videoId": None}, status=status.HTTP_404_NOT_FOUND)
+        return Response({"videoId": video_id}, status=status.HTTP_200_OK)

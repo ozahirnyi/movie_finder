@@ -1,19 +1,24 @@
+import json
 import random
+import time
 from datetime import timedelta
+from types import SimpleNamespace
 from typing import List
 from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
+from django.test import SimpleTestCase
 from django.urls import reverse
 from django.utils import timezone
 from rest_framework import status
-from rest_framework.test import APITestCase
+from rest_framework.test import APIRequestFactory, APITestCase, force_authenticate
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from movie.dataclasses import AiMovie, ImdbMovie, MovieRecommendation, OmdbMovie
 from movie.dataclasses import Genre as GenreDTO
-from movie.errors import AddLikeError
+from movie.errors import AddLikeError, AiSearchLimitError
 from movie.models import Genre, LikeMovie, Movie, Rating, RecommendedMovie, WatchLaterMovie
+from movie.views import AI_STREAM_RESOLVE_MAX_WORKERS, MoviesAiSearchStreamView, _stream_resolved_ai_movies
 
 
 def _issue_jwt(client, user):
@@ -23,6 +28,251 @@ def _issue_jwt(client, user):
         HTTP_USER_AGENT=f'test-agent{random.randint(0, 1000)}',
         HTTP_X_FORWARDED_FOR=f'127.0.0.{random.randint(1, 254)}',
     )
+
+
+class AiSearchStreamResolveTests(SimpleTestCase):
+    def _stream_view_events(self, fake_service, expression='anything'):
+        request = APIRequestFactory().post(
+            '/movies/ai/search/stream/',
+            {'expression': expression},
+            format='json',
+            HTTP_ACCEPT='application/x-ndjson',
+        )
+        force_authenticate(request, user=SimpleNamespace(id=1, is_authenticated=True))
+
+        with (
+            patch('movie.views._consume_ai_search_quota') as mock_consume_quota,
+            patch('movie.views.MovieService', return_value=fake_service),
+            patch.object(MoviesAiSearchStreamView, 'throttle_classes', []),
+        ):
+            response = MoviesAiSearchStreamView.as_view()(request)
+            events = [
+                json.loads(chunk.decode('utf-8') if isinstance(chunk, bytes) else chunk)
+                for chunk in response.streaming_content
+            ]
+        return response, events, mock_consume_quota
+
+    def test_stream_resolve_default_concurrency_is_two(self):
+        self.assertEqual(AI_STREAM_RESOLVE_MAX_WORKERS, 2)
+
+    def test_streamed_titles_are_resolved_concurrently(self):
+        class FakeMovieService:
+            def stream_movies_from_ai(self, expression):
+                yield AiMovie(title='Slow', match_score=90)
+                yield AiMovie(title='Fast', match_score=95)
+
+            def resolve_ai_movie(self, ai_movie, initiator_id):
+                if ai_movie.title == 'Slow':
+                    time.sleep(0.05)
+                return OmdbMovie(title=ai_movie.title, imdb_id=f'tt{ai_movie.title.lower()}')
+
+        results = list(
+            _stream_resolved_ai_movies(
+                FakeMovieService(),
+                'anything',
+                initiator_id=1,
+                max_workers=2,
+                poll_interval_seconds=0.001,
+            )
+        )
+
+        self.assertEqual([movie.title for _, _, movie in results], ['Fast', 'Slow'])
+
+    def test_streamed_title_producer_errors_are_propagated(self):
+        class FakeMovieService:
+            def stream_movies_from_ai(self, expression):
+                raise RuntimeError('ai stream failed')
+                yield
+
+            def resolve_ai_movie(self, ai_movie, initiator_id):
+                return OmdbMovie(title=ai_movie.title)
+
+        with self.assertRaises(RuntimeError) as exc:
+            list(
+                _stream_resolved_ai_movies(
+                    FakeMovieService(),
+                    'anything',
+                    initiator_id=1,
+                    max_workers=2,
+                    poll_interval_seconds=0.001,
+                )
+            )
+
+        self.assertIn('ai stream failed', str(exc.exception))
+
+    def test_streamed_title_resolve_errors_do_not_stop_other_results(self):
+        class FakeMovieService:
+            def stream_movies_from_ai(self, expression):
+                yield AiMovie(title='Broken', match_score=10)
+                yield AiMovie(title='Good', match_score=90)
+
+            def resolve_ai_movie(self, ai_movie, initiator_id):
+                if ai_movie.title == 'Broken':
+                    raise RuntimeError('resolve failed')
+                return OmdbMovie(title=ai_movie.title, imdb_id='ttgood')
+
+        results = list(
+            _stream_resolved_ai_movies(
+                FakeMovieService(),
+                'anything',
+                initiator_id=1,
+                max_workers=2,
+                poll_interval_seconds=0.001,
+            )
+        )
+
+        by_title = {ai_movie.title: movie for _, ai_movie, movie in results}
+        self.assertIsNone(by_title['Broken'])
+        self.assertEqual(by_title['Good'].title, 'Good')
+
+    def test_ai_search_stream_view_yields_movie_events_from_streamed_titles(self):
+        class FakeMovieService:
+            def stream_movies_from_ai(self, expression):
+                yield AiMovie(title='Pom Poko', year='1994', match_score=92)
+                yield AiMovie(title='The Cat Returns', year='2002', match_score=90)
+
+            def resolve_ai_movie(self, ai_movie, initiator_id):
+                movies = {
+                    'Pom Poko': OmdbMovie(title='Pom Poko', imdb_id='tt0110008', id=1),
+                    'The Cat Returns': OmdbMovie(title='The Cat Returns', imdb_id='tt0347618', id=2),
+                }
+                movie = movies[ai_movie.title]
+                movie.match_score = ai_movie.match_score
+                return movie
+
+        response, events, mock_consume_quota = self._stream_view_events(FakeMovieService(), 'anime like shrek')
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual([event['event'] for event in events], ['movie', 'movie', 'done'])
+        self.assertEqual([event['data']['title'] for event in events[:2]], ['Pom Poko', 'The Cat Returns'])
+        self.assertEqual(events[-1]['requested'], 2)
+        self.assertEqual(events[-1]['resolved'], 2)
+        mock_consume_quota.assert_called_once()
+
+    def test_ai_search_stream_view_skips_duplicate_resolved_imdb_ids(self):
+        class FakeMovieService:
+            def stream_movies_from_ai(self, expression):
+                yield AiMovie(title='First', match_score=80)
+                yield AiMovie(title='Duplicate', match_score=70)
+
+            def resolve_ai_movie(self, ai_movie, initiator_id):
+                movie = OmdbMovie(title=ai_movie.title, imdb_id='ttsame', id=1)
+                movie.match_score = ai_movie.match_score
+                return movie
+
+        _, events, _ = self._stream_view_events(FakeMovieService())
+
+        self.assertEqual([event['event'] for event in events], ['movie', 'done'])
+        self.assertEqual(events[0]['data']['title'], 'First')
+        self.assertEqual(events[-1]['requested'], 2)
+        self.assertEqual(events[-1]['resolved'], 1)
+
+    def test_ai_search_stream_view_yields_error_event_when_ai_stream_fails(self):
+        class FakeMovieService:
+            def stream_movies_from_ai(self, expression):
+                raise RuntimeError('ai stream failed')
+                yield
+
+            def resolve_ai_movie(self, ai_movie, initiator_id):
+                return OmdbMovie(title=ai_movie.title)
+
+        response, events, _ = self._stream_view_events(FakeMovieService())
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(events, [{'event': 'error', 'detail': 'ai stream failed'}])
+
+    def test_ai_search_stream_view_uses_fallback_when_no_streamed_title_resolves(self):
+        class FakeMovieService:
+            def stream_movies_from_ai(self, expression):
+                yield AiMovie(title='Unknown Anime', match_score=87)
+
+            def resolve_ai_movie(self, ai_movie, initiator_id):
+                return None
+
+            def get_movies_from_imdb(self, query):
+                return [ImdbMovie(title='Fallback Movie', imdb_id='ttfallback', poster='', year='2000', type='movie')]
+
+            def search_movies_in_omdb_from_imdb_list(self, imdb_list, initiator_id):
+                return [OmdbMovie(title='Fallback Movie', imdb_id='ttfallback', id=3)]
+
+        response, events, _ = self._stream_view_events(FakeMovieService())
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual([event['event'] for event in events], ['movie', 'done'])
+        self.assertEqual(events[0]['data']['title'], 'Fallback Movie')
+        self.assertEqual(events[0]['data']['match_score'], 87)
+        self.assertEqual(events[-1]['requested'], 1)
+        self.assertEqual(events[-1]['resolved'], 1)
+
+    def test_ai_search_stream_view_tries_next_fallback_query_and_skips_duplicates(self):
+        class FakeMovieService:
+            def __init__(self):
+                self.queries = []
+
+            def stream_movies_from_ai(self, expression):
+                yield AiMovie(title='Unknown Anime', match_score=87)
+
+            def resolve_ai_movie(self, ai_movie, initiator_id):
+                return None
+
+            def get_movies_from_imdb(self, query):
+                self.queries.append(query)
+                if query == 'Unknown Anime':
+                    return []
+                return [ImdbMovie(title='Fallback Movie', imdb_id='ttfallback', poster='', year='2000', type='movie')]
+
+            def search_movies_in_omdb_from_imdb_list(self, imdb_list, initiator_id):
+                first = OmdbMovie(title='Fallback Movie', imdb_id='ttfallback', id=3)
+                second = OmdbMovie(title='Fallback Duplicate', imdb_id='ttfallback', id=4)
+                return [first, second]
+
+        fake_service = FakeMovieService()
+        response, events, _ = self._stream_view_events(fake_service, 'original query')
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(fake_service.queries, ['Unknown Anime', 'original query'])
+        self.assertEqual([event['event'] for event in events], ['movie', 'done'])
+        self.assertEqual(events[0]['data']['title'], 'Fallback Movie')
+        self.assertEqual(events[-1]['resolved'], 1)
+
+    def test_ai_search_stream_view_ignores_blank_fallback_queries(self):
+        class FakeMovieService:
+            def __init__(self):
+                self.queries = []
+
+            def stream_movies_from_ai(self, expression):
+                yield AiMovie(title='', match_score=0)
+
+            def resolve_ai_movie(self, ai_movie, initiator_id):
+                return None
+
+            def get_movies_from_imdb(self, query):
+                self.queries.append(query)
+                return []
+
+        fake_service = FakeMovieService()
+        response, events, _ = self._stream_view_events(fake_service, 'original query')
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(fake_service.queries, ['original query'])
+        self.assertEqual(events, [{'event': 'done', 'requested': 1, 'resolved': 0}])
+
+    def test_ai_search_stream_view_returns_quota_error_response(self):
+        request = APIRequestFactory().post(
+            '/movies/ai/search/stream/',
+            {'expression': 'anime like shrek'},
+            format='json',
+            HTTP_ACCEPT='application/x-ndjson',
+        )
+        force_authenticate(request, user=SimpleNamespace(id=1, is_authenticated=True))
+
+        with (
+            patch('movie.views._consume_ai_search_quota', side_effect=AiSearchLimitError),
+            patch.object(MoviesAiSearchStreamView, 'throttle_classes', []),
+        ):
+            response = MoviesAiSearchStreamView.as_view()(request)
+
+        self.assertEqual(response.status_code, status.HTTP_429_TOO_MANY_REQUESTS)
 
 
 class FinderTests(APITestCase):
@@ -196,14 +446,15 @@ class FindMovieAiTests(APITestCase):
         self.user = get_user_model().objects.create_user(email='trinity@matrix.test', password='followthewhiterabbit')
         _issue_jwt(self.client, self.user)
 
-    @patch('movie.views.MovieService.search_movies_in_omdb')
+    @patch('movie.views.MovieService.resolve_ai_search')
     @patch('movie.views.MovieService.get_movies_from_ai')
-    def test_find_movie_ai(self, mock_ai, mock_search):
+    def test_find_movie_ai(self, mock_ai, mock_resolve):
         mock_ai.return_value = [AiMovie(title='Shrek'), AiMovie(title='Shrek 2')]
 
-        def fake_search(titles: List[str], initiator_id: int):
+        def fake_resolve(ai_movies, initiator_id, expression=''):
             results = []
-            for idx, title in enumerate(titles, start=1):
+            for idx, ai_movie in enumerate(ai_movies, start=1):
+                title = ai_movie.title
                 imdb_id = f'tt{idx:07d}'
                 movie, _ = Movie.objects.get_or_create(title=title, imdb_id=imdb_id)
                 results.append(
@@ -213,11 +464,12 @@ class FindMovieAiTests(APITestCase):
                         plot=f'Plot for {title}',
                         genres=[GenreDTO(name='Animation')],
                         id=movie.id,
+                        match_score=ai_movie.match_score,
                     )
                 )
             return results
 
-        mock_search.side_effect = fake_search
+        mock_resolve.side_effect = fake_resolve
 
         response = self.client.post(
             reverse('movies_ai_search'),
@@ -242,11 +494,11 @@ class FindMovieAiTests(APITestCase):
         self.assertIn('expression', response.data)
         self.assertIn('Ensure this field has no more than', response.data['expression'][0])
 
-    @patch('movie.views.MovieService.search_movies_in_omdb')
+    @patch('movie.views.MovieService.resolve_ai_search')
     @patch('movie.views.MovieService.get_movies_from_ai')
-    def test_ai_search_limit_enforced(self, mock_ai, mock_search):
+    def test_ai_search_limit_enforced(self, mock_ai, mock_resolve):
         mock_ai.return_value = []
-        mock_search.return_value = []
+        mock_resolve.return_value = []
         tier_limit = self.user.account_tier.daily_ai_search_limit
         self.user.ai_search_count = tier_limit
         self.user.ai_search_count_reset_at = timezone.now().date()
@@ -260,16 +512,12 @@ class FindMovieAiTests(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_429_TOO_MANY_REQUESTS)
         mock_ai.assert_not_called()
-        mock_search.assert_not_called()
+        mock_resolve.assert_not_called()
 
-    @patch('movie.views.MovieService.search_movies_in_omdb_from_imdb_list')
-    @patch('movie.views.MovieService.get_movies_from_imdb')
-    @patch('movie.views.MovieService.search_movies_in_omdb')
+    @patch('movie.views.MovieService.resolve_ai_search')
     @patch('movie.views.MovieService.get_movies_from_ai')
-    def test_ai_search_fallback_when_omdb_exact_match_fails(self, mock_ai, mock_search, mock_get_imdb, mock_search_from_list):
+    def test_ai_search_fallback_when_omdb_exact_match_fails(self, mock_ai, mock_resolve):
         mock_ai.return_value = [AiMovie(title='A Knight of the Seven Kingdoms', match_score=90)]
-        mock_search.return_value = []
-        mock_get_imdb.return_value = [ImdbMovie('Game of Thrones', 'tt0944947', '', '2011', 'series')]
         movie = Movie.objects.create(
             title='Game of Thrones',
             imdb_id='tt0944947',
@@ -277,7 +525,7 @@ class FindMovieAiTests(APITestCase):
             imdb_rating='9.2',
             plot='Plot',
         )
-        mock_search_from_list.return_value = [
+        mock_resolve.return_value = [
             OmdbMovie(
                 title=movie.title,
                 imdb_id=movie.imdb_id,
@@ -290,6 +538,7 @@ class FindMovieAiTests(APITestCase):
                 ratings=[],
                 languages=[],
                 countries=[],
+                match_score=90,
             )
         ]
 
@@ -302,15 +551,13 @@ class FindMovieAiTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(len(response.data), 1)
         self.assertEqual(response.data[0]['title'], 'Game of Thrones')
-        mock_search.assert_called_once_with(['A Knight of the Seven Kingdoms'], self.user.id)
-        mock_get_imdb.assert_called()
-        mock_search_from_list.assert_called_once()
+        mock_resolve.assert_called_once()
 
-    @patch('movie.views.MovieService.search_movies_in_omdb')
+    @patch('movie.views.MovieService.resolve_ai_search')
     @patch('movie.views.MovieService.get_movies_from_ai')
-    def test_ai_search_limit_resets_daily(self, mock_ai, mock_search):
+    def test_ai_search_limit_resets_daily(self, mock_ai, mock_resolve):
         mock_ai.return_value = []
-        mock_search.return_value = []
+        mock_resolve.return_value = []
         yesterday = timezone.now().date() - timedelta(days=1)
         tier_limit = self.user.account_tier.daily_ai_search_limit
         self.user.ai_search_count = tier_limit
@@ -325,13 +572,14 @@ class FindMovieAiTests(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         mock_ai.assert_called_once()
-        mock_search.assert_called_once()
+        mock_resolve.assert_called_once()
 
     @patch('movie.views.logging.getLogger')
-    @patch('movie.views.MovieService.search_movies_in_omdb')
+    @patch('movie.views.MovieService.resolve_ai_search')
     @patch('movie.views.MovieService.get_movies_from_ai')
-    def test_ai_search_logs_and_reraises_on_service_error(self, mock_ai, mock_search, mock_get_logger):
+    def test_ai_search_logs_and_reraises_on_service_error(self, mock_ai, mock_resolve, mock_get_logger):
         mock_ai.side_effect = RuntimeError('AI service down')
+        mock_resolve.return_value = []
         mock_logger = mock_get_logger.return_value
 
         response = self.client.post(
@@ -345,6 +593,50 @@ class FindMovieAiTests(APITestCase):
         pos_args = mock_logger.exception.call_args[0]
         self.assertIn('movies/ai/search failed', pos_args[0])
         self.assertIn('AI service down', str(pos_args[1]))
+
+    @patch('movie.views.MovieService.resolve_ai_movie')
+    @patch('movie.views.MovieService.get_movies_from_ai')
+    @patch('movie.views.MovieService.stream_movies_from_ai')
+    def test_ai_search_stream_resolves_openai_titles_as_they_stream(self, mock_stream_ai, mock_get_movies_from_ai, mock_resolve_movie):
+        mock_stream_ai.return_value = iter(
+            [
+                AiMovie(title='Pom Poko', year='1994', match_score=92),
+                AiMovie(title='The Cat Returns', year='2002', match_score=90),
+            ]
+        )
+
+        def fake_resolve(ai_movie, initiator_id):
+            movie, _ = Movie.objects.get_or_create(title=ai_movie.title, imdb_id=f'tt{len(ai_movie.title):07d}')
+            return OmdbMovie(
+                title=movie.title,
+                imdb_id=movie.imdb_id,
+                genres=[GenreDTO(name='Animation')],
+                id=movie.id,
+            )
+
+        mock_resolve_movie.side_effect = fake_resolve
+
+        response = self.client.post(
+            reverse('movies_ai_search_stream'),
+            data={'expression': 'anime like shrek'},
+            format='json',
+            HTTP_ACCEPT='application/x-ndjson',
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        events = [
+            json.loads(chunk.decode('utf-8') if isinstance(chunk, bytes) else chunk)
+            for chunk in response.streaming_content
+        ]
+        movie_events = [event for event in events if event['event'] == 'movie']
+
+        self.assertEqual([event['data']['title'] for event in movie_events], ['Pom Poko', 'The Cat Returns'])
+        self.assertEqual(events[-1]['event'], 'done')
+        self.assertEqual(events[-1]['requested'], 2)
+        self.assertEqual(events[-1]['resolved'], 2)
+        mock_stream_ai.assert_called_once_with('anime like shrek')
+        mock_get_movies_from_ai.assert_not_called()
+        self.assertEqual(mock_resolve_movie.call_count, 2)
 
 
 class FindMovieFiltersTests(APITestCase):
@@ -612,3 +904,20 @@ class TopMoviesViewTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data[0]['title'], 'Top One')
         self.assertIsNone(mock_service.call_args.args[0])
+
+
+class MovieTrailerViewTests(APITestCase):
+    @patch('movie.views.lookup_trailer_video_id', return_value='abc123xyz')
+    def test_returns_video_id(self, _mock_lookup):
+        response = self.client.get(
+            reverse('movie_trailer'),
+            {'title': 'The Matrix', 'year': '1999', 'imdb_id': 'tt0133093'},
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['videoId'], 'abc123xyz')
+
+    @patch('movie.views.lookup_trailer_video_id', return_value=None)
+    def test_returns_404_when_not_found(self, _mock_lookup):
+        response = self.client.get(reverse('movie_trailer'), {'title': 'Unknown Movie'})
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+        self.assertIsNone(response.data['videoId'])

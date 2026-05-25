@@ -59,6 +59,37 @@ class MovieService:
     def search_movies_in_omdb(self, movie_titles: list[str], initiator_id: int) -> list[OmdbMovie]:
         return self.movie_repository.search_movies_in_omdb(movie_titles, initiator_id)
 
+    def resolve_ai_movies(self, ai_movies: list[AiMovie], initiator_id: int) -> list[OmdbMovie]:
+        return self.movie_repository.resolve_ai_movies(ai_movies, initiator_id)
+
+    def resolve_ai_movies_as_completed(self, ai_movies: list[AiMovie], initiator_id: int):
+        yield from self.movie_repository.resolve_ai_movies_as_completed(ai_movies, initiator_id)
+
+    def resolve_ai_movie(self, ai_movie: AiMovie, initiator_id: int) -> OmdbMovie | None:
+        return self.movie_repository.resolve_ai_movie(ai_movie, initiator_id)
+
+    def resolve_ai_search(
+        self,
+        ai_movies: list[AiMovie],
+        initiator_id: int,
+        expression: str = '',
+    ) -> list[OmdbMovie]:
+        omdb_movies = self.resolve_ai_movies(ai_movies, initiator_id)
+        if omdb_movies or not expression:
+            return omdb_movies
+
+        fallback_queries = [movie.title for movie in ai_movies[:3] if movie.title] + [expression]
+        for query in fallback_queries:
+            if not query or not query.strip():
+                continue
+            imdb_list = self.get_movies_from_imdb(query.strip())
+            if imdb_list:
+                fallback_movies = self.search_movies_in_omdb_from_imdb_list(imdb_list[:10], initiator_id)
+                for index, movie in enumerate(fallback_movies):
+                    movie.match_score = ai_movies[index].match_score if index < len(ai_movies) else 50
+                return fallback_movies
+        return omdb_movies
+
     def search_movies_in_omdb_from_imdb_list(self, imdb_movies: list[ImdbMovie], initiator_id: int) -> list[OmdbMovie]:
         """Resolve search results by imdb_id first to avoid duplicate Movie rows."""
         return self.movie_repository.search_movies_in_omdb_from_imdb_list(imdb_movies, initiator_id)
@@ -68,6 +99,12 @@ class MovieService:
             return self.ai_client.find_movies(expression)
         except AiResponseError:
             raise BadRequest('AI service returned an invalid response. Please try again later.')
+
+    def stream_movies_from_ai(self, expression: str):
+        try:
+            yield from self.ai_client.stream_movies(expression)
+        except AiResponseError:
+            raise BadRequest('AI service returned an invalid streaming response. Please try again later.')
 
 
 class RecommendationPromptService:

@@ -32,6 +32,11 @@ class FindMovieAiClientTests(SimpleTestCase):
         self.assertIn('translate the query to English', find_movie_system_prompt)
         self.assertIn('щось типу', find_movie_system_prompt)
 
+    def test_find_movie_prompt_prioritizes_but_modifier_over_reference_titles(self):
+        self.assertIn('but anime', find_movie_system_prompt)
+        self.assertIn('do NOT include X itself unless X also satisfies Y', find_movie_system_prompt)
+        self.assertIn('мультик типу Шрека чи Мадагаскара але аніме', find_movie_system_prompt)
+
     def test_returns_empty_list_when_prompt_too_long(self):
         with patch.object(
             SearchFindMovieAiClient,
@@ -62,6 +67,78 @@ class FindMovieAiClientTests(SimpleTestCase):
 
         self.assertEqual([(m.title, m.match_score) for m in result], [('Shrek', 10), ('Shrek 2', 0)])
         fake_client.chat.completions.create.assert_called_once()
+
+    @patch.object(SearchFindMovieAiClient, 'count_tokens', return_value=10)
+    @patch('movie.ai_find_movie.OpenAI')
+    def test_stream_movies_parses_ndjson_chunks_as_they_arrive(self, mock_openai, _):
+        fake_chunks = [
+            SimpleNamespace(choices=[SimpleNamespace(delta=SimpleNamespace(content='{"title":"Pom '))]),
+            SimpleNamespace(choices=[SimpleNamespace(delta=SimpleNamespace(content='Poko","year":"1994","match_score":92}\n'))]),
+            SimpleNamespace(choices=[SimpleNamespace(delta=SimpleNamespace(content='{"title":"The Cat Returns","year":"2002","match_score":90}\n'))]),
+        ]
+        fake_client = MagicMock()
+        fake_client.chat.completions.create.return_value = iter(fake_chunks)
+        mock_openai.return_value = fake_client
+
+        client = SearchFindMovieAiClient()
+        result = list(client.stream_movies('anime like shrek'))
+
+        self.assertEqual([(m.title, m.year, m.match_score) for m in result], [('Pom Poko', '1994', 92), ('The Cat Returns', '2002', 90)])
+        fake_client.chat.completions.create.assert_called_once()
+        self.assertTrue(fake_client.chat.completions.create.call_args.kwargs['stream'])
+
+    @patch.object(SearchFindMovieAiClient, 'count_tokens', return_value=settings.MAX_PROMPT_TOKENS_LENGTH + 1)
+    @patch('movie.ai_find_movie.OpenAI')
+    def test_stream_movies_returns_empty_for_too_long_prompt(self, mock_openai, _):
+        client = SearchFindMovieAiClient()
+
+        result = list(client.stream_movies('too long'))
+
+        self.assertEqual(result, [])
+        mock_openai.assert_not_called()
+
+    @patch.object(SearchFindMovieAiClient, 'count_tokens', return_value=10)
+    @patch('movie.ai_find_movie.OpenAI')
+    def test_stream_movies_handles_empty_chunks_and_final_buffer(self, mock_openai, _):
+        fake_chunks = [
+            SimpleNamespace(choices=[]),
+            SimpleNamespace(choices=[SimpleNamespace(delta=SimpleNamespace(content=''))]),
+            SimpleNamespace(choices=[SimpleNamespace(delta=SimpleNamespace(content='{"title":"Barbie","match_score":80}'))]),
+        ]
+        fake_client = MagicMock()
+        fake_client.chat.completions.create.return_value = iter(fake_chunks)
+        mock_openai.return_value = fake_client
+
+        client = SearchFindMovieAiClient()
+        result = list(client.stream_movies('pink comedy'))
+
+        self.assertEqual([(m.title, m.match_score) for m in result], [('Barbie', 80)])
+
+    @patch.object(SearchFindMovieAiClient, 'count_tokens', return_value=10)
+    @patch('movie.ai_find_movie.OpenAI')
+    def test_stream_movies_raises_wrapped_exception_when_request_fails(self, mock_openai, _):
+        fake_client = MagicMock()
+        fake_client.chat.completions.create.side_effect = RuntimeError('stream down')
+        mock_openai.return_value = fake_client
+
+        client = SearchFindMovieAiClient()
+
+        with self.assertRaises(Exception) as exc:
+            list(client.stream_movies('prompt'))
+
+        self.assertIn('Error while streaming movies', str(exc.exception))
+
+    def test_parse_stream_line_handles_strings_and_empty_titles(self):
+        self.assertEqual(SearchFindMovieAiClient._parse_stream_line('"Shrek"').title, 'Shrek')
+        self.assertIsNone(SearchFindMovieAiClient._parse_stream_line(''))
+        self.assertIsNone(SearchFindMovieAiClient._parse_stream_line('{"title": ""}'))
+
+    def test_parse_stream_line_rejects_invalid_json_and_item_types(self):
+        with self.assertRaises(AiResponseError):
+            SearchFindMovieAiClient._parse_stream_line('not-json')
+
+        with self.assertRaises(AiResponseError):
+            SearchFindMovieAiClient._parse_stream_line('123')
 
     def test_ai_movie_from_dict_invalid_type(self):
         with pytest.raises(TypeError):
@@ -294,4 +371,22 @@ class FindMovieAiClientTests(SimpleTestCase):
 
         self.assertEqual(len(result), 1)
         self.assertEqual(result[0].title, 'Inception')
+        self.assertEqual(fake_client.chat.completions.create.call_count, 2)
+
+    @patch.object(SearchFindMovieAiClient, 'count_tokens', return_value=10)
+    @patch('movie.ai_find_movie.OpenAI')
+    def test_search_retries_when_model_returns_empty_length_response(self, mock_openai, _):
+        empty_response = SimpleNamespace(choices=[SimpleNamespace(message=SimpleNamespace(content=''), finish_reason='length')])
+        success_response = SimpleNamespace(
+            choices=[SimpleNamespace(message=SimpleNamespace(content='[{"title": "Spirited Away", "match_score": 95}]'), finish_reason='stop')]
+        )
+        fake_client = MagicMock()
+        fake_client.chat.completions.create.side_effect = [empty_response, success_response]
+        mock_openai.return_value = fake_client
+
+        client = SearchFindMovieAiClient()
+        result = client.find_movies('мультик типу шрека чи мадагаскара але аніме')
+
+        self.assertEqual(len(result), 1)
+        self.assertEqual(result[0].title, 'Spirited Away')
         self.assertEqual(fake_client.chat.completions.create.call_count, 2)

@@ -72,15 +72,20 @@ class OmdbMovie:
 class AiMovie:
     title: str
     match_score: int = 0
+    year: str | None = None
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> 'AiMovie':
         if not isinstance(data, dict):
             raise TypeError(f'AiMovie.from_dict expects dict, got {type(data)}')
 
+        year_value = data.get('year')
+        year = str(year_value).strip() if year_value not in (None, '') else None
+
         return cls(
             title=data.get('title', ''),
             match_score=data.get('match_score', 0),
+            year=year,
         )
 
 

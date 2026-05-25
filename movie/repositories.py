@@ -16,6 +16,13 @@ from movie.dataclasses import (
     Actor as ActorDTO,
 )
 from movie.dataclasses import (
+    AiMovie,
+    ImdbMovie,
+    MovieRecommendation,
+    OmdbMovie,
+    UserActivitySummary,
+)
+from movie.dataclasses import (
     Country as CountryDTO,
 )
 from movie.dataclasses import (
@@ -23,12 +30,6 @@ from movie.dataclasses import (
 )
 from movie.dataclasses import (
     Genre as GenreDTO,
-)
-from movie.dataclasses import (
-    ImdbMovie,
-    MovieRecommendation,
-    OmdbMovie,
-    UserActivitySummary,
 )
 from movie.dataclasses import (
     Language as LanguageDTO,
@@ -40,6 +41,13 @@ from movie.dataclasses import (
     Writer as WriterDTO,
 )
 from movie.models import Actor, Country, Director, Genre, Language, LikeMovie, Movie, Rating, RecommendedMovie, TopMovie, WatchLaterMovie, Writer
+
+from .ai_resolve import (
+    pick_best_imdb_candidate,
+    title_variants,
+)
+from .movie_merge import _is_blank, merge_omdb_with_tmdb_fallback
+from .tmdb_client import get_movie_from_tmdb, search_tmdb_match
 
 logger = logging.getLogger(__name__)
 
@@ -143,7 +151,7 @@ class MovieRepository:
         ]
 
     @staticmethod
-    def get_movie_from_omdb_by_expression(title: str) -> OmdbMovie | None:
+    def get_movie_from_omdb_by_expression(title: str, year: str | None = None) -> OmdbMovie | None:
         def _replace_not_available(value):
             if isinstance(value, dict):
                 return {key: _replace_not_available(val) for key, val in value.items()}
@@ -154,8 +162,12 @@ class MovieRepository:
             return value
 
         try:
+            params = f't={quote_plus(title)}&apikey={settings.OMDB_API_KEY}'
+            release_year = (year or '').strip()
+            if release_year.isdigit():
+                params += f'&y={release_year[:4]}'
             response = requests.get(
-                f'{settings.OMDB_API_URL}?t={quote_plus(title)}&apikey={settings.OMDB_API_KEY}',
+                f'{settings.OMDB_API_URL}?{params}',
                 headers={'content-type': 'application/json'},
                 timeout=30,
             )
@@ -365,7 +377,7 @@ class MovieRepository:
             is_watch_later=getattr(movie_instance, 'is_watch_later', False),
         )
 
-    def _resolve_one_by_title(self, title: str, initiator_id: int) -> OmdbMovie | None:
+    def _resolve_one_by_title(self, title: str, initiator_id: int, year: str | None = None) -> OmdbMovie | None:
         movie_instance = (
             Movie.objects.filter(title__iexact=title)
             .with_is_liked(initiator_id)
@@ -376,53 +388,201 @@ class MovieRepository:
         )
         if movie_instance:
             return self._movie_to_omdb_dto(movie_instance)
-        omdb_movie = self.get_movie_from_omdb_by_expression(title)
-        if omdb_movie is None:
-            imdb_list = self.get_movies_from_omdb_search(title)
-            if imdb_list and imdb_list[0].imdb_id:
-                omdb_movie = self.get_movie_from_omdb_by_id(imdb_list[0].imdb_id)
-        if omdb_movie is None and (':' in title or ' - ' in title):
-            main_title = title.split(':')[0].split(' - ')[0].strip()
-            if main_title and main_title != title:
-                omdb_movie = self.get_movie_from_omdb_by_expression(main_title)
-                if omdb_movie is None:
-                    imdb_list = self.get_movies_from_omdb_search(main_title)
-                    if imdb_list and imdb_list[0].imdb_id:
-                        omdb_movie = self.get_movie_from_omdb_by_id(imdb_list[0].imdb_id)
-        if omdb_movie is None:
-            return None
-        if omdb_movie.imdb_id:
-            saved_movie = self._create_movie_in_db(omdb_movie)
-            omdb_movie.id = saved_movie.id
-            return omdb_movie
-        omdb_movie.id = 0
-        return omdb_movie
 
-    def search_movies_in_omdb(self, movie_titles: list[str], initiator_id: int) -> list[OmdbMovie]:
-        if not movie_titles:
+        for candidate_title in title_variants(title):
+            omdb_movie = self.get_movie_from_omdb_by_expression(candidate_title, year)
+            if omdb_movie is None:
+                imdb_list = self.get_movies_from_omdb_search(candidate_title)
+                best_match = pick_best_imdb_candidate(imdb_list, title, year)
+                if best_match and best_match.imdb_id:
+                    omdb_movie = self.get_movie_from_omdb_by_id(best_match.imdb_id)
+            if omdb_movie is None:
+                continue
+            if omdb_movie.imdb_id:
+                saved_movie = self._create_movie_in_db(omdb_movie)
+                omdb_movie.id = saved_movie.id
+                return omdb_movie
+            omdb_movie.id = 0
+            return omdb_movie
+
+        return None
+
+    def _movie_from_db_by_imdb_id(self, imdb_id: str, initiator_id: int) -> OmdbMovie | None:
+        movie_instance = (
+            Movie.objects.filter(imdb_id=imdb_id)
+            .with_is_liked(initiator_id)
+            .with_is_watch_later(initiator_id)
+            .with_likes_count()
+            .with_watch_later_count()
+            .first()
+        )
+        if movie_instance:
+            return self._movie_to_omdb_dto(movie_instance)
+        return None
+
+    def _persist_resolved_movie(self, omdb_movie: OmdbMovie, initiator_id: int) -> OmdbMovie | None:
+        if not omdb_movie.imdb_id:
+            return None
+        saved_movie = self._create_movie_in_db(omdb_movie)
+        persisted = self._movie_from_db_by_imdb_id(saved_movie.imdb_id, initiator_id)
+        return persisted or omdb_movie
+
+    def _resolve_via_tmdb(self, ai_movie: AiMovie, initiator_id: int) -> OmdbMovie | None:
+        title = (ai_movie.title or '').strip()
+        if not title:
+            return None
+
+        match = search_tmdb_match(title, ai_movie.year)
+        if not match:
+            return None
+
+        imdb_id = match.imdb_id
+        if imdb_id:
+            existing = self._movie_from_db_by_imdb_id(imdb_id, initiator_id)
+            if existing:
+                return existing
+
+            omdb_movie = self.get_movie_from_omdb_by_id(imdb_id)
+            if omdb_movie:
+                tmdb_movie = None
+                if _is_blank(omdb_movie.poster):
+                    tmdb_movie = get_movie_from_tmdb(match.media_type, match.tmdb_id)
+                return self._persist_resolved_movie(
+                    merge_omdb_with_tmdb_fallback(omdb_movie, tmdb_movie),
+                    initiator_id,
+                )
+
+        tmdb_movie = get_movie_from_tmdb(match.media_type, match.tmdb_id)
+        if not tmdb_movie:
+            return None
+
+        imdb_id = tmdb_movie.imdb_id or imdb_id
+        if imdb_id:
+            existing = self._movie_from_db_by_imdb_id(imdb_id, initiator_id)
+            if existing:
+                return existing
+
+            omdb_movie = self.get_movie_from_omdb_by_id(imdb_id)
+            if omdb_movie:
+                return self._persist_resolved_movie(
+                    merge_omdb_with_tmdb_fallback(omdb_movie, tmdb_movie),
+                    initiator_id,
+                )
+
+        omdb_by_title = self.get_movie_from_omdb_by_expression(
+            tmdb_movie.title,
+            tmdb_movie.year or ai_movie.year,
+        )
+        if omdb_by_title and omdb_by_title.imdb_id:
+            return self._persist_resolved_movie(
+                merge_omdb_with_tmdb_fallback(omdb_by_title, tmdb_movie),
+                initiator_id,
+            )
+
+        return None
+
+    def _resolve_ai_movie(self, ai_movie: AiMovie, initiator_id: int) -> OmdbMovie | None:
+        title = (ai_movie.title or '').strip()
+        if not title:
+            return None
+
+        existing = (
+            Movie.objects.filter(title__iexact=title)
+            .with_is_liked(initiator_id)
+            .with_is_watch_later(initiator_id)
+            .with_likes_count()
+            .with_watch_later_count()
+            .first()
+        )
+        if existing:
+            return self._movie_to_omdb_dto(existing)
+
+        tmdb_resolved = self._resolve_via_tmdb(ai_movie, initiator_id)
+        if tmdb_resolved:
+            return tmdb_resolved
+
+        resolved = self._resolve_one_by_title(title, initiator_id, ai_movie.year)
+        if resolved:
+            return resolved
+
+        for variant in title_variants(title)[1:]:
+            imdb_list = self.get_movies_from_omdb_search(variant)
+            best_match = pick_best_imdb_candidate(imdb_list, title, ai_movie.year)
+            if best_match and best_match.imdb_id:
+                omdb_movie = self.get_movie_from_omdb_by_id(best_match.imdb_id)
+                if omdb_movie and omdb_movie.imdb_id:
+                    saved_movie = self._create_movie_in_db(omdb_movie)
+                    omdb_movie.id = saved_movie.id
+                    return omdb_movie
+
+        db_matches = self.get_movies_from_db_search(title, limit=5)
+        best_match = pick_best_imdb_candidate(db_matches, title, ai_movie.year)
+        if best_match:
+            if best_match.imdb_id:
+                return self._resolve_one_by_title(best_match.title, initiator_id, best_match.year or ai_movie.year)
+            return self._resolve_one_by_title(best_match.title, initiator_id, ai_movie.year)
+
+        return None
+
+    def resolve_ai_movie(self, ai_movie: AiMovie, initiator_id: int) -> OmdbMovie | None:
+        movie = self._resolve_ai_movie(ai_movie, initiator_id)
+        if movie:
+            movie.match_score = ai_movie.match_score
+        return movie
+
+    def resolve_ai_movies(self, ai_movies: list[AiMovie], initiator_id: int) -> list[OmdbMovie]:
+        if not ai_movies:
             return []
 
-        def _resolve_safe(title: str) -> OmdbMovie | None:
+        resolved_by_index: dict[int, OmdbMovie] = {}
+
+        def _resolve_safe(index: int, ai_movie: AiMovie) -> tuple[int, OmdbMovie | None]:
             try:
-                return self._resolve_one_by_title(title, initiator_id)
+                return index, self._resolve_ai_movie(ai_movie, initiator_id)
             except Exception as exc:
-                logger.warning('Parallel OMDb resolve failed: title=%r error=%s', title, exc)
-                return None
+                logger.warning('AI movie resolve failed: title=%r error=%s', ai_movie.title, exc)
+                return index, None
             finally:
                 close_old_connections()
 
-        max_workers = min(len(movie_titles), 5)
-        results_by_index: dict[int, OmdbMovie] = {}
-
+        max_workers = min(len(ai_movies), 8)
         with ThreadPoolExecutor(max_workers=max_workers) as executor:
-            future_to_idx = {executor.submit(_resolve_safe, title): i for i, title in enumerate(movie_titles)}
-            for future in as_completed(future_to_idx):
-                idx = future_to_idx[future]
-                result = future.result()
-                if result:
-                    results_by_index[idx] = result
+            futures = [executor.submit(_resolve_safe, index, ai_movie) for index, ai_movie in enumerate(ai_movies)]
+            for future in as_completed(futures):
+                index, movie = future.result()
+                if movie:
+                    movie.match_score = ai_movies[index].match_score
+                    resolved_by_index[index] = movie
 
-        return [results_by_index[i] for i in sorted(results_by_index)]
+        return [resolved_by_index[index] for index in sorted(resolved_by_index)]
+
+    def resolve_ai_movies_as_completed(self, ai_movies: list[AiMovie], initiator_id: int):
+        if not ai_movies:
+            return
+
+        def _resolve_safe(index: int, ai_movie: AiMovie) -> tuple[int, OmdbMovie | None]:
+            try:
+                return index, self._resolve_ai_movie(ai_movie, initiator_id)
+            except Exception as exc:
+                logger.warning('AI movie resolve failed: title=%r error=%s', ai_movie.title, exc)
+                return index, None
+            finally:
+                close_old_connections()
+
+        max_workers = min(len(ai_movies), 8)
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            future_to_index = {
+                executor.submit(_resolve_safe, index, ai_movie): index for index, ai_movie in enumerate(ai_movies)
+            }
+            for future in as_completed(future_to_index):
+                index, movie = future.result()
+                if movie:
+                    movie.match_score = ai_movies[index].match_score
+                yield index, movie
+
+    def search_movies_in_omdb(self, movie_titles: list[str], initiator_id: int) -> list[OmdbMovie]:
+        ai_movies = [AiMovie(title=title) for title in movie_titles if title]
+        return self.resolve_ai_movies(ai_movies, initiator_id)
 
 
 class RecommendationRepository:
