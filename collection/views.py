@@ -288,6 +288,13 @@ class CollectionMoviesView(GenericAPIView):
                 required=False,
             ),
             OpenApiParameter(
+                name='is_watched',
+                type=OpenApiTypes.BOOL,
+                location=OpenApiParameter.QUERY,
+                description='Filter collection movies by watched status for the authenticated viewer.',
+                required=False,
+            ),
+            OpenApiParameter(
                 name='ordering',
                 type=OpenApiTypes.STR,
                 location=OpenApiParameter.QUERY,
@@ -336,6 +343,7 @@ class CollectionMoviesView(GenericAPIView):
                 rating_min=self._parse_float(request.query_params.get('rating_min'), 'rating_min'),
                 rating_max=self._parse_float(request.query_params.get('rating_max'), 'rating_max'),
                 ordering=request.query_params.get('ordering'),
+                is_watched=self._get_bool_query_param(request.query_params.get('is_watched')),
             )
         except PermissionError as exc:
             raise PermissionDenied(str(exc)) from exc
@@ -351,6 +359,16 @@ class CollectionMoviesView(GenericAPIView):
 
     def _get_collection_id(self) -> int:
         return int(self.kwargs[self.lookup_url_kwarg])
+
+    @staticmethod
+    def _get_bool_query_param(value: str | None) -> bool | None:
+        if value is None:
+            return None
+        if value.lower() in {'true', '1', 'yes'}:
+            return True
+        if value.lower() in {'false', '0', 'no'}:
+            return False
+        return None
 
     @staticmethod
     def _parse_float(value: str | None, field_name: str) -> float | None:

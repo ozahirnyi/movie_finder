@@ -8,6 +8,12 @@ class AddLikeError(APIException):
     default_detail = 'User has already liked this movie'
 
 
+class AddWatchedError(APIException):
+    status_code = status.HTTP_400_BAD_REQUEST
+    default_code = 'THE_MOVIE_IS_WATCHED'
+    default_detail = 'User has already marked this movie as watched'
+
+
 class AiSearchLimitError(APIException):
     status_code = status.HTTP_429_TOO_MANY_REQUESTS
     default_code = 'AI_SEARCH_LIMIT_REACHED'

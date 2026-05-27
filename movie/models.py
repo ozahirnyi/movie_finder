@@ -105,6 +105,11 @@ class LikeMovie(UserMovie):
         constraints = [models.UniqueConstraint(fields=['user', 'movie'], name='like-user-movie-unique')]
 
 
+class WatchedMovie(UserMovie):
+    class Meta(UserMovie.Meta):
+        constraints = [models.UniqueConstraint(fields=['user', 'movie'], name='watched-user-movie-unique')]
+
+
 class RecommendedMovie(models.Model):
     user = models.ForeignKey(get_user_model(), on_delete=models.CASCADE, related_name='recommended_movies')
     movie = models.ForeignKey(Movie, on_delete=models.CASCADE, related_name='recommended_entries')

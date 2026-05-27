@@ -316,6 +316,7 @@ class MovieRepository:
                         Movie.objects.filter(imdb_id=imdb_item.imdb_id.strip())
                         .with_is_liked(initiator_id)
                         .with_is_watch_later(initiator_id)
+                        .with_is_watched(initiator_id)
                         .with_likes_count()
                         .with_watch_later_count()
                         .first()
@@ -375,6 +376,7 @@ class MovieRepository:
             is_liked=getattr(movie_instance, 'is_liked', False),
             watch_later_count=getattr(movie_instance, 'watch_later_count', 0),
             is_watch_later=getattr(movie_instance, 'is_watch_later', False),
+            is_watched=getattr(movie_instance, 'is_watched', False),
         )
 
     def _resolve_one_by_title(self, title: str, initiator_id: int, year: str | None = None) -> OmdbMovie | None:
@@ -382,6 +384,7 @@ class MovieRepository:
             Movie.objects.filter(title__iexact=title)
             .with_is_liked(initiator_id)
             .with_is_watch_later(initiator_id)
+            .with_is_watched(initiator_id)
             .with_likes_count()
             .with_watch_later_count()
             .first()
@@ -412,6 +415,7 @@ class MovieRepository:
             Movie.objects.filter(imdb_id=imdb_id)
             .with_is_liked(initiator_id)
             .with_is_watch_later(initiator_id)
+            .with_is_watched(initiator_id)
             .with_likes_count()
             .with_watch_later_count()
             .first()
@@ -490,6 +494,7 @@ class MovieRepository:
             Movie.objects.filter(title__iexact=title)
             .with_is_liked(initiator_id)
             .with_is_watch_later(initiator_id)
+            .with_is_watched(initiator_id)
             .with_likes_count()
             .with_watch_later_count()
             .first()
@@ -705,6 +710,7 @@ class RecommendationRepository:
             Movie.objects.all()
             .with_is_liked(user_id)
             .with_is_watch_later(user_id)
+            .with_is_watched(user_id)
             .with_likes_count()
             .with_watch_later_count()
             .annotate(
@@ -797,6 +803,7 @@ class RecommendationRepository:
             likes_count=int(getattr(movie, 'likes_count', 0) or 0),
             is_watch_later=bool(getattr(movie, 'is_watch_later', False)),
             watch_later_count=int(getattr(movie, 'watch_later_count', 0) or 0),
+            is_watched=bool(getattr(movie, 'is_watched', False)),
         )
 
 

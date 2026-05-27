@@ -1,8 +1,8 @@
 import django_filters
-from django.db.models import Case, FloatField, When
+from django.db.models import Case, Exists, FloatField, OuterRef, When
 from django.db.models.functions import Cast
 
-from .models import Movie
+from .models import Movie, WatchedMovie
 
 
 class MovieFilter(django_filters.FilterSet):
@@ -41,6 +41,8 @@ class MovieFilter(django_filters.FilterSet):
 
 
 class WatchLaterFilter(MovieFilter):
+    is_watched = django_filters.BooleanFilter(method='filter_is_watched')
+
     class Meta:
         model = Movie
         fields = {
@@ -49,3 +51,14 @@ class WatchLaterFilter(MovieFilter):
             'year': ['icontains'],
             'imdb_id': ['exact'],
         }
+
+    def filter_is_watched(self, queryset, name, value):  # noqa: ARG002
+        if value is None:
+            return queryset
+        user = getattr(self.request, 'user', None)
+        if user is None or not user.is_authenticated:
+            return queryset.none()
+        watched_exists = WatchedMovie.objects.filter(user_id=user.id, movie_id=OuterRef('pk'))
+        if value:
+            return queryset.filter(Exists(watched_exists))
+        return queryset.exclude(Exists(watched_exists))

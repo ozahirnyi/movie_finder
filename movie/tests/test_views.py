@@ -17,7 +17,7 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from movie.dataclasses import AiMovie, ImdbMovie, MovieRecommendation, OmdbMovie
 from movie.dataclasses import Genre as GenreDTO
 from movie.errors import AddLikeError, AiSearchLimitError
-from movie.models import Genre, LikeMovie, Movie, Rating, RecommendedMovie, WatchLaterMovie
+from movie.models import Genre, LikeMovie, Movie, Rating, RecommendedMovie, WatchedMovie, WatchLaterMovie
 from movie.views import AI_STREAM_RESOLVE_MAX_WORKERS, MoviesAiSearchStreamView, _stream_resolved_ai_movies
 
 
@@ -359,6 +359,52 @@ class FinderTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data['results'][0]['id'], self.movie.id)
         self.assertTrue(response.data['results'][0]['is_watch_later'])
+        self.assertFalse(response.data['results'][0]['is_watched'])
+
+    def test_mark_and_unmark_watched(self):
+        response = self.client.post(reverse('movie_watched', kwargs={'id': self.movie.id}))
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertTrue(WatchedMovie.objects.filter(user=self.user, movie=self.movie).exists())
+
+        detail = self.client.get(reverse('movie', kwargs={'id': self.movie.id}))
+        self.assertTrue(detail.data['is_watched'])
+
+        response = self.client.post(reverse('movie_unwatched', kwargs={'id': self.movie.id}))
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertFalse(WatchedMovie.objects.filter(user=self.user, movie=self.movie).exists())
+
+    def test_watch_later_filter_by_watched(self):
+        watched_movie = Movie.objects.create(title='Watched', imdb_id='tt-watched-1')
+        unwatched_movie = Movie.objects.create(title='Unwatched', imdb_id='tt-unwatched-1')
+        WatchLaterMovie.objects.create(user=self.user, movie=watched_movie)
+        WatchLaterMovie.objects.create(user=self.user, movie=unwatched_movie)
+        WatchedMovie.objects.create(user=self.user, movie=watched_movie)
+
+        watched_only = self.client.get(reverse('watch_later_list'), {'is_watched': 'true'})
+        self.assertEqual(watched_only.status_code, status.HTTP_200_OK)
+        self.assertEqual({item['id'] for item in watched_only.data['results']}, {watched_movie.id})
+
+        unwatched_only = self.client.get(reverse('watch_later_list'), {'is_watched': 'false'})
+        self.assertEqual(unwatched_only.status_code, status.HTTP_200_OK)
+        self.assertEqual({item['id'] for item in unwatched_only.data['results']}, {unwatched_movie.id})
+
+    def test_watch_later_default_order_puts_watched_last(self):
+        unwatched_movie = Movie.objects.create(title='Unwatched Order', imdb_id='tt-unwatched-order')
+        watched_movie = Movie.objects.create(title='Watched Order', imdb_id='tt-watched-order')
+        unwatched_entry = WatchLaterMovie.objects.create(user=self.user, movie=unwatched_movie)
+        watched_entry = WatchLaterMovie.objects.create(user=self.user, movie=watched_movie)
+        WatchedMovie.objects.create(user=self.user, movie=watched_movie)
+
+        earlier_time = timezone.now() - timedelta(days=2)
+        WatchLaterMovie.objects.filter(pk=unwatched_entry.pk).update(created_at=earlier_time)
+        WatchLaterMovie.objects.filter(pk=watched_entry.pk).update(created_at=timezone.now())
+
+        response = self.client.get(reverse('watch_later_list'))
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(
+            [item['id'] for item in response.data['results']],
+            [unwatched_movie.id, watched_movie.id],
+        )
 
     def test_watch_later_ordering_by_added_at(self):
         older_movie = Movie.objects.create(title='Older Movie', imdb_id='tt000002')

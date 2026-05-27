@@ -66,6 +66,7 @@ class OmdbMovie:
     is_liked: bool = False
     watch_later_count: int = 0
     is_watch_later: bool = False
+    is_watched: bool = False
 
 
 @dataclass
@@ -126,6 +127,7 @@ class MovieRecommendation:
     likes_count: int
     is_watch_later: bool
     watch_later_count: int
+    is_watched: bool = False
 
 
 @dataclass

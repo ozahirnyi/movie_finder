@@ -30,6 +30,7 @@ class CollectionMovieDTO:
     year: str | None
     description: str | None
     imdb_rating: str | None = None
+    is_watched: bool = False
 
 
 @dataclass(slots=True)

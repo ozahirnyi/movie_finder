@@ -34,9 +34,9 @@ from throttling.throttling import (
 )
 
 from .dataclasses import UserContext
-from .errors import AddLikeError, AiSearchLimitError
+from .errors import AddLikeError, AddWatchedError, AiSearchLimitError
 from .filters import MovieFilter, WatchLaterFilter
-from .models import LikeMovie, Movie, WatchLaterMovie
+from .models import LikeMovie, Movie, WatchLaterMovie, WatchedMovie
 from .paginations import MoviesPagination
 from .renderers import STREAM_RENDERERS
 from .serializers import (
@@ -130,7 +130,14 @@ class MovieView(RetrieveAPIView):
     lookup_field = 'id'
 
     def get_queryset(self):
-        return Movie.objects.with_is_liked(self.request.user.id).with_is_watch_later(self.request.user.id).with_likes_count().with_watch_later_count()
+        user_id = self.request.user.id if self.request.user.is_authenticated else None
+        return (
+            Movie.objects.with_is_liked(user_id)
+            .with_is_watch_later(user_id)
+            .with_is_watched(user_id)
+            .with_likes_count()
+            .with_watch_later_count()
+        )
 
 
 class MovieLikeView(GenericAPIView):
@@ -158,6 +165,35 @@ class MovieUnlikeView(GenericAPIView):
         serializer = self.get_serializer(data=request.data or {})
         serializer.is_valid(raise_exception=True)
         LikeMovie.objects.filter(user=self.request.user, movie_id=kwargs.get('id')).delete()
+
+        return Response(status=status.HTTP_200_OK)
+
+
+class MovieWatchedView(GenericAPIView):
+    permission_classes = [permissions.IsAuthenticated]
+    serializer_class = EmptySerializer
+    queryset = WatchedMovie.objects.all()
+
+    def post(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data or {})
+        serializer.is_valid(raise_exception=True)
+        try:
+            WatchedMovie.objects.create(user=self.request.user, movie_id=kwargs.get('id'))
+        except IntegrityError:
+            raise AddWatchedError
+
+        return Response(status=status.HTTP_201_CREATED)
+
+
+class MovieUnwatchedView(GenericAPIView):
+    permission_classes = [permissions.IsAuthenticated]
+    queryset = WatchedMovie.objects.all()
+    serializer_class = EmptySerializer
+
+    def post(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data or {})
+        serializer.is_valid(raise_exception=True)
+        WatchedMovie.objects.filter(user=self.request.user, movie_id=kwargs.get('id')).delete()
 
         return Response(status=status.HTTP_200_OK)
 
@@ -199,10 +235,12 @@ class MoviesListView(ListAPIView):
     ordering = ['-created_at']
 
     def get_queryset(self):
+        user_id = self.request.user.id if self.request.user.is_authenticated else None
         return (
             Movie.objects.all()
-            .with_is_liked(self.request.user.id)
-            .with_is_watch_later(self.request.user.id)
+            .with_is_liked(user_id)
+            .with_is_watch_later(user_id)
+            .with_is_watched(user_id)
             .with_likes_count()
             .with_watch_later_count()
         )
@@ -402,15 +440,17 @@ class WatchLaterListView(ListAPIView):
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
     filterset_class = WatchLaterFilter
     search_fields = ['title']
-    ordering_fields = ['imdb_id', 'title', 'genre', 'year', 'added_at', 'imdb_rating']
-    ordering = ['-added_at']
+    ordering_fields = ['imdb_id', 'title', 'genre', 'year', 'added_at', 'imdb_rating', 'is_watched']
+    ordering = ['is_watched', '-added_at']
 
     def get_queryset(self):
+        user_id = self.request.user.id
         return (
-            Movie.objects.filter(watchlatermovie__user_id=self.request.user.id)
+            Movie.objects.filter(watchlatermovie__user_id=user_id)
             .annotate(added_at=Max('watchlatermovie__created_at'))
-            .with_is_liked(self.request.user.id)
-            .with_is_watch_later(self.request.user.id)
+            .with_is_liked(user_id)
+            .with_is_watch_later(user_id)
+            .with_is_watched(user_id)
             .with_likes_count()
             .with_watch_later_count()
         )

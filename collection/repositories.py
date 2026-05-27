@@ -4,10 +4,11 @@ from typing import Iterable, Sequence
 
 from django.core.exceptions import ValidationError
 from django.db import transaction
-from django.db.models import Case, Count, Exists, FloatField, OuterRef, Prefetch, QuerySet, When
+from django.db import models
+from django.db.models import Case, Count, Exists, FloatField, OuterRef, Prefetch, QuerySet, Value, When
 from django.db.models.functions import Cast
 
-from movie.models import Movie
+from movie.models import Movie, WatchedMovie
 
 from .dataclasses import (
     CollectionDTO,
@@ -116,8 +117,20 @@ class CollectionRepository:
         rating_min: float | None = None,
         rating_max: float | None = None,
         ordering: str | None = None,
+        viewer_id: int | None = None,
+        is_watched: bool | None = None,
     ) -> CollectionMovieListResult:
         base_qs = CollectionMovie.objects.filter(collection_id=collection_id).select_related('movie')
+        if viewer_id:
+            base_qs = base_qs.annotate(
+                is_watched=Exists(WatchedMovie.objects.filter(user_id=viewer_id, movie_id=OuterRef('movie_id')))
+            )
+        else:
+            base_qs = base_qs.annotate(is_watched=Value(False, output_field=models.BooleanField()))
+        if is_watched is True:
+            base_qs = base_qs.filter(is_watched=True)
+        elif is_watched is False:
+            base_qs = base_qs.filter(is_watched=False)
         needs_rating_value = rating_min is not None or rating_max is not None or self._ordering_needs_rating(ordering)
         if needs_rating_value:
             base_qs = base_qs.annotate(
@@ -156,6 +169,7 @@ class CollectionRepository:
                 year=relation.movie.year,
                 description=relation.movie.plot,
                 imdb_rating=relation.movie.imdb_rating or None,
+                is_watched=bool(getattr(relation, 'is_watched', False)),
             )
             for relation in base_qs
         ]

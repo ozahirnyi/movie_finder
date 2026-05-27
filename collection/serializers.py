@@ -11,6 +11,7 @@ class CollectionMovieSerializer(serializers.Serializer):
     year = serializers.CharField(allow_null=True, allow_blank=True)
     description = serializers.CharField(allow_null=True, allow_blank=True)
     imdb_rating = serializers.CharField(allow_null=True, allow_blank=True)
+    is_watched = serializers.BooleanField(read_only=True, default=False)
 
 
 class CollectionMoviePreviewSerializer(serializers.Serializer):

@@ -18,6 +18,7 @@ class LikesWatchLaterSerializer(serializers.Serializer):
     is_liked = serializers.BooleanField(read_only=True, default=False)
     watch_later_count = serializers.IntegerField(read_only=True, default=0)
     is_watch_later = serializers.BooleanField(read_only=True, default=False)
+    is_watched = serializers.BooleanField(read_only=True, default=False)
 
 
 class StructuresSerializer(serializers.Serializer):
@@ -107,6 +108,7 @@ class MovieModelSerializer(serializers.ModelSerializer, LikesWatchLaterSerialize
             'likes_count',
             'is_watch_later',
             'watch_later_count',
+            'is_watched',
             'created_at',
         )
 

@@ -108,6 +108,7 @@ class CollectionService:
         rating_min: float | None = None,
         rating_max: float | None = None,
         ordering: str | None = None,
+        is_watched: bool | None = None,
     ) -> CollectionMovieListResult:
         collection = self.repository.retrieve(collection_id, viewer_id=viewer_id)
         self._ensure_can_view(viewer_id=viewer_id, is_staff=is_staff, owner_id=collection.owner_id, is_public=collection.is_public)
@@ -122,6 +123,8 @@ class CollectionService:
             rating_min=rating_min,
             rating_max=rating_max,
             ordering=ordering,
+            viewer_id=viewer_id,
+            is_watched=is_watched,
         )
 
     def subscribe(self, *, viewer_id: int, is_staff: bool, collection_id: int) -> None:
