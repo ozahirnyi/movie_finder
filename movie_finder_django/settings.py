@@ -228,8 +228,9 @@ STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-LOGIN_PAGE_URL = '/'
-LOGIN_REDIRECT_URL = '/'
+FRONTEND_URL = env('FRONTEND_URL', default='https://moviefinder.cc').rstrip('/')
+LOGIN_PAGE_URL = f'{FRONTEND_URL}/'
+LOGIN_REDIRECT_URL = f'{FRONTEND_URL}/home/'
 LOGOUT_REDIRECT_URL = LOGIN_PAGE_URL
 ACCOUNT_ADAPTER = 'allauth.account.adapter.DefaultAccountAdapter'
 SOCIALACCOUNT_ADAPTER = 'auth_app.adapters.MovieFinderSocialAccountAdapter'

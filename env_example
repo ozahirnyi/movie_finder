@@ -9,6 +9,10 @@ IMDB_API_KEY=
 # Movie search: omdb = OMDb search (?s=), imdb = CollectAPI. On error we fall back to DB search.
 MOVIE_SEARCH_PROVIDER=omdb
 OMDB_API_KEY=
+# TMDB API key (primary trailer source): https://www.themoviedb.org/settings/api
+TMDB_API_KEY=
+# YouTube Data API v3 key (trailer fallback when TMDB has no match)
+YOUTUBE_API_KEY=
 DJANGO_SETTINGS_MODULE=
 PYTHONUNBUFFERED=1
 EMAIL_HOST_USER=
@@ -16,13 +20,16 @@ EMAIL_HOST_PASSWORD=
 DB_NAME=movie_finder
 DB_USER=movie_finder
 DB_PASSWORD=supersecurepassword
+# Docker Compose service name. For native Postgres on Windows: DB_HOST=localhost, DB_PORT=5432
 DB_HOST=db
 DB_PORT=5432
 ALLOWED_HOSTS=localhost,127.0.0.1,api.moviefinder.cc,moviefinder.cc,www.moviefinder.cc
 CSRF_TRUSTED_ORIGINS=https://api.moviefinder.cc,https://moviefinder.cc,https://www.moviefinder.cc
 CORS_ALLOW_ALL_ORIGINS=False
-# Comma-separated origins for frontend (required when CORS_ALLOW_ALL_ORIGINS=False)
+# Comma-separated origins for frontend (required when CORS_ALLOW_ALL_ORIGINS=False). If empty, defaults in settings.py are used.
 CORS_ALLOWED_ORIGINS=https://moviefinder.cc,https://www.moviefinder.cc,https://api.moviefinder.cc
+# Set True for local Next.js (http://localhost:3000) together with strict CORS above.
+# INCLUDE_LOCAL_FRONTEND_CORS=True
 
 # Metrics and Grafana (optional; see GRAFANA_MONITORING.md)
 METRICS_ENABLED=True
