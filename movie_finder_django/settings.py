@@ -232,6 +232,7 @@ LOGIN_PAGE_URL = '/'
 LOGIN_REDIRECT_URL = '/'
 LOGOUT_REDIRECT_URL = LOGIN_PAGE_URL
 ACCOUNT_ADAPTER = 'allauth.account.adapter.DefaultAccountAdapter'
+SOCIALACCOUNT_ADAPTER = 'auth_app.adapters.MovieFinderSocialAccountAdapter'
 
 LOGGING = {
     'version': 1,
