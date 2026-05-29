@@ -174,7 +174,7 @@ class GoogleOAuthTests(TestCase):
         request.user = user
         for adapter in (MovieFinderSocialAccountAdapter(), MovieFinderAccountAdapter()):
             url = adapter.get_login_redirect_url(request)
-            self.assertTrue(url.startswith(f'{settings.FRONTEND_URL}/auth/google/callback/?'))
+            self.assertTrue(url.startswith(f'{settings.FRONTEND_URL}/auth/google/callback#'))
             self.assertIn('access=', url)
             self.assertIn('refresh=', url)
 

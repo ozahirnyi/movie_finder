@@ -23,7 +23,8 @@ def build_jwt_oauth_callback_url(request) -> str:
         base = stored.strip().rstrip('/')
     else:
         base = settings.FRONTEND_URL.rstrip('/')
-    return f'{base}/auth/google/callback/?{query}'
+    # Hash fragment avoids tokens in query string (referrer/server logs).
+    return f'{base}/auth/google/callback/#{query}'
 
 
 class MovieFinderAccountAdapter(DefaultAccountAdapter):
