@@ -18,6 +18,9 @@ from auth_app.errors import ChangePasswordError
 from auth_app.forms import UserChangeForm, UserCreationForm
 from auth_app.models import AccountTier
 from auth_app.repositories import AccountTierRepository
+from django.conf import settings
+
+from auth_app.adapters import MovieFinderAccountAdapter, MovieFinderSocialAccountAdapter
 from auth_app.serializers import SignUpSerializer
 
 
@@ -136,8 +139,9 @@ class GoogleOAuthTests(TestCase):
             sociallogin = SocialLogin(user=test_user, account=social_account)
             mock_complete_login.return_value = sociallogin
 
-            response = self.client.get(self.login_url)
-            self.assertEqual(response.status_code, 200)
+            response = self.client.get(self.login_url, follow=False)
+            self.assertEqual(response.status_code, 302)
+            self.assertIn('accounts.google.com', response['Location'])
 
             response = self.client.post(self.callback_url)
             self.assertEqual(response.status_code, 200)
@@ -151,6 +155,28 @@ class GoogleOAuthTests(TestCase):
 
             social_account = SocialAccount.objects.filter(user=test_user).first()
             self.assertIsNotNone(social_account)
+
+    def test_google_login_start_redirects_to_google(self):
+        response = self.client.get(
+            '/auth/google/start/?return_origin=http://127.0.0.1:3000',
+            follow=False,
+        )
+        self.assertEqual(response.status_code, 302)
+        self.assertIn('accounts.google.com', response['Location'])
+        self.assertEqual(
+            self.client.session.get('oauth_return_origin'),
+            'http://127.0.0.1:3000',
+        )
+
+    def test_social_login_redirect_includes_jwt_query(self):
+        user = User.objects.create_user(email='oauth@test.test', password='validpass')
+        request = RequestFactory().get('/')
+        request.user = user
+        for adapter in (MovieFinderSocialAccountAdapter(), MovieFinderAccountAdapter()):
+            url = adapter.get_login_redirect_url(request)
+            self.assertTrue(url.startswith(f'{settings.FRONTEND_URL}/auth/google/callback/?'))
+            self.assertIn('access=', url)
+            self.assertIn('refresh=', url)
 
 
 class UserManagerTests(TestCase):

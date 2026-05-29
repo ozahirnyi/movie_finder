@@ -30,6 +30,9 @@ CORS_ALLOW_ALL_ORIGINS=False
 CORS_ALLOWED_ORIGINS=https://moviefinder.cc,https://www.moviefinder.cc,https://api.moviefinder.cc
 # Set True for local Next.js (http://localhost:3000) together with strict CORS above.
 # INCLUDE_LOCAL_FRONTEND_CORS=True
+# OAuth redirect after Google login (must match where Next.js runs).
+# Without this, backend redirects to https://moviefinder.cc after Google login.
+FRONTEND_URL=http://localhost:3000
 
 # Metrics and Grafana (optional; see GRAFANA_MONITORING.md)
 METRICS_ENABLED=True

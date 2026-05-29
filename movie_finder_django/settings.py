@@ -191,21 +191,30 @@ AUTHENTICATION_BACKENDS = [
 SOCIALACCOUNT_PROVIDERS = {
     'google': {
         'SCOPE': ['profile', 'email'],
+        # access_type=online only; no prompt=consent/select_account so Google reuses prior approval.
         'AUTH_PARAMS': {'access_type': 'online'},
         'OAUTH_PKCE_ENABLED': True,
     }
 }
 
+# Skip unstyled allauth "Continue" page; redirect straight to Google on GET.
+SOCIALACCOUNT_LOGIN_ON_GET = True
+
 SOCIALACCOUNT_EMAIL_VERIFICATION = 'none'
 SOCIALACCOUNT_AUTO_SIGNUP = True
+SOCIALACCOUNT_EMAIL_AUTHENTICATION = True
+SOCIALACCOUNT_EMAIL_AUTHENTICATION_AUTO_CONNECT = True
 
 SITE_ID = 1
 ACCOUNT_SIGNUP_FIELDS = ['email*', 'password1*', 'password2*']
-ACCOUNT_EMAIL_VERIFICATION = 'mandatory'
+ACCOUNT_EMAIL_VERIFICATION = 'none'
 ACCOUNT_LOGIN_METHODS = {'email'}
 ACCOUNT_USER_MODEL_USERNAME_FIELD = None
 
-EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+if DEBUG:
+    EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+else:
+    EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
@@ -224,15 +233,26 @@ USE_TZ = True
 
 STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
-STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+# Local dev (DEBUG or INCLUDE_LOCAL_FRONTEND_CORS): admin CSS without collectstatic.
+_serve_static_from_apps = DEBUG or INCLUDE_LOCAL_FRONTEND_CORS
+if _serve_static_from_apps:
+    STATICFILES_STORAGE = 'django.contrib.staticfiles.storage.StaticFilesStorage'
+    WHITENOISE_USE_FINDERS = True
+else:
+    STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-FRONTEND_URL = env('FRONTEND_URL', default='https://moviefinder.cc').rstrip('/')
+_default_frontend_url = (
+    'http://localhost:3000'
+    if INCLUDE_LOCAL_FRONTEND_CORS
+    else 'https://moviefinder.cc'
+)
+FRONTEND_URL = env('FRONTEND_URL', default=_default_frontend_url).rstrip('/')
 LOGIN_PAGE_URL = f'{FRONTEND_URL}/'
 LOGIN_REDIRECT_URL = f'{FRONTEND_URL}/home/'
 LOGOUT_REDIRECT_URL = LOGIN_PAGE_URL
-ACCOUNT_ADAPTER = 'allauth.account.adapter.DefaultAccountAdapter'
+ACCOUNT_ADAPTER = 'auth_app.adapters.MovieFinderAccountAdapter'
 SOCIALACCOUNT_ADAPTER = 'auth_app.adapters.MovieFinderSocialAccountAdapter'
 
 LOGGING = {
