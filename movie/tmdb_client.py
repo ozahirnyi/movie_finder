@@ -215,10 +215,7 @@ def _map_tmdb_payload_to_omdb_movie(payload: dict, media_type: str) -> OmdbMovie
     directors = [
         Director(full_name=member.get('name').strip())
         for member in crew
-        if isinstance(member, dict)
-        and member.get('job') == 'Director'
-        and isinstance(member.get('name'), str)
-        and member.get('name').strip()
+        if isinstance(member, dict) and member.get('job') == 'Director' and isinstance(member.get('name'), str) and member.get('name').strip()
     ]
     writers = [
         Writer(full_name=member.get('name').strip())

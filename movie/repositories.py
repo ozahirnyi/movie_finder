@@ -309,7 +309,7 @@ class MovieRepository:
         if not imdb_movies:
             return []
 
-        def _resolve_imdb_item(imdb_item: ImdbMovie) -> OmdbMovie | None:
+        def _resolve_imdb_item(imdb_item: ImdbMovie, close_connection: bool = True) -> OmdbMovie | None:
             try:
                 if imdb_item.imdb_id and imdb_item.imdb_id.strip():
                     movie_instance = (
@@ -334,10 +334,15 @@ class MovieRepository:
                 logger.warning('Parallel imdb-list resolve failed: title=%r error=%s', imdb_item.title, exc)
                 return None
             finally:
-                close_old_connections()
+                if close_connection:
+                    close_old_connections()
 
         max_workers = min(len(imdb_movies), 5)
         results_by_index: dict[int, OmdbMovie] = {}
+
+        if max_workers == 1:
+            result = _resolve_imdb_item(imdb_movies[0], close_connection=False)
+            return [result] if result else []
 
         with ThreadPoolExecutor(max_workers=max_workers) as executor:
             future_to_idx = {executor.submit(_resolve_imdb_item, item): i for i, item in enumerate(imdb_movies)}
@@ -576,9 +581,7 @@ class MovieRepository:
 
         max_workers = min(len(ai_movies), 8)
         with ThreadPoolExecutor(max_workers=max_workers) as executor:
-            future_to_index = {
-                executor.submit(_resolve_safe, index, ai_movie): index for index, ai_movie in enumerate(ai_movies)
-            }
+            future_to_index = {executor.submit(_resolve_safe, index, ai_movie): index for index, ai_movie in enumerate(ai_movies)}
             for future in as_completed(future_to_index):
                 index, movie = future.result()
                 if movie:

@@ -1,6 +1,6 @@
+from allauth.socialaccount.providers.google.views import oauth2_login
 from django.conf import settings
 from django.views import View
-from allauth.socialaccount.providers.google.views import oauth2_login
 from rest_framework import permissions, status
 from rest_framework.generics import CreateAPIView
 from rest_framework.response import Response

@@ -4,6 +4,7 @@ from unittest.mock import patch
 from allauth.socialaccount.models import SocialAccount, SocialApp, SocialLogin
 from allauth.socialaccount.providers.google.views import GoogleOAuth2Adapter
 from django.apps import apps as django_apps
+from django.conf import settings
 from django.contrib.admin.sites import AdminSite
 from django.contrib.auth import get_user_model
 from django.contrib.sites.models import Site
@@ -13,14 +14,12 @@ from rest_framework import status
 from rest_framework.test import APITestCase
 from rest_framework_simplejwt.tokens import RefreshToken
 
+from auth_app.adapters import MovieFinderAccountAdapter, MovieFinderSocialAccountAdapter
 from auth_app.admin import AccountTierAdmin
 from auth_app.errors import ChangePasswordError
 from auth_app.forms import UserChangeForm, UserCreationForm
 from auth_app.models import AccountTier
 from auth_app.repositories import AccountTierRepository
-from django.conf import settings
-
-from auth_app.adapters import MovieFinderAccountAdapter, MovieFinderSocialAccountAdapter
 from auth_app.serializers import SignUpSerializer
 
 
@@ -174,7 +173,7 @@ class GoogleOAuthTests(TestCase):
         request.user = user
         for adapter in (MovieFinderSocialAccountAdapter(), MovieFinderAccountAdapter()):
             url = adapter.get_login_redirect_url(request)
-            self.assertTrue(url.startswith(f'{settings.FRONTEND_URL}/auth/google/callback#'))
+            self.assertTrue(url.startswith(f'{settings.FRONTEND_URL}/auth/google/callback/#'))
             self.assertIn('access=', url)
             self.assertIn('refresh=', url)
 

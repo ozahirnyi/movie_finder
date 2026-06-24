@@ -3,8 +3,7 @@ from __future__ import annotations
 from typing import Iterable, Sequence
 
 from django.core.exceptions import ValidationError
-from django.db import transaction
-from django.db import models
+from django.db import models, transaction
 from django.db.models import Case, Count, Exists, FloatField, OuterRef, Prefetch, QuerySet, Value, When
 from django.db.models.functions import Cast
 
@@ -122,9 +121,7 @@ class CollectionRepository:
     ) -> CollectionMovieListResult:
         base_qs = CollectionMovie.objects.filter(collection_id=collection_id).select_related('movie')
         if viewer_id:
-            base_qs = base_qs.annotate(
-                is_watched=Exists(WatchedMovie.objects.filter(user_id=viewer_id, movie_id=OuterRef('movie_id')))
-            )
+            base_qs = base_qs.annotate(is_watched=Exists(WatchedMovie.objects.filter(user_id=viewer_id, movie_id=OuterRef('movie_id'))))
         else:
             base_qs = base_qs.annotate(is_watched=Value(False, output_field=models.BooleanField()))
         if is_watched is True:

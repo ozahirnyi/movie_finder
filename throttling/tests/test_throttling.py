@@ -1,13 +1,22 @@
 from types import SimpleNamespace
 
+from django.core.cache import cache
 from django.test import RequestFactory, SimpleTestCase
 from rest_framework.exceptions import ValidationError
 
-from throttling.throttling import RegularSearchForwardedThrottle, RegularSearchIpThrottle, RegularSearchUaThrottle
+from throttling.throttling import (
+    GUEST_AI_SEARCH_CACHE_PREFIX,
+    RegularSearchForwardedThrottle,
+    RegularSearchIpThrottle,
+    RegularSearchUaThrottle,
+    consume_guest_ai_search_quota,
+    get_guest_ai_search_cache_key,
+)
 
 
 class ThrottlingTests(SimpleTestCase):
     def setUp(self):
+        cache.clear()
         self.factory = RequestFactory()
 
     def test_ua_throttle_requires_user_agent(self):
@@ -63,3 +72,53 @@ class ThrottlingTests(SimpleTestCase):
         key = throttle.get_cache_key(request, view=None)
 
         self.assertEqual(key, 'throttle_ip_203.0.113.42')
+
+    def test_guest_ai_search_cache_key_is_stable_and_hashed(self):
+        request = self.factory.post(
+            '/',
+            REMOTE_ADDR='198.51.100.10',
+            HTTP_X_FORWARDED_FOR='203.0.113.10, 10.0.0.2',
+            HTTP_USER_AGENT='guest-agent',
+        )
+
+        first_key = get_guest_ai_search_cache_key(request)
+        second_key = get_guest_ai_search_cache_key(request)
+
+        self.assertEqual(first_key, second_key)
+        self.assertTrue(first_key.startswith(f'{GUEST_AI_SEARCH_CACHE_PREFIX}_'))
+        self.assertNotIn('guest-agent', first_key)
+        self.assertNotIn('203.0.113.10', first_key)
+
+    def test_guest_ai_search_quota_allows_only_first_cache_claim(self):
+        request = self.factory.post(
+            '/',
+            REMOTE_ADDR='198.51.100.10',
+            HTTP_X_FORWARDED_FOR='203.0.113.10, 10.0.0.2',
+            HTTP_USER_AGENT='guest-agent',
+        )
+
+        self.assertTrue(consume_guest_ai_search_quota(request))
+        self.assertFalse(consume_guest_ai_search_quota(request))
+
+    def test_guest_ai_search_quota_blocks_user_agent_rotation_from_same_ip(self):
+        first_request = self.factory.post(
+            '/',
+            REMOTE_ADDR='198.51.100.10',
+            HTTP_X_FORWARDED_FOR='203.0.113.10, 10.0.0.2',
+            HTTP_USER_AGENT='guest-agent-one',
+        )
+        second_request = self.factory.post(
+            '/',
+            REMOTE_ADDR='198.51.100.10',
+            HTTP_X_FORWARDED_FOR='203.0.113.10, 10.0.0.2',
+            HTTP_USER_AGENT='guest-agent-two',
+        )
+
+        self.assertTrue(consume_guest_ai_search_quota(first_request))
+        self.assertFalse(consume_guest_ai_search_quota(second_request))
+
+    def test_guest_ai_search_cache_key_requires_user_agent(self):
+        request = self.factory.post('/', REMOTE_ADDR='198.51.100.10')
+
+        with self.assertRaises(ValidationError):
+            get_guest_ai_search_cache_key(request)

@@ -18,7 +18,8 @@ def build_jwt_oauth_callback_url(request) -> str:
         },
         quote_via=quote,
     )
-    stored = request.session.pop('oauth_return_origin', None)
+    session = getattr(request, 'session', None)
+    stored = session.pop('oauth_return_origin', None) if session is not None else None
     if isinstance(stored, str) and stored.strip():
         base = stored.strip().rstrip('/')
     else:
@@ -44,7 +45,7 @@ class MovieFinderAccountAdapter(DefaultAccountAdapter):
 class MovieFinderSocialAccountAdapter(DefaultSocialAccountAdapter):
     def save_user(self, request, sociallogin, form=None):  # type: ignore[override]
         user = sociallogin.user
-        if getattr(user, "account_tier_id", None) is None:
+        if getattr(user, 'account_tier_id', None) is None:
             user.account_tier = AccountTierRepository().resolve(None)
         return super().save_user(request, sociallogin, form=form)
 

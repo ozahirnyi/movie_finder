@@ -7,6 +7,7 @@ from typing import List
 from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
+from django.core.cache import cache
 from django.test import SimpleTestCase
 from django.urls import reverse
 from django.utils import timezone
@@ -46,10 +47,7 @@ class AiSearchStreamResolveTests(SimpleTestCase):
             patch.object(MoviesAiSearchStreamView, 'throttle_classes', []),
         ):
             response = MoviesAiSearchStreamView.as_view()(request)
-            events = [
-                json.loads(chunk.decode('utf-8') if isinstance(chunk, bytes) else chunk)
-                for chunk in response.streaming_content
-            ]
+            events = [json.loads(chunk.decode('utf-8') if isinstance(chunk, bytes) else chunk) for chunk in response.streaming_content]
         return response, events, mock_consume_quota
 
     def test_stream_resolve_default_concurrency_is_two(self):
@@ -489,8 +487,15 @@ class FinderTests(APITestCase):
 
 class FindMovieAiTests(APITestCase):
     def setUp(self):
+        cache.clear()
         self.user = get_user_model().objects.create_user(email='trinity@matrix.test', password='followthewhiterabbit')
         _issue_jwt(self.client, self.user)
+
+    def _guest_headers(self):
+        return {
+            'HTTP_USER_AGENT': 'guest-ai-search-agent',
+            'HTTP_X_FORWARDED_FOR': '203.0.113.77, 10.0.0.1',
+        }
 
     @patch('movie.views.MovieService.resolve_ai_search')
     @patch('movie.views.MovieService.get_movies_from_ai')
@@ -539,6 +544,60 @@ class FindMovieAiTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn('expression', response.data)
         self.assertIn('Ensure this field has no more than', response.data['expression'][0])
+
+    @patch('movie.views.MovieService.resolve_ai_search')
+    @patch('movie.views.MovieService.get_movies_from_ai')
+    def test_guest_first_ai_search_request_is_allowed(self, mock_ai, mock_resolve):
+        self.client.credentials()
+        mock_ai.return_value = [AiMovie(title='Shrek')]
+        mock_resolve.return_value = []
+
+        response = self.client.post(
+            reverse('movies_ai_search'),
+            data={'expression': 'guest query'},
+            format='json',
+            **self._guest_headers(),
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        mock_ai.assert_called_once_with('guest query')
+        mock_resolve.assert_called_once_with(mock_ai.return_value, None, 'guest query')
+
+    @patch('movie.views.MovieService.resolve_ai_search')
+    @patch('movie.views.MovieService.get_movies_from_ai')
+    def test_guest_second_ai_search_request_is_blocked_before_ai_provider(self, mock_ai, mock_resolve):
+        self.client.credentials()
+        mock_ai.return_value = [AiMovie(title='Shrek')]
+        mock_resolve.return_value = []
+        payload = {'expression': 'guest query'}
+        headers = self._guest_headers()
+
+        first_response = self.client.post(reverse('movies_ai_search'), data=payload, format='json', **headers)
+        second_response = self.client.post(reverse('movies_ai_search'), data=payload, format='json', **headers)
+
+        self.assertEqual(first_response.status_code, status.HTTP_200_OK)
+        self.assertEqual(second_response.status_code, status.HTTP_429_TOO_MANY_REQUESTS)
+        self.assertEqual(second_response.data['detail'].code, AiSearchLimitError.default_code)
+        self.assertEqual(second_response.data['detail'], AiSearchLimitError.default_detail)
+        mock_ai.assert_called_once()
+        mock_resolve.assert_called_once()
+
+    @patch('movie.views.MovieService.resolve_ai_search')
+    @patch('movie.views.MovieService.get_movies_from_ai')
+    def test_authenticated_ai_search_does_not_use_guest_limit(self, mock_ai, mock_resolve):
+        mock_ai.return_value = []
+        mock_resolve.return_value = []
+        payload = {'expression': 'authenticated query'}
+
+        first_response = self.client.post(reverse('movies_ai_search'), data=payload, format='json')
+        second_response = self.client.post(reverse('movies_ai_search'), data=payload, format='json')
+
+        self.assertEqual(first_response.status_code, status.HTTP_200_OK)
+        self.assertEqual(second_response.status_code, status.HTTP_200_OK)
+        self.user.refresh_from_db()
+        self.assertEqual(self.user.ai_search_count, 2)
+        self.assertEqual(mock_ai.call_count, 2)
+        self.assertEqual(mock_resolve.call_count, 2)
 
     @patch('movie.views.MovieService.resolve_ai_search')
     @patch('movie.views.MovieService.get_movies_from_ai')
@@ -670,19 +729,49 @@ class FindMovieAiTests(APITestCase):
         )
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        events = [
-            json.loads(chunk.decode('utf-8') if isinstance(chunk, bytes) else chunk)
-            for chunk in response.streaming_content
-        ]
+        events = [json.loads(chunk.decode('utf-8') if isinstance(chunk, bytes) else chunk) for chunk in response.streaming_content]
         movie_events = [event for event in events if event['event'] == 'movie']
+        ordered_movie_events = sorted(movie_events, key=lambda event: event['index'])
 
-        self.assertEqual([event['data']['title'] for event in movie_events], ['Pom Poko', 'The Cat Returns'])
+        self.assertEqual([event['data']['title'] for event in ordered_movie_events], ['Pom Poko', 'The Cat Returns'])
         self.assertEqual(events[-1]['event'], 'done')
         self.assertEqual(events[-1]['requested'], 2)
         self.assertEqual(events[-1]['resolved'], 2)
         mock_stream_ai.assert_called_once_with('anime like shrek')
         mock_get_movies_from_ai.assert_not_called()
         self.assertEqual(mock_resolve_movie.call_count, 2)
+
+    @patch('movie.views.MovieService.resolve_ai_movie')
+    @patch('movie.views.MovieService.stream_movies_from_ai')
+    def test_guest_ai_search_stream_second_request_is_blocked_before_ai_provider(self, mock_stream_ai, mock_resolve_movie):
+        self.client.credentials()
+        mock_stream_ai.return_value = iter([AiMovie(title='Pom Poko', year='1994', match_score=92)])
+        mock_resolve_movie.return_value = OmdbMovie(title='Pom Poko', imdb_id='tt0110008', genres=[GenreDTO(name='Animation')], id=1)
+        payload = {'expression': 'guest stream query'}
+        headers = self._guest_headers()
+
+        first_response = self.client.post(
+            reverse('movies_ai_search_stream'),
+            data=payload,
+            format='json',
+            HTTP_ACCEPT='application/x-ndjson',
+            **headers,
+        )
+        first_events = [json.loads(chunk.decode('utf-8') if isinstance(chunk, bytes) else chunk) for chunk in first_response.streaming_content]
+        second_response = self.client.post(
+            reverse('movies_ai_search_stream'),
+            data=payload,
+            format='json',
+            HTTP_ACCEPT='application/x-ndjson',
+            **headers,
+        )
+
+        self.assertEqual(first_response.status_code, status.HTTP_200_OK)
+        self.assertEqual(first_events[-1]['event'], 'done')
+        self.assertEqual(second_response.status_code, status.HTTP_429_TOO_MANY_REQUESTS)
+        self.assertEqual(second_response.data['detail'].code, AiSearchLimitError.default_code)
+        mock_stream_ai.assert_called_once_with('guest stream query')
+        mock_resolve_movie.assert_called_once()
 
 
 class FindMovieFiltersTests(APITestCase):

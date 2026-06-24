@@ -67,6 +67,7 @@ class OmdbMovie:
     watch_later_count: int = 0
     is_watch_later: bool = False
     is_watched: bool = False
+    match_score: int | None = None
 
 
 @dataclass

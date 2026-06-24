@@ -243,11 +243,7 @@ else:
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-_default_frontend_url = (
-    'http://localhost:3000'
-    if INCLUDE_LOCAL_FRONTEND_CORS
-    else 'https://moviefinder.cc'
-)
+_default_frontend_url = 'http://localhost:3000' if INCLUDE_LOCAL_FRONTEND_CORS else 'https://moviefinder.cc'
 FRONTEND_URL = env('FRONTEND_URL', default=_default_frontend_url).rstrip('/')
 LOGIN_PAGE_URL = f'{FRONTEND_URL}/'
 LOGIN_REDIRECT_URL = f'{FRONTEND_URL}/home/'

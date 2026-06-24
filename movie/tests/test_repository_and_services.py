@@ -3,9 +3,10 @@ from datetime import date, timedelta
 from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
-from django.test import TestCase
+from django.test import TestCase, TransactionTestCase
 from django.utils import timezone
 
+from auth_app.models import AccountTier
 from movie.dataclasses import (
     Actor as ActorDTO,
 )
@@ -47,8 +48,15 @@ class MovieFilterTests(TestCase):
         self.assertIs(filterset.filter_rating_max(queryset, 'rating_max', None), queryset)
 
 
-class MovieRepositoryTests(TestCase):
+class MovieRepositoryTests(TransactionTestCase):
     def setUp(self):
+        AccountTier.objects.get_or_create(
+            code='free',
+            defaults={'name': 'Free', 'daily_ai_search_limit': 3, 'is_default': True},
+        )
+        tmdb_patcher = patch('movie.repositories.search_tmdb_match', return_value=None)
+        tmdb_patcher.start()
+        self.addCleanup(tmdb_patcher.stop)
         self.repository = MovieRepository()
 
     @patch('movie.repositories.requests.get')
@@ -490,7 +498,8 @@ class MovieRepositoryTests(TestCase):
             ratings=[],
         )
         user = get_user_model().objects.create_user(email='fallback@test.test', password='pass')
-        results = self.repository.search_movies_in_omdb(['A Knight of the Seven Kingdoms'], initiator_id=user.id)
+        with patch('movie.repositories.search_tmdb_match', return_value=None):
+            results = self.repository.search_movies_in_omdb(['A Knight of the Seven Kingdoms'], initiator_id=user.id)
         self.assertEqual(len(results), 1)
         self.assertEqual(results[0].title, 'A Knight of the Seven Kingdoms')
         mock_t.assert_called_once()
@@ -523,7 +532,7 @@ class MovieRepositoryTests(TestCase):
             ratings=[],
         )
 
-        def side_effect(title):
+        def side_effect(title, year=None):
             return None if title == 'Not Found' else valid
 
         mock_get_movie.side_effect = side_effect

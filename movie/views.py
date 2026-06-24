@@ -31,12 +31,13 @@ from throttling.throttling import (
     RegularSearchForwardedThrottle,
     RegularSearchIpThrottle,
     RegularSearchUaThrottle,
+    consume_guest_ai_search_quota,
 )
 
 from .dataclasses import UserContext
 from .errors import AddLikeError, AddWatchedError, AiSearchLimitError
 from .filters import MovieFilter, WatchLaterFilter
-from .models import LikeMovie, Movie, WatchLaterMovie, WatchedMovie
+from .models import LikeMovie, Movie, WatchedMovie, WatchLaterMovie
 from .paginations import MoviesPagination
 from .renderers import STREAM_RENDERERS
 from .serializers import (
@@ -59,6 +60,13 @@ AI_STREAM_RESOLVE_POLL_INTERVAL_SECONDS = 0.05
 
 
 def _consume_ai_search_quota(request):
+    if not request.user.is_authenticated:
+        if consume_guest_ai_search_quota(request):
+            ai_search_used_total.labels(tier_code='guest').inc()
+            return
+        ai_search_limit_hit_total.labels(tier_code='guest').inc()
+        raise AiSearchLimitError
+
     user_repository = UserRepository()
     try:
         user_repository.consume_ai_search_quota(request.user)
@@ -131,13 +139,7 @@ class MovieView(RetrieveAPIView):
 
     def get_queryset(self):
         user_id = self.request.user.id if self.request.user.is_authenticated else None
-        return (
-            Movie.objects.with_is_liked(user_id)
-            .with_is_watch_later(user_id)
-            .with_is_watched(user_id)
-            .with_likes_count()
-            .with_watch_later_count()
-        )
+        return Movie.objects.with_is_liked(user_id).with_is_watch_later(user_id).with_is_watched(user_id).with_likes_count().with_watch_later_count()
 
 
 class MovieLikeView(GenericAPIView):
@@ -269,7 +271,7 @@ class MoviesSearchView(APIView):
 
 
 class MoviesAiSearchView(APIView):
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.AllowAny]
 
     throttle_classes = [
         AiSearchUaThrottle,
@@ -292,8 +294,9 @@ class MoviesAiSearchView(APIView):
         try:
             movie_service = MovieService()
             expression = input_serializer.data.get('expression') or ''
+            initiator_id = request.user.id if request.user.is_authenticated else None
             ai_movies = movie_service.get_movies_from_ai(expression)
-            omdb_movies = movie_service.resolve_ai_search(ai_movies, self.request.user.id, expression)
+            omdb_movies = movie_service.resolve_ai_search(ai_movies, initiator_id, expression)
             serialized_movies = MovieSerializer(omdb_movies, many=True)
             return Response(serialized_movies.data, status=status.HTTP_200_OK)
         except Exception as exc:
@@ -305,7 +308,7 @@ class MoviesAiSearchView(APIView):
 
 
 class MoviesAiSearchStreamView(APIView):
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.AllowAny]
     renderer_classes = STREAM_RENDERERS
 
     throttle_classes = [
@@ -329,7 +332,7 @@ class MoviesAiSearchStreamView(APIView):
             raise
 
         expression = input_serializer.data.get('expression') or ''
-        initiator_id = request.user.id
+        initiator_id = request.user.id if request.user.is_authenticated else None
 
         def event_stream():
             movie_service = MovieService()
@@ -383,13 +386,16 @@ class MoviesAiSearchStreamView(APIView):
                         yield json.dumps({'event': 'movie', 'index': index, 'data': payload}) + '\n'
                     break
 
-            yield json.dumps(
-                {
-                    'event': 'done',
-                    'requested': len(ai_movies),
-                    'resolved': resolved_count,
-                }
-            ) + '\n'
+            yield (
+                json.dumps(
+                    {
+                        'event': 'done',
+                        'requested': len(ai_movies),
+                        'resolved': resolved_count,
+                    }
+                )
+                + '\n'
+            )
 
         response = StreamingHttpResponse(event_stream(), content_type='application/x-ndjson')
         response['Cache-Control'] = 'no-cache'
@@ -539,10 +545,10 @@ class MovieTrailerView(APIView):
     permission_classes = [permissions.AllowAny]
 
     def get(self, request, *args, **kwargs):
-        title = request.query_params.get("title", "")
-        year = request.query_params.get("year")
-        imdb_id = request.query_params.get("imdb_id")
+        title = request.query_params.get('title', '')
+        year = request.query_params.get('year')
+        imdb_id = request.query_params.get('imdb_id')
         video_id = lookup_trailer_video_id(title, year, imdb_id)
         if not video_id:
-            return Response({"videoId": None}, status=status.HTTP_404_NOT_FOUND)
-        return Response({"videoId": video_id}, status=status.HTTP_200_OK)
+            return Response({'videoId': None}, status=status.HTTP_404_NOT_FOUND)
+        return Response({'videoId': video_id}, status=status.HTTP_200_OK)
