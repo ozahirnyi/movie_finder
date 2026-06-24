@@ -429,10 +429,21 @@ class FinderTests(APITestCase):
         rating_values = ['9.1', '8.5', '7.5', '6.5', '5.5', '4.5']
 
         for idx, value in enumerate(rating_values):
-            movie = Movie.objects.create(title=f'Movie {idx}', imdb_id=f'tt{1000 + idx}', year=str(2000 + idx))
+            movie = Movie.objects.create(
+                title=f'Movie {idx}',
+                imdb_id=f'tt{1000 + idx}',
+                year=str(2000 + idx),
+                imdb_rating=value,
+            )
             movie.genres.add(genres[idx])
-            Rating.objects.create(movie=movie, source='imdb', value=value)
+            Rating.objects.create(movie=movie, source='Internet Movie Database', value=f'{value}/10')
+            Rating.objects.create(movie=movie, source='Rotten Tomatoes', value='35%')
+            Rating.objects.create(movie=movie, source='Metacritic', value='48/100')
             WatchLaterMovie.objects.create(user=self.user, movie=movie)
+
+        unrated_movie = Movie.objects.create(title='Unrated', imdb_id='tt2000', imdb_rating='N/A')
+        Rating.objects.create(movie=unrated_movie, source='Rotten Tomatoes', value='25%')
+        WatchLaterMovie.objects.create(user=self.user, movie=unrated_movie)
 
         response = self.client.get(reverse('watch_later_statistics'))
 

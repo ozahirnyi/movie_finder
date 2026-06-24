@@ -5,7 +5,8 @@ from queue import Empty, Queue
 from threading import Thread
 
 from django.db import IntegrityError, close_old_connections
-from django.db.models import Case, Count, Max, Value, When
+from django.db.models import Case, Count, FloatField, Max, Q, Value, When
+from django.db.models.functions import Cast
 from django.http import StreamingHttpResponse
 from django_filters.rest_framework import DjangoFilterBackend
 from drf_spectacular.utils import OpenApiParameter, extend_schema
@@ -467,13 +468,20 @@ class WatchLaterStatisticsView(GenericAPIView):
     serializer_class = WatchLaterStatisticsSerializer
 
     def get(self, request, *args, **kwargs):
-        rating_stats = WatchLaterMovie.objects.filter(user=self.request.user).aggregate(
-            ratings_9_plus=Count(Case(When(movie__movie_ratings__value__gte='9.0', then=Value(1)))),
-            ratings_8_to_9=Count(Case(When(movie__movie_ratings__value__gte='8.0', movie__movie_ratings__value__lt='9.0', then=Value(1)))),
-            ratings_7_to_8=Count(Case(When(movie__movie_ratings__value__gte='7.0', movie__movie_ratings__value__lt='8.0', then=Value(1)))),
-            ratings_6_to_7=Count(Case(When(movie__movie_ratings__value__gte='6.0', movie__movie_ratings__value__lt='7.0', then=Value(1)))),
-            ratings_5_to_6=Count(Case(When(movie__movie_ratings__value__gte='5.0', movie__movie_ratings__value__lt='6.0', then=Value(1)))),
-            ratings_below_5=Count(Case(When(movie__movie_ratings__value__lt='5.0', then=Value(1)))),
+        watch_later_with_rating = WatchLaterMovie.objects.filter(user=self.request.user).annotate(
+            imdb_rating_value=Case(
+                When(movie__imdb_rating__regex=r'^\d+(\.\d+)?$', then=Cast('movie__imdb_rating', FloatField())),
+                default=Value(None),
+                output_field=FloatField(),
+            )
+        )
+        rating_stats = watch_later_with_rating.aggregate(
+            ratings_9_plus=Count('id', filter=Q(imdb_rating_value__gte=9.0)),
+            ratings_8_to_9=Count('id', filter=Q(imdb_rating_value__gte=8.0, imdb_rating_value__lt=9.0)),
+            ratings_7_to_8=Count('id', filter=Q(imdb_rating_value__gte=7.0, imdb_rating_value__lt=8.0)),
+            ratings_6_to_7=Count('id', filter=Q(imdb_rating_value__gte=6.0, imdb_rating_value__lt=7.0)),
+            ratings_5_to_6=Count('id', filter=Q(imdb_rating_value__gte=5.0, imdb_rating_value__lt=6.0)),
+            ratings_below_5=Count('id', filter=Q(imdb_rating_value__lt=5.0)),
         )
         genres_stats = (
             WatchLaterMovie.objects.filter(user=self.request.user)

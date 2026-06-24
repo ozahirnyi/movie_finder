@@ -76,6 +76,7 @@ jobs:
             --deployment-group-name ${{ secrets.CODEDEPLOY_DEPLOYMENT_GROUP }} \
             --s3-location bucket=${{ secrets.CODEDEPLOY_S3_BUCKET }},key=${S3_KEY},bundleType=tgz \
             --deployment-config-name CodeDeployDefault.OneAtATime \
+            --file-exists-behavior OVERWRITE \
             --description "Deployment from GitHub Actions - Commit ${GITHUB_SHA:0:7}" \
             --query 'deploymentId' \
             --output text)
