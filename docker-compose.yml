@@ -1,5 +1,6 @@
 services:
   web:
+    platform: linux/amd64
     build:
       context: .
       dockerfile: Dockerfile.dev
@@ -15,7 +16,7 @@ services:
 
   db:
     image: postgres:14
-    platform: linux/arm64
+    platform: linux/amd64
     environment:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres

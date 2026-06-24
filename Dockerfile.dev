@@ -1,5 +1,5 @@
-# Use linux/arm64 for ARM hosts (e.g. Windows ARM, Apple Silicon); use linux/amd64 on x86
-FROM --platform=linux/arm64 python:3.12-slim
+# Pin amd64 so Windows/Linux x86 builds do not reuse a wrong-arch cached base (Apple Silicon: build with --platform).
+FROM --platform=linux/amd64 python:3.12-slim
 
 RUN apt-get update \
     && apt-get install -y curl git \
